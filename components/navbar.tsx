@@ -1,20 +1,21 @@
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export function Navbar() {
   return (
     <nav className="h-16 bg-card/50 backdrop-blur-sm border-b border-border px-6 flex items-center justify-between">
-      <div className="text-xl font-medium" style={{ fontFamily: "var(--font-ibm-plex-mono)" }}>
+      <Link href="/" className="text-xl font-medium" style={{ fontFamily: "var(--font-ibm-plex-mono)" }}>
         <span className="text-orange-500">{">"}</span>
         <span className="text-black">algosaham.ai</span>
-      </div>
+      </Link>
 
       <div className="hidden md:flex items-center space-x-6 text-sm text-muted-foreground">
-        <a href="#" className="hover:text-foreground transition-colors">
+        <Link href="/" className="hover:text-foreground transition-colors">
           Backtest
-        </a>
-        <a href="#" className="hover:text-foreground transition-colors">
+        </Link>
+        <Link href="/strategies" className="hover:text-foreground transition-colors">
           Strategies
-        </a>
+        </Link>
         <a href="#" className="hover:text-foreground transition-colors">
           Portfolio
         </a>
