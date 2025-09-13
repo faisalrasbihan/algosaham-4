@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function MonthlyPerformanceHeatmap() {
   // Generate last 12 months
-  const months = []
+  const months: { month: string; fullMonth: string }[] = []
   const currentDate = new Date()
   for (let i = 11; i >= 0; i--) {
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1)

@@ -1,5 +1,6 @@
 import type React from "react"
 import { Inter, JetBrains_Mono, IBM_Plex_Mono } from "next/font/google"
+import { ClerkProvider } from '@clerk/nextjs'
 import "./globals.css"
 
 const inter = Inter({
@@ -32,8 +33,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} ${ibmPlexMono.variable} antialiased dark`}>
-      <body className="min-h-screen bg-background text-foreground">{children}</body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} ${ibmPlexMono.variable} antialiased dark`}>
+        <body className="min-h-screen bg-background text-foreground">{children}</body>
+      </html>
+    </ClerkProvider>
   )
 }

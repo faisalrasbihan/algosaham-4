@@ -1,5 +1,12 @@
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import {
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from '@clerk/nextjs'
 
 export function Navbar() {
   return (
@@ -28,12 +35,21 @@ export function Navbar() {
       </div>
 
       <div className="flex items-center space-x-3">
-        <Button variant="outline" size="sm">
-          Sign In
-        </Button>
-        <Button size="sm" style={{ backgroundColor: "#305250", color: "white" }} className="hover:opacity-90">
-          Sign Up
-        </Button>
+        <SignedOut>
+          <SignInButton>
+            <Button variant="outline" size="sm">
+              Sign In
+            </Button>
+          </SignInButton>
+          <SignUpButton>
+            <Button size="sm" style={{ backgroundColor: "#305250", color: "white" }} className="hover:opacity-90">
+              Sign Up
+            </Button>
+          </SignUpButton>
+        </SignedOut>
+        <SignedIn>
+          <UserButton />
+        </SignedIn>
       </div>
     </nav>
   )
