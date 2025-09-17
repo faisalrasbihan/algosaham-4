@@ -36,12 +36,12 @@ export function Navbar() {
 
       <div className="flex items-center space-x-3">
         <SignedOut>
-          <SignInButton>
+          <SignInButton mode="modal" oauthFlow="popup">
             <Button variant="outline" size="sm">
               Sign In
             </Button>
           </SignInButton>
-          <SignUpButton>
+          <SignUpButton mode="modal" oauthFlow="popup">
             <Button size="sm" style={{ backgroundColor: "#305250", color: "white" }} className="hover:opacity-90">
               Sign Up
             </Button>
