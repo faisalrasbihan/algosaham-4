@@ -27,6 +27,8 @@ import {
   Check,
 } from "lucide-react"
 import { AddIndicatorModal } from "@/components/add-indicator-modal"
+import { BacktestRequest } from "@/lib/api"
+import { useEffect } from "react"
 
 interface Indicator {
   id: string
@@ -35,18 +37,22 @@ interface Indicator {
   params: Record<string, any>
 }
 
-export function StrategyBuilder() {
-  const [marketCaps, setMarketCaps] = useState<string[]>(["Large"])
+interface StrategyBuilderProps {
+  onRunBacktest?: (config: BacktestRequest) => void
+}
+
+export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
+  const [marketCaps, setMarketCaps] = useState<string[]>(["Mid"])
   const [stockType, setStockType] = useState("All Stocks")
   const [sectors, setSectors] = useState<string[]>(["Banking"])
   const [sectorDropdownOpen, setSectorDropdownOpen] = useState(false)
   const [fundamentalIndicators, setFundamentalIndicators] = useState<Indicator[]>([
-    { id: "1", name: "PE Ratio", type: "fundamental", params: { min: 5, max: 20 } },
-    { id: "2", name: "ROE %", type: "fundamental", params: { min: 10, max: 50 } },
+    { id: "1", name: "PE Ratio", type: "fundamental", params: { min: 0, max: 20 } },
+    { id: "2", name: "PBV", type: "fundamental", params: { min: 0, max: 3 } },
+    { id: "3", name: "ROE %", type: "fundamental", params: { min: 15, max: 50 } },
   ])
   const [technicalIndicators, setTechnicalIndicators] = useState<Indicator[]>([
-    { id: "3", name: "RSI", type: "technical", params: { period: 14, oversold: 30, overbought: 70 } },
-    { id: "4", name: "SMA Crossover", type: "technical", params: { short: 20, long: 50 } },
+    { id: "5", name: "RSI", type: "technical", params: { period: 14, oversold: 70, overbought: 30 } },
   ])
   const [showModal, setShowModal] = useState(false)
   const [modalType, setModalType] = useState<"fundamental" | "technical">("fundamental")
@@ -54,6 +60,14 @@ export function StrategyBuilder() {
   const [strategyName, setStrategyName] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [editingIndicators, setEditingIndicators] = useState<Record<string, boolean>>({})
+  
+  // Backtest configuration state
+  const [initialCapital, setInitialCapital] = useState(1000000000)
+  const [startDate, setStartDate] = useState("2025-02-22")
+  const [endDate, setEndDate] = useState("2025-05-22")
+  const [stopLoss, setStopLoss] = useState(5)
+  const [takeProfit, setTakeProfit] = useState(10)
+  const [maxHoldingDays, setMaxHoldingDays] = useState(10)
 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
     filters: false,
@@ -78,6 +92,58 @@ export function StrategyBuilder() {
   ]
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Auto-run backtest on component mount (only once)
+  useEffect(() => {
+    console.log('🚀 [STRATEGY BUILDER] Component mounted, running initial backtest...')
+    
+    if (onRunBacktest) {
+      // Create the exact config as specified
+      const initialConfig: BacktestRequest = {
+        backtestId: "test1",
+        filters: {
+          marketCap: "mid",
+          is_syariah: false
+        },
+        fundamentalIndicators: [
+          { type: "PE_RATIO", min: 0, max: 20 },
+          { type: "PBV", min: 0, max: 3 },
+          { type: "ROE", min: 15 }
+        ],
+        technicalIndicators: [
+          { type: "RSI", period: 14, oversold: 70, overbought: 30 }
+        ],
+        backtestConfig: {
+          initialCapital: 1000000000,
+          startDate: "2025-02-22",
+          endDate: "2025-05-22",
+          tradingCosts: {
+            brokerFee: 0.15,
+            sellFee: 0.15,
+            minimumFee: 1000
+          },
+          portfolio: {
+            positionSizePercent: 20,
+            minPositionPercent: 2,
+            maxPositions: 5
+          },
+          riskManagement: {
+            stopLossPercent: 5,
+            takeProfitPercent: 10,
+            maxHoldingDays: 10
+          }
+        }
+      }
+
+      console.log('📋 [STRATEGY BUILDER] Initial backtest config:')
+      console.log(JSON.stringify(initialConfig, null, 2))
+      
+      console.log('🔄 [STRATEGY BUILDER] Calling onRunBacktest with initial config...')
+      onRunBacktest(initialConfig)
+    } else {
+      console.warn('⚠️ [STRATEGY BUILDER] No onRunBacktest function provided, skipping initial backtest')
+    }
+  }, []) // Empty dependency array - only run once on mount
 
   const toggleMarketCap = (cap: string) => {
     setMarketCaps((prev) => (prev.includes(cap) ? prev.filter((c) => c !== cap) : [...prev, cap]))
@@ -157,7 +223,107 @@ export function StrategyBuilder() {
   }
 
   const handleRunBacktest = () => {
-    console.log("Running backtest...")
+    console.log('🎮 [STRATEGY BUILDER] Run backtest button clicked!')
+    console.log('🎮 [STRATEGY BUILDER] onRunBacktest function available:', !!onRunBacktest)
+    
+    if (!onRunBacktest) {
+      console.warn('⚠️ [STRATEGY BUILDER] No onRunBacktest function provided')
+      return
+    }
+    
+    console.log('🎮 [STRATEGY BUILDER] Current form state:', {
+      marketCaps,
+      stockType,
+      sectors,
+      fundamentalIndicators: fundamentalIndicators.length,
+      technicalIndicators: technicalIndicators.length,
+      initialCapital,
+      startDate,
+      endDate,
+      stopLoss,
+      takeProfit,
+      maxHoldingDays
+    })
+    
+    // Convert indicators to API format
+    console.log('🔄 [STRATEGY BUILDER] Converting fundamental indicators...')
+    const apiFundamentalIndicators = fundamentalIndicators.map(indicator => {
+      const type = indicator.name === "PE Ratio" ? "PE_RATIO" : 
+                   indicator.name === "PBV" ? "PBV" :
+                   indicator.name === "ROE %" ? "ROE" : 
+                   indicator.name.toUpperCase().replace(/\s+/g, '_')
+      
+      const converted = {
+        type,
+        min: indicator.params.min,
+        max: indicator.params.max
+      }
+      console.log('🔄 [STRATEGY BUILDER] Converted fundamental indicator:', converted)
+      return converted
+    })
+
+    console.log('🔄 [STRATEGY BUILDER] Converting technical indicators...')
+    const apiTechnicalIndicators = technicalIndicators.map(indicator => {
+      let converted
+      if (indicator.name === "RSI") {
+        converted = {
+          type: "RSI",
+          period: indicator.params.period,
+          oversold: indicator.params.oversold,
+          overbought: indicator.params.overbought
+        }
+      } else if (indicator.name === "SMA Crossover") {
+        converted = {
+          type: "SMA_CROSSOVER",
+          shortPeriod: indicator.params.short,
+          longPeriod: indicator.params.long
+        }
+      } else {
+        converted = {
+          type: indicator.name.toUpperCase().replace(/\s+/g, '_'),
+          ...indicator.params
+        }
+      }
+      console.log('🔄 [STRATEGY BUILDER] Converted technical indicator:', converted)
+      return converted
+    })
+
+    const backtestConfig: BacktestRequest = {
+      backtestId: `strategy_${Date.now()}`,
+      filters: {
+        marketCap: marketCaps[0] || "Large",
+        is_syariah: stockType === "Syariah Only"
+      },
+      fundamentalIndicators: apiFundamentalIndicators,
+      technicalIndicators: apiTechnicalIndicators,
+      backtestConfig: {
+        initialCapital,
+        startDate,
+        endDate,
+        tradingCosts: {
+          brokerFee: 0.15,
+          sellFee: 0.15,
+          minimumFee: 1000
+        },
+        portfolio: {
+          positionSizePercent: 20,
+          minPositionPercent: 2,
+          maxPositions: 5
+        },
+        riskManagement: {
+          stopLossPercent: stopLoss,
+          takeProfitPercent: takeProfit,
+          maxHoldingDays
+        }
+      }
+    }
+
+    console.log('📤 [STRATEGY BUILDER] Final backtest config:')
+    console.log(JSON.stringify(backtestConfig, null, 2))
+    console.log('📤 [STRATEGY BUILDER] Calling onRunBacktest with config...')
+    
+    onRunBacktest(backtestConfig)
+    console.log('📤 [STRATEGY BUILDER] onRunBacktest called, scrolling to bottom...')
     scrollToBottom()
   }
 
@@ -554,24 +720,34 @@ export function StrategyBuilder() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-muted-foreground">Stop Loss (%)</Label>
-                  <Input type="number" placeholder="5" className="font-mono border-slate-200" />
+                  <Input 
+                    type="number" 
+                    value={stopLoss}
+                    onChange={(e) => setStopLoss(Number(e.target.value))}
+                    className="font-mono border-slate-200" 
+                  />
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Take Profit (%)</Label>
-                  <Input type="number" placeholder="15" className="font-mono border-slate-200" />
+                  <Input 
+                    type="number" 
+                    value={takeProfit}
+                    onChange={(e) => setTakeProfit(Number(e.target.value))}
+                    className="font-mono border-slate-200" 
+                  />
                 </div>
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Max Holding Period</Label>
-                <Select defaultValue="no-limit">
+                <Select value={maxHoldingDays.toString()} onValueChange={(value) => setMaxHoldingDays(Number(value))}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="no-limit">No limit</SelectItem>
                     <SelectItem value="30">30 days</SelectItem>
                     <SelectItem value="60">60 days</SelectItem>
                     <SelectItem value="90">90 days</SelectItem>
+                    <SelectItem value="120">120 days</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -598,11 +774,21 @@ export function StrategyBuilder() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-muted-foreground">Start Date</Label>
-                  <Input type="date" defaultValue="2022-01-01" className="border-slate-200" />
+                  <Input 
+                    type="date" 
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="border-slate-200" 
+                  />
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">End Date</Label>
-                  <Input type="date" defaultValue="2024-01-01" className="border-slate-200" />
+                  <Input 
+                    type="date" 
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="border-slate-200" 
+                  />
                 </div>
               </div>
               <div>
@@ -611,13 +797,12 @@ export function StrategyBuilder() {
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">Rp</span>
                   <Input
                     type="text"
-                    placeholder="100,000,000"
+                    value={initialCapital.toLocaleString()}
                     className="pl-8 font-mono border-slate-200"
-                    defaultValue="100,000,000"
                     onChange={(e) => {
                       const value = e.target.value.replace(/,/g, "")
                       if (!isNaN(Number(value))) {
-                        e.target.value = Number(value).toLocaleString()
+                        setInitialCapital(Number(value))
                       }
                     }}
                   />

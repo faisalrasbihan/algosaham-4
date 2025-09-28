@@ -2,27 +2,83 @@
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 
-const data = [
-  { date: "2022-01", strategy: 100, benchmark: 100 },
-  { date: "2022-03", strategy: 108, benchmark: 103 },
-  { date: "2022-06", strategy: 115, benchmark: 98 },
-  { date: "2022-09", strategy: 122, benchmark: 95 },
-  { date: "2022-12", strategy: 118, benchmark: 92 },
-  { date: "2023-03", strategy: 125, benchmark: 98 },
-  { date: "2023-06", strategy: 132, benchmark: 105 },
-  { date: "2023-09", strategy: 138, benchmark: 108 },
-  { date: "2023-12", strategy: 145, benchmark: 112 },
-  { date: "2024-01", strategy: 145.2, benchmark: 115 },
-]
 
-export function PerformanceChart() {
+interface PerformanceChartProps {
+  data?: Array<{
+    date: string
+    portfolioValue: number
+    benchmarkValue: number
+    drawdown: number
+  }>
+}
+
+export function PerformanceChart({ data }: PerformanceChartProps) {
+  console.log('📈 [PERFORMANCE CHART] Received data:', {
+    hasData: !!data,
+    dataLength: data?.length || 0,
+    sampleData: data?.[0] || null
+  })
+  
+  // Show error state if no data
+  if (!data || data.length === 0) {
+    return (
+      <div className="h-[400px] w-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-muted-foreground font-mono text-lg mb-2">No Performance Data</div>
+          <p className="text-muted-foreground font-mono text-sm">Run a backtest to see performance chart</p>
+        </div>
+      </div>
+    )
+  }
+  
+  // Process API data
+  const chartData = data.map((item) => {
+    // Convert date to readable format
+    const date = new Date(item.date).toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric' 
+    })
+    
+    // Convert portfolio value to percentage (assuming initial capital is 1B)
+    const initialCapital = 1000000000
+    const portfolioPercentage = (item.portfolioValue / initialCapital) * 100
+    
+    return {
+      date: date,
+      strategy: portfolioPercentage,
+      benchmark: item.benchmarkValue
+    }
+  })
+  
+  // Calculate dynamic y-axis domain based on data range
+  const allValues = chartData.flatMap(item => [item.strategy, item.benchmark])
+  const minValue = Math.min(...allValues)
+  const maxValue = Math.max(...allValues)
+  
+  // Add 5% padding to the range for better visualization
+  const range = maxValue - minValue
+  const padding = range * 0.05
+  const yAxisDomain = [minValue - padding, maxValue + padding]
+  
+  console.log('📈 [PERFORMANCE CHART] Final chart data:', {
+    dataLength: chartData.length,
+    sampleData: chartData[0] || null,
+    lastData: chartData[chartData.length - 1] || null,
+    yAxisDomain: yAxisDomain
+  })
   return (
     <div className="h-[400px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+        <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis dataKey="date" stroke="#64748b" fontSize={12} fontFamily="var(--font-mono)" />
-          <YAxis stroke="#64748b" fontSize={12} fontFamily="var(--font-mono)" />
+          <YAxis 
+            stroke="#64748b" 
+            fontSize={12} 
+            fontFamily="var(--font-mono)" 
+            domain={yAxisDomain}
+            tickFormatter={(value) => `${value.toFixed(1)}%`}
+          />
           <Tooltip
             contentStyle={{
               backgroundColor: "#ffffff",
@@ -32,6 +88,10 @@ export function PerformanceChart() {
               fontSize: "12px",
               color: "#1e293b",
             }}
+            formatter={(value: number, name: string) => [
+              `${value.toFixed(2)}%`, 
+              name === 'strategy' ? 'Strategy' : 'LQ45 Benchmark'
+            ]}
           />
           <Legend />
           <Line type="monotone" dataKey="strategy" stroke="#d07225" strokeWidth={2} name="Strategy" dot={false} />

@@ -1,6 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AlgoSaham - Stock Strategy Backtesting Platform
+
+This is a [Next.js](https://nextjs.org) project for stock strategy backtesting with FastAPI integration.
+
+## Features
+
+- **Strategy Builder**: Create and configure stock trading strategies with fundamental and technical indicators
+- **Real-time Backtesting**: Run backtests using FastAPI backend with live data
+- **Performance Analytics**: View detailed performance metrics, charts, and trade history
+- **Risk Management**: Configure stop-loss, take-profit, and position sizing
 
 ## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ 
+- FastAPI backend running on port 8000
+
+### Environment Setup
+
+Create a `.env.local` file in the root directory:
+
+```bash
+NEXT_PUBLIC_API_URL=https://backtester-psi.vercel.app
+FASTAPI_URL=https://backtester-psi.vercel.app
+```
+
+### Installation
+
+```bash
+npm install
+```
+
+### Development
 
 First, run the development server:
 
@@ -16,7 +47,17 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### FastAPI Integration
+
+The app automatically calls the FastAPI `/run_backtest` endpoint when loaded with default strategy parameters. In production, the FastAPI backend is deployed at `https://backtester-psi.vercel.app`.
+
+## API Integration
+
+The app integrates with a FastAPI backend that provides:
+
+- `/run_backtest` - POST endpoint for running backtests
+- Backtest configuration matching the StrategyBuilder form
+- Real-time performance data and trade history
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
