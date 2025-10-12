@@ -337,7 +337,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
     <div className="flex flex-col h-full">
       <div className="flex-1 p-4 space-y-3 overflow-y-auto" ref={scrollContainerRef}>
         {/* Stock Filters */}
-        <Card className="border bg-card rounded-none">
+        <Card className="border bg-card rounded-none" data-tutorial="stock-filters">
           <CardHeader className={`flex items-center ${collapsedSections.filters ? "py-2" : "pb-2"}`}>
             <CardTitle
               className="text-sm font-medium text-foreground flex items-center justify-between cursor-pointer hover:text-slate-600 transition-colors w-full"
@@ -445,7 +445,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
         </Card>
 
         {/* Fundamental Indicators */}
-        <Card className="border bg-card rounded-none">
+        <Card className="border bg-card rounded-none" data-tutorial="fundamental-indicators">
           <CardHeader className={`flex items-center ${collapsedSections.fundamental ? "py-2" : "pb-2"}`}>
             <CardTitle
               className="text-sm font-medium text-foreground flex items-center justify-between cursor-pointer hover:text-slate-600 transition-colors w-full"
@@ -580,7 +580,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
         </Card>
 
         {/* Technical Indicators */}
-        <Card className="border bg-card rounded-none">
+        <Card className="border bg-card rounded-none" data-tutorial="technical-indicators">
           <CardHeader className={`flex items-center ${collapsedSections.technical ? "py-2" : "pb-2"}`}>
             <CardTitle
               className="text-sm font-medium text-foreground flex items-center justify-between cursor-pointer hover:text-slate-600 transition-colors w-full"
@@ -702,7 +702,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
         </Card>
 
         {/* Risk Management */}
-        <Card className="border bg-card rounded-none">
+        <Card className="border bg-card rounded-none" data-tutorial="risk-management">
           <CardHeader className={`flex items-center ${collapsedSections.risk ? "py-2" : "pb-2"}`}>
             <CardTitle
               className="text-sm font-medium text-foreground flex items-center justify-between cursor-pointer hover:text-slate-600 transition-colors w-full"
@@ -756,7 +756,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
         </Card>
 
         {/* Backtest Period */}
-        <Card className="border bg-card rounded-none">
+        <Card className="border bg-card rounded-none" data-tutorial="backtest-period">
           <CardHeader className={`flex items-center ${collapsedSections.backtest ? "py-2" : "pb-2"}`}>
             <CardTitle
               className="text-sm font-medium text-foreground flex items-center justify-between cursor-pointer hover:text-slate-600 transition-colors w-full"
@@ -818,6 +818,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
           <Button
             className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium font-mono rounded-r-none border-r border-primary-foreground/20"
             onClick={handleRunBacktest}
+            data-tutorial="run-backtest"
           >
             <Play className="h-5 w-5 mr-2" />
             Run Backtest

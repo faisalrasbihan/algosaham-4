@@ -17,7 +17,7 @@ export function Navbar() {
       </Link>
 
       <div className="hidden md:flex items-center space-x-6 text-sm text-muted-foreground">
-        <Link href="/" className="hover:text-foreground transition-colors">
+        <Link href="/backtest" className="hover:text-foreground transition-colors">
           Backtest
         </Link>
         <Link href="/strategies" className="hover:text-foreground transition-colors">
