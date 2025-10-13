@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 
 export function HeroSection() {
   return (
@@ -17,7 +17,7 @@ export function HeroSection() {
           {/* Left side - Main heading */}
           <div>
             <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight text-balance">
-              Cari strategi paling menguntungkan di{" "}
+              Cari strategi paling menguntungkan bagi Anda di{" "}
               <span className="text-ochre font-mono" style={{ fontFamily: "var(--font-ibm-plex-mono)" }}>
                 algosaham.ai
               </span>
@@ -27,8 +27,7 @@ export function HeroSection() {
           {/* Right side - Description and CTAs */}
           <div className="space-y-6">
             <p className="text-lg lg:text-xl text-muted-foreground text-pretty leading-relaxed font-mono">
-              Build, test, and optimize your trading strategies with real Indonesian market data. Join thousands of
-              traders making data-driven decisions.
+              Build, test, and optimize your trading strategies with real Indonesian market data. Join thousands of traders making data-driven decisions.
             </p>
 
             <div className="flex flex-col sm:flex-row items-start gap-4">
@@ -44,5 +43,5 @@ export function HeroSection() {
         </div>
       </div>
     </section>
-  )
+  );
 }
