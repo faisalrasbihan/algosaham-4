@@ -1,12 +1,6 @@
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import {
-  SignInButton,
-  SignUpButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from '@clerk/nextjs'
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 export function Navbar() {
   return (
@@ -23,15 +17,15 @@ export function Navbar() {
         <Link href="/strategies" className="hover:text-foreground transition-colors">
           Strategies
         </Link>
-        <a href="#" className="hover:text-foreground transition-colors">
+        <Link href="/portfolio" className="hover:text-foreground transition-colors">
           Portfolio
-        </a>
-        <a href="#" className="hover:text-foreground transition-colors">
+        </Link>
+        <Link href="/pricing" className="hover:text-foreground transition-colors">
           Pricing
-        </a>
-        <a href="#" className="hover:text-foreground transition-colors">
+        </Link>
+        <Link href="/about" className="hover:text-foreground transition-colors">
           About
-        </a>
+        </Link>
       </div>
 
       <div className="flex items-center space-x-3">
@@ -52,5 +46,5 @@ export function Navbar() {
         </SignedIn>
       </div>
     </nav>
-  )
+  );
 }
