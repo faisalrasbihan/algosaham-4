@@ -27,16 +27,16 @@ export function HeroSection() {
           {/* Right side - Description and CTAs */}
           <div className="space-y-6">
             <p className="text-lg lg:text-xl text-muted-foreground text-pretty leading-relaxed font-mono">
-              Build, test, and optimize your trading strategies with real Indonesian market data. Join thousands of traders making data-driven decisions.
+              Bangun, uji, dan optimalkan strategi trading Anda dengan data pasar Indonesia yang real. Bergabunglah dengan ribuan trader yang membuat keputusan berbasis data.
             </p>
 
             <div className="flex flex-col sm:flex-row items-start gap-4">
               <Button size="lg" className="bg-ochre hover:bg-ochre/90 text-white text-base px-8 h-12">
-                Start Backtesting
+                Mulai Backtesting
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
               <Button size="lg" variant="outline" className="text-base px-8 h-12 bg-transparent">
-                View Documentation
+                Lihat Dokumentasi
               </Button>
             </div>
           </div>
