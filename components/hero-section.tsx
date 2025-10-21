@@ -17,17 +17,18 @@ export function HeroSection() {
           {/* Left side - Main heading */}
           <div>
             <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight text-balance">
-              Cari strategi paling menguntungkan bagi Anda di{" "}
+              Temukan strategi investasi{" "}
               <span className="text-ochre font-mono" style={{ fontFamily: "var(--font-ibm-plex-mono)" }}>
-                algosaham.ai
-              </span>
+                terbaik Anda
+              </span>{" "}
+              di algosaham.ai
             </h1>
           </div>
 
           {/* Right side - Description and CTAs */}
           <div className="space-y-6">
             <p className="text-lg lg:text-xl text-muted-foreground text-pretty leading-relaxed font-mono">
-              Bangun, uji, dan optimalkan strategi trading Anda dengan data pasar Indonesia yang real. Bergabunglah dengan ribuan trader yang membuat keputusan berbasis data.
+              Strategi Investasi Cerdas dengan AI dan Analisis Data Real-Time. Bergabunglah dengan ribuan trader yang membuat keputusan berbasis data dan teknologi canggih.
             </p>
 
             <div className="flex flex-col sm:flex-row items-start gap-4">

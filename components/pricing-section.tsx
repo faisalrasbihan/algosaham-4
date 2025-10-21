@@ -1,75 +1,110 @@
-import { Check } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Check, Star, Users, Building, TrendingUp, Calendar, BarChart3, MessageCircle, Download, Zap, Brain, Code, Bell, Headphones, Settings, Shield, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function PricingSection() {
   const plans = [
     {
-      name: "Free",
-      price: "$0",
-      period: "forever",
-      description: "Perfect for getting started",
-      features: ["5 strategies", "1 year historical data", "Basic indicators", "Community support", "Export results"],
-      cta: "Get Started",
+      name: "Paket Gratis",
+      icon: "🟢",
+      price: "Rp0",
+      period: "",
+      description: "Ideal untuk trader pemula yang ingin belajar dan bereksperimen.",
+      subtitle: "Mulai perjalanan Anda dengan fitur dasar namun tetap powerful:",
+      features: [
+        { text: "5 strategi trading siap digunakan", icon: TrendingUp },
+        { text: "1 tahun data historis pasar", icon: Calendar },
+        { text: "Indikator dasar untuk analisis sederhana", icon: BarChart3 },
+        { text: "Akses komunitas trader", icon: MessageCircle },
+        { text: "Ekspor hasil performa", icon: Download },
+      ],
+      target: "Cocok untuk: Pemula dan pengguna yang baru mengenal trading otomatis.",
+      cta: "Mulai Sekarang",
       highlighted: false,
+      color: "green",
     },
     {
-      name: "Pro",
-      price: "$29",
-      period: "per month",
-      description: "For serious traders",
+      name: "Paket Pro",
+      icon: "🟠",
+      price: "Rp429.000",
+      period: "/ Bulan",
+      description: "Dirancang untuk trader serius yang ingin hasil maksimal.",
+      subtitle: "Nikmati akses penuh ke seluruh fitur premium dan insight yang mendalam:",
       features: [
-        "Unlimited strategies",
-        "10 years historical data",
-        "All indicators + custom",
-        "Priority support",
-        "Advanced analytics",
-        "API access",
-        "Real-time alerts",
+        { text: "Strategi tanpa batas untuk eksperimen lebih bebas", icon: Zap },
+        { text: "10 tahun data historis untuk analisis akurat", icon: Calendar },
+        { text: "Semua indikator + kustom sesuai gaya trading", icon: Settings },
+        { text: "Dukungan prioritas dari tim ahli", icon: Headphones },
+        { text: "Analitik lanjutan berbasis AI", icon: Brain },
+        { text: "Akses API dan integrasi data", icon: Code },
+        { text: "Notifikasi real-time untuk setiap pergerakan penting", icon: Bell },
       ],
-      cta: "Start Free Trial",
+      target: "Rekomendasi kami! Paket Pro memberikan keseimbangan terbaik antara harga dan performa.",
+      cta: "Mulai Uji Coba Gratis",
       highlighted: true,
+      color: "orange",
     },
     {
-      name: "Enterprise",
-      price: "Custom",
-      period: "contact us",
-      description: "For teams and institutions",
+      name: "Paket Enterprise",
+      icon: "🔵",
+      price: "Harga Kustom",
+      period: "(Hubungi Kami)",
+      description: "Solusi profesional untuk tim dan institusi dengan kebutuhan khusus.",
+      subtitle: "Dapatkan fleksibilitas penuh dan dukungan eksklusif:",
       features: [
-        "Everything in Pro",
-        "Dedicated support",
-        "Custom integrations",
-        "Team collaboration",
-        "White-label options",
-        "SLA guarantee",
+        { text: "Semua fitur Paket Pro", icon: Star },
+        { text: "Dukungan khusus (dedicated support)", icon: Users },
+        { text: "Integrasi API kustom dan sistem internal", icon: Code },
+        { text: "Kolaborasi multi-user dan manajemen tim", icon: Building },
+        { text: "Opsi white-label untuk branding Anda sendiri", icon: Shield },
+        { text: "Garansi SLA dan jaminan uptime", icon: Clock },
       ],
-      cta: "Contact Sales",
+      target: "Hubungi tim kami untuk mendapatkan proposal dan demo eksklusif sesuai kebutuhan bisnis Anda.",
+      cta: "Hubungi Sales",
       highlighted: false,
+      color: "blue",
     },
-  ]
+  ];
 
   return (
-    <section className="py-24 px-4">
+    <section className="py-24 px-4 bg-gradient-to-br from-background to-french-gray-900">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Simple, transparent pricing</h2>
-          <p className="text-lg text-muted-foreground font-mono max-w-2xl mx-auto">
-            Choose the plan that fits your trading needs. All plans include a 14-day free trial.
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Harga Transparan, Fitur Lengkap, dan Fleksibel</h2>
+          <p className="text-lg text-muted-foreground font-mono max-w-3xl mx-auto leading-relaxed">
+            Temukan paket langganan terbaik untuk mendukung strategi trading Anda. Mulai dari paket gratis hingga solusi profesional — semuanya dilengkapi dengan <span className="font-semibold text-primary">uji coba gratis 14 hari</span>{" "}
+            tanpa kartu kredit.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {plans.map((plan, index) => (
             <div
               key={index}
-              className={`rounded-lg border p-8 flex flex-col ${
-                plan.highlighted ? "border-primary bg-primary/5 shadow-lg scale-105" : "border-border bg-card"
+              className={`relative rounded-xl border-2 p-8 flex flex-col transition-all duration-300 hover:shadow-xl ${
+                plan.highlighted ? "border-primary bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg scale-105 ring-2 ring-primary/20" : "border-border bg-card hover:border-primary/30"
               }`}
             >
+              {/* Popular Badge */}
+              {plan.highlighted && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <div className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                    <Star className="w-4 h-4 fill-current" />
+                    Rekomendasi
+                  </div>
+                </div>
+              )}
+
+              {/* Plan Header */}
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-foreground mb-2">{plan.name}</h3>
-                <p className="text-sm text-muted-foreground font-mono">{plan.description}</p>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">{plan.icon}</span>
+                  <h3 className="text-2xl font-bold text-foreground">{plan.name}</h3>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-2">{plan.description}</p>
+                <p className="text-xs text-muted-foreground/80 font-mono">{plan.subtitle}</p>
               </div>
 
+              {/* Pricing */}
               <div className="mb-6">
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-bold text-foreground">{plan.price}</span>
@@ -77,28 +112,44 @@ export function PricingSection() {
                 </div>
               </div>
 
+              {/* Features */}
               <ul className="space-y-3 mb-8 flex-1">
-                {plan.features.map((feature, featureIndex) => (
-                  <li key={featureIndex} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                    <span className="text-sm text-foreground font-mono">{feature}</span>
-                  </li>
-                ))}
+                {plan.features.map((feature, featureIndex) => {
+                  const IconComponent = feature.icon;
+                  return (
+                    <li key={featureIndex} className="flex items-start gap-3">
+                      <div className={`w-5 h-5 flex-shrink-0 mt-0.5 rounded-full flex items-center justify-center ${plan.highlighted ? "bg-primary/10 text-primary" : "bg-cambridge-blue-500/10 text-cambridge-blue-500"}`}>
+                        <IconComponent className="w-3 h-3" />
+                      </div>
+                      <span className="text-sm text-foreground leading-relaxed">{feature.text}</span>
+                    </li>
+                  );
+                })}
               </ul>
 
-              <Button
-                className={`w-full ${
-                  plan.highlighted
-                    ? "bg-primary hover:bg-primary/90"
-                    : "bg-secondary hover:bg-secondary/80 text-foreground"
-                }`}
-              >
+              {/* Target Audience */}
+              <div className="mb-6 p-3 bg-muted/50 rounded-lg">
+                <p className="text-xs text-muted-foreground leading-relaxed">{plan.target}</p>
+              </div>
+
+              {/* CTA Button */}
+              <Button className={`w-full h-12 text-base font-semibold ${plan.highlighted ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg" : "bg-secondary hover:bg-secondary/80 text-secondary-foreground"}`}>
                 {plan.cta}
               </Button>
             </div>
           ))}
         </div>
+
+        {/* Bottom Note */}
+        <div className="text-center mt-12">
+          <p className="text-sm text-muted-foreground font-mono flex items-center justify-center gap-2">
+            <span className="text-lg">✨</span>
+            Semua paket dapat di-upgrade atau dibatalkan kapan saja tanpa biaya tambahan.
+            <br />
+            Bangun sistem trading Anda dengan harga yang jelas, fleksibel, dan tanpa risiko.
+          </p>
+        </div>
       </div>
     </section>
-  )
+  );
 }
