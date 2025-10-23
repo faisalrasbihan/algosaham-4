@@ -171,9 +171,9 @@ export function AboutSection() {
             </div>
 
             {/* Explanation - 1/4 width */}
-            <div className="lg:col-span-1 flex flex-col h-full">
+            <div className="lg:col-span-1 flex flex-col justify-between h-full space-y-4">
               {/* Feature 1 */}
-              <div className="p-4 rounded-lg border border-border bg-card hover:border-ochre/50 transition-all duration-300 flex-grow">
+              <div className="p-4 rounded-lg border border-border bg-card hover:border-ochre/50 transition-all duration-300 flex-1">
                 <div className="flex items-start gap-3 h-full">
                   <div className="w-10 h-10 rounded-lg bg-ochre/10 flex items-center justify-center flex-shrink-0">
                     <FolderOpen className="w-5 h-5 text-ochre" />
@@ -186,7 +186,7 @@ export function AboutSection() {
               </div>
 
               {/* Feature 2 */}
-              <div className="p-4 rounded-lg border border-border bg-card hover:border-ochre/50 transition-all duration-300 flex-grow">
+              <div className="p-4 rounded-lg border border-border bg-card hover:border-ochre/50 transition-all duration-300 flex-1">
                 <div className="flex items-start gap-3 h-full">
                   <div className="w-10 h-10 rounded-lg bg-ochre/10 flex items-center justify-center flex-shrink-0">
                     <TrendingUpIcon className="w-5 h-5 text-ochre" />
@@ -199,7 +199,7 @@ export function AboutSection() {
               </div>
 
               {/* Feature 3 */}
-              <div className="p-4 rounded-lg border border-border bg-card hover:border-ochre/50 transition-all duration-300 flex-grow">
+              <div className="p-4 rounded-lg border border-border bg-card hover:border-ochre/50 transition-all duration-300 flex-1">
                 <div className="flex items-start gap-3 h-full">
                   <div className="w-10 h-10 rounded-lg bg-ochre/10 flex items-center justify-center flex-shrink-0">
                     <Monitor className="w-5 h-5 text-ochre" />

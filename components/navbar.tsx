@@ -12,19 +12,19 @@ export function Navbar() {
 
       <div className="hidden md:flex items-center space-x-6 text-sm text-muted-foreground">
         <Link href="/backtest" className="hover:text-foreground transition-colors">
-          Backtest
+          Simulasi
         </Link>
         <Link href="/strategies" className="hover:text-foreground transition-colors">
-          Strategies
+          Strategi
         </Link>
         <Link href="/portfolio" className="hover:text-foreground transition-colors">
-          Portfolio
+          Portofolio
         </Link>
         <Link href="/pricing" className="hover:text-foreground transition-colors">
-          Pricing
+          Harga
         </Link>
         <Link href="/about" className="hover:text-foreground transition-colors">
-          About
+          Tentang
         </Link>
       </div>
 
