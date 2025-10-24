@@ -18,9 +18,10 @@ import {
   ChevronRight,
   Info,
 } from "lucide-react"
-import { useState, useRef, useEffect } from "react"
+import { useState } from "react"
 import { Navbar } from "@/components/navbar"
 import { TickerTape } from "@/components/ticker-tape"
+import { CardCarousel } from "@/components/card-carousel"
 
 interface Strategy {
   id: string
@@ -307,37 +308,6 @@ const subscribedStrategies: Strategy[] = [
 
 export default function Strategies() {
   const [subscribed, setSubscribed] = useState<Set<string>>(new Set(["s1"]))
-  const [showScrollIndicator, setShowScrollIndicator] = useState({
-    saved: false,
-    popular: false,
-    subscribed: false,
-  })
-
-  const savedScrollRef = useRef<HTMLDivElement>(null)
-  const popularScrollRef = useRef<HTMLDivElement>(null)
-  const subscribedScrollRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const checkOverflow = (ref: React.RefObject<HTMLDivElement>, section: string) => {
-      if (ref.current) {
-        const hasOverflow = ref.current.scrollWidth > ref.current.clientWidth
-        setShowScrollIndicator((prev) => ({ ...prev, [section]: hasOverflow }))
-      }
-    }
-
-    checkOverflow(savedScrollRef, "saved")
-    checkOverflow(popularScrollRef, "popular")
-    checkOverflow(subscribedScrollRef, "subscribed")
-
-    const handleResize = () => {
-      checkOverflow(savedScrollRef, "saved")
-      checkOverflow(popularScrollRef, "popular")
-      checkOverflow(subscribedScrollRef, "subscribed")
-    }
-
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
 
   const handleSubscribe = (strategyId: string) => {
     setSubscribed((prev) => {
@@ -569,19 +539,11 @@ export default function Strategies() {
               </div>
             </div>
 
-            <div className="relative">
-              <div ref={savedScrollRef} className="flex gap-4 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-0">
-                {savedStrategies.map((strategy) => (
-                  <StrategyCard key={strategy.id} strategy={strategy} type="saved" />
-                ))}
-                <div className="w-6 flex-shrink-0" />
-              </div>
-              {showScrollIndicator.saved && (
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background/80 to-transparent pl-8 pr-2 py-2">
-                  <ChevronRight className="w-5 h-5 text-ochre animate-pulse" />
-                </div>
-              )}
-            </div>
+            <CardCarousel>
+              {savedStrategies.map((strategy) => (
+                <StrategyCard key={strategy.id} strategy={strategy} type="saved" />
+              ))}
+            </CardCarousel>
           </section>
 
           {/* Popular Strategies Section */}
@@ -598,19 +560,11 @@ export default function Strategies() {
               </div>
             </div>
 
-            <div className="relative">
-              <div ref={popularScrollRef} className="flex gap-4 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-0">
-                {popularStrategies.map((strategy) => (
-                  <StrategyCard key={strategy.id} strategy={strategy} type="popular" />
-                ))}
-                <div className="w-6 flex-shrink-0" />
-              </div>
-              {showScrollIndicator.popular && (
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background/80 to-transparent pl-8 pr-2 py-2">
-                  <ChevronRight className="w-5 h-5 text-ochre animate-pulse" />
-                </div>
-              )}
-            </div>
+            <CardCarousel>
+              {popularStrategies.map((strategy) => (
+                <StrategyCard key={strategy.id} strategy={strategy} type="popular" />
+              ))}
+            </CardCarousel>
           </section>
 
           {/* Subscribed Strategies Section */}
@@ -622,28 +576,20 @@ export default function Strategies() {
               </div>
             </div>
 
-            <div className="relative">
-              <div ref={subscribedScrollRef} className="flex gap-4 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-0">
-                {subscribedStrategies
-                  .filter((s) => subscribed.has(s.id))
-                  .map((strategy) => (
-                    <StrategyCard key={strategy.id} strategy={strategy} type="subscribed" />
-                  ))}
-                {subscribedStrategies.filter((s) => subscribed.has(s.id)).length === 0 && (
-                  <Card className="flex-shrink-0 w-80 p-8 text-center">
-                    <p className="text-muted-foreground">
-                      No subscribed strategies yet. Browse popular strategies to get started!
-                    </p>
-                  </Card>
-                )}
-                <div className="w-6 flex-shrink-0" />
-              </div>
-              {showScrollIndicator.subscribed && (
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background/80 to-transparent pl-8 pr-2 py-2">
-                  <ChevronRight className="w-5 h-5 text-ochre animate-pulse" />
-                </div>
+            <CardCarousel>
+              {subscribedStrategies
+                .filter((s) => subscribed.has(s.id))
+                .map((strategy) => (
+                  <StrategyCard key={strategy.id} strategy={strategy} type="subscribed" />
+                ))}
+              {subscribedStrategies.filter((s) => subscribed.has(s.id)).length === 0 && (
+                <Card className="flex-shrink-0 w-80 p-8 text-center">
+                  <p className="text-muted-foreground">
+                    No subscribed strategies yet. Browse popular strategies to get started!
+                  </p>
+                </Card>
               )}
-            </div>
+            </CardCarousel>
           </section>
         </div>
       </div>

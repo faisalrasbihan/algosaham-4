@@ -163,3 +163,37 @@
 .animate-scroll {
   animation: scroll 30s linear infinite;
 }
+
+/* Subtle dotted background pattern */
+.dotted-background {
+  background-image: radial-gradient(circle, #d0d5dc 1px, transparent 1px);
+  background-size: 25px 25px;
+  background-position: 0 0, 16px 16px;
+}
+
+/* Grainy texture and gradient button */
+.grainy-gradient-button {
+  background: linear-gradient(135deg, #d07225 0%, #305250 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.grainy-gradient-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.1) 1px, transparent 1px),
+    radial-gradient(circle at 80% 80%, rgba(0,0,0,0.1) 1px, transparent 1px),
+    radial-gradient(circle at 40% 60%, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 3px 3px, 4px 4px, 2px 2px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.grainy-gradient-button:hover {
+  background: linear-gradient(135deg, #df8d4b 0%, #487b78 100%);
+}

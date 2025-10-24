@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative overflow-hidden dotted-background">
       {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-20 left-10 w-72 h-72 bg-ochre/5 rounded-full blur-3xl" />
@@ -31,11 +31,11 @@ export function HeroSection() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-start gap-4">
-              <Button size="lg" className="bg-ochre hover:bg-ochre/90 text-white text-base px-8 h-12">
+              <Button size="lg" className="grainy-gradient-button text-white text-base px-8 h-12 border-0">
                 Mulai Backtesting
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-              <Button size="lg" variant="outline" className="text-base px-8 h-12 bg-transparent">
+              <Button size="lg" variant="outline" className="text-base px-8 h-12 bg-white text-foreground border-border hover:bg-muted">
                 Lihat Dokumentasi
               </Button>
             </div>

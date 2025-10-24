@@ -5,7 +5,7 @@ import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@cl
 export function Navbar() {
   return (
     <nav className="h-16 bg-card/50 backdrop-blur-sm border-b border-border px-6 flex items-center justify-between">
-      <Link href="/" className="text-xl font-medium" style={{ fontFamily: "var(--font-ibm-plex-mono)" }}>
+      <Link href="/" className="text-xl font-medium font-ibm-plex-mono">
         <span className="text-orange-500">{">"}</span>
         <span className="text-black">algosaham.ai</span>
       </Link>

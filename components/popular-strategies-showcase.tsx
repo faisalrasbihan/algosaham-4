@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { TrendingUp, Heart, Info, ArrowRight, ChevronDown, ChevronUp } from "lucide-react"
 import { useState } from "react"
+import { CardCarousel } from "@/components/card-carousel"
 
 interface Strategy {
   id: string
@@ -258,7 +259,7 @@ function StrategyCard({ strategy }: { strategy: Strategy }) {
 
 export function PopularStrategiesShowcase() {
   return (
-    <section className="py-12">
+    <section className="py-12 dotted-background">
       {/* Section header */}
       <div className="px-6 mb-8">
         <div className="max-w-3xl mx-auto text-center">
@@ -273,18 +274,18 @@ export function PopularStrategiesShowcase() {
       </div>
 
       {/* Strategy cards grid */}
-      <div className="relative mb-8">
-        <div className="flex gap-6 overflow-x-auto pb-4 py-1 snap-x snap-mandatory scrollbar-hide pl-6 pr-0">
+      <div className="mb-8 px-6">
+        <CardCarousel className="snap-x snap-mandatory" noPadding>
           {popularStrategies.map((strategy) => (
             <StrategyCard key={strategy.id} strategy={strategy} />
           ))}
-        </div>
+        </CardCarousel>
       </div>
 
       {/* View all button */}
       <div className="text-center px-6">
-        <Button size="lg" variant="outline" className="bg-transparent">
-          View All Strategies
+        <Button size="lg" variant="outline" className="bg-white text-foreground border-border hover:bg-muted">
+          View All Strategiez
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </div>
