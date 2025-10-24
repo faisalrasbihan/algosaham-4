@@ -16,8 +16,8 @@ export default function Home() {
       <div className="flex-1">
         <HeroSection />
         <PopularStrategiesShowcase />
-        <StatsSection />
         <FeaturesSection />
+        {/* <StatsSection /> */}
         <HowItWorksSection />
         <PricingSection />
         <CTASection />

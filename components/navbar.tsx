@@ -31,7 +31,7 @@ export function Navbar() {
       <div className="flex items-center space-x-3">
         <SignedOut>
           <SignInButton mode="modal" oauthFlow="popup">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="hover:bg-black hover:text-white">
               Sign In
             </Button>
           </SignInButton>

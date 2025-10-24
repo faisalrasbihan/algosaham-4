@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export function HeroSection() {
   return (
@@ -17,7 +18,7 @@ export function HeroSection() {
           {/* Left side - Main heading */}
           <div>
             <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight text-balance">
-              Cari strategi paling menguntungkan bagi Anda di{" "}
+              Cari strategi trading saham paling cuan di{" "}
               <span className="text-ochre font-mono" style={{ fontFamily: "var(--font-ibm-plex-mono)" }}>
                 algosaham.ai
               </span>
@@ -31,13 +32,17 @@ export function HeroSection() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-start gap-4">
-              <Button size="lg" className="grainy-gradient-button text-white text-base px-8 h-12 border-0">
-                Mulai Backtesting
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-              <Button size="lg" variant="outline" className="text-base px-8 h-12 bg-white text-foreground border-border hover:bg-muted">
-                Lihat Dokumentasi
-              </Button>
+              <Link href="/backtest">
+                <Button size="lg" className="grainy-gradient-button text-white text-base px-8 h-12 border-0">
+                  Mulai Backtesting
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
+              <Link href="/about">
+                <Button size="lg" variant="outline" className="text-base px-8 h-12 bg-white text-foreground border-border hover:bg-black hover:text-white">
+                  Lihat Dokumentasi
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

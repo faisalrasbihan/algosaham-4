@@ -130,7 +130,7 @@ function StrategyCard({ strategy }: { strategy: Strategy }) {
 
   return (
     <div className="py-4">
-      <Card className="w-[340px] md:w-[380px] min-h-[480px] snap-start hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group shrink-0">
+      <Card className="w-[340px] md:w-[380px] min-h-[400px] snap-start hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group shrink-0">
         <CardContent className="p-6 h-full flex flex-col">
         <div className="space-y-4 flex-1 flex flex-col">
           {/* Header */}
@@ -168,7 +168,6 @@ function StrategyCard({ strategy }: { strategy: Strategy }) {
           <div className="border-t border-b border-border py-4">
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 mb-1">
-                <TrendingUp className="w-4 h-4 text-green-600" />
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Total Return
                 </span>
@@ -285,7 +284,7 @@ export function PopularStrategiesShowcase() {
       {/* View all button */}
       <div className="text-center px-6">
         <Button size="lg" variant="outline" className="bg-white text-foreground border-border hover:bg-muted">
-          View All Strategiez
+          View All Strategies
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </div>
