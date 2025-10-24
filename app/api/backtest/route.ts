@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // FastAPI backend URL - can be configured via environment variable
-const FASTAPI_URL = process.env.FASTAPI_URL || 'https://backtester-psi.vercel.app'
+const FASTAPI_URL = process.env.FASTAPI_URL //|| 'https://backtester-psi.vercel.app'
 
 export async function POST(request: NextRequest) {
   console.log('🚀 [API ROUTE] Starting backtest API call...')
   console.log('🚀 [API ROUTE] FastAPI URL:', FASTAPI_URL)
+  
+  // Log environment variable status
+  if (!process.env.FASTAPI_URL) {
+    console.warn('⚠️ [API ROUTE] FASTAPI_URL environment variable not set, using fallback URL')
+  } else {
+    console.log('✅ [API ROUTE] Using FASTAPI_URL from environment variable')
+  }
   
   try {
     // Parse the request body

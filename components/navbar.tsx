@@ -17,9 +17,11 @@ export function Navbar() {
         <Link href="/strategies" className="hover:text-foreground transition-colors">
           Strategies
         </Link>
-        <Link href="/portfolio" className="hover:text-foreground transition-colors">
-          Portfolio
-        </Link>
+        <SignedIn>
+          <Link href="/portfolio" className="hover:text-foreground transition-colors">
+            Portfolio
+          </Link>
+        </SignedIn>
         <Link href="/pricing" className="hover:text-foreground transition-colors">
           Pricing
         </Link>

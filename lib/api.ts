@@ -89,7 +89,14 @@ export interface BacktestResult {
 }
 
 // Use Next.js API route instead of direct FastAPI call
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backtester-psi.vercel.app'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL //|| 'https://backtester-psi.vercel.app'
+
+// Log environment variable status
+if (!process.env.NEXT_PUBLIC_API_URL) {
+  console.warn('⚠️ [API SERVICE] NEXT_PUBLIC_API_URL environment variable not set, using fallback URL')
+} else {
+  console.log('✅ [API SERVICE] Using NEXT_PUBLIC_API_URL from environment variable')
+}
 
 export class ApiService {
   private static async makeRequest<T>(
@@ -159,9 +166,18 @@ export class ApiService {
       backtestConfig: config.backtestConfig
     })
     
+    // Check if API_BASE_URL is configured
+    if (!API_BASE_URL) {
+      const error = 'API_BASE_URL environment variable is not configured'
+      console.error('❌ [API SERVICE] Environment variable error:', error)
+      throw new Error(error)
+    }
+    
+    console.log('🌐 [API SERVICE] Using API_BASE_URL:', API_BASE_URL)
+    
     try {
       console.log('🔄 [API SERVICE] Calling FastAPI backend directly...')
-      const response = await fetch('https://backtester-psi.vercel.app/run_backtest', {
+      const response = await fetch(`${API_BASE_URL}/run_backtest`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
