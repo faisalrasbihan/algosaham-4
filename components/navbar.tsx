@@ -10,35 +10,38 @@ export function Navbar() {
         <span className="text-black">algosaham.ai</span>
       </Link>
 
-      <div className="hidden md:flex items-center space-x-6 text-sm text-muted-foreground">
-        <Link href="/backtest" className="hover:text-foreground transition-colors">
+      <div className="hidden md:flex items-center space-x-2 text-sm text-muted-foreground">
+        <Link href="/" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
+          Home
+        </Link>
+        <Link href="/backtest" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Backtest
         </Link>
-        <Link href="/strategies" className="hover:text-foreground transition-colors">
+        <Link href="/strategies" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Strategies
         </Link>
         <SignedIn>
-          <Link href="/portfolio" className="hover:text-foreground transition-colors">
+          <Link href="/portfolio" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
             Portfolio
           </Link>
         </SignedIn>
-        <Link href="/pricing" className="hover:text-foreground transition-colors">
+        <Link href="/pricing" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Pricing
         </Link>
-        <Link href="/about" className="hover:text-foreground transition-colors">
-          About
+        <Link href="/about" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
+          Pelajari
         </Link>
       </div>
 
       <div className="flex items-center space-x-3">
         <SignedOut>
           <SignInButton mode="modal" oauthFlow="popup">
-            <Button variant="outline" size="sm" className="hover:bg-black hover:text-white">
+            <Button variant="outline" size="sm" className="hover:bg-[#487b78] hover:text-white">
               Sign In
             </Button>
           </SignInButton>
           <SignUpButton mode="modal" oauthFlow="popup">
-            <Button size="sm" style={{ backgroundColor: "#305250", color: "white" }} className="hover:opacity-90">
+            <Button size="sm" style={{ backgroundColor: "#d07225", color: "white" }} className="hover:opacity-90">
               Sign Up
             </Button>
           </SignUpButton>

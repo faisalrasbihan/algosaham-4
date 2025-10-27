@@ -13,7 +13,7 @@ export function HeroSection() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-cambridge-blue/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="container mx-auto px-6 py-12 lg:py-16">
+      <div className="container mx-auto px-6 pt-12 lg:pt-16 pb-6 lg:pb-8">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center max-w-7xl mx-auto">
           {/* Left side - Main heading */}
           <div>
@@ -34,13 +34,13 @@ export function HeroSection() {
             <div className="flex flex-col sm:flex-row items-start gap-4">
               <Link href="/backtest">
                 <Button size="lg" className="grainy-gradient-button text-white text-base px-8 h-12 border-0">
-                  Mulai Backtesting
+                  Mulai Simulasi
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
               <Link href="/about">
-                <Button size="lg" variant="outline" className="text-base px-8 h-12 bg-white text-foreground border-border hover:bg-black hover:text-white">
-                  Lihat Dokumentasi
+                <Button size="lg" variant="outline" className="text-base px-8 h-12 bg-white text-foreground border-border hover:bg-[#487b78] hover:text-white">
+                  Pelajari lebih lanjut
                 </Button>
               </Link>
             </div>

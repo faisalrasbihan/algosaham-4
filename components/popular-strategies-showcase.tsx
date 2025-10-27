@@ -283,7 +283,7 @@ export function PopularStrategiesShowcase() {
 
       {/* View all button */}
       <div className="text-center px-6">
-        <Button size="lg" variant="outline" className="bg-white text-foreground border-border hover:bg-muted">
+        <Button size="lg" variant="outline" className="bg-white text-foreground border-border hover:bg-[#487b78] hover:text-white">
           View All Strategies
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>

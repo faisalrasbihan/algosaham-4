@@ -15,7 +15,7 @@ export function CTASection() {
             Start Free Trial
             <ArrowRight className="ml-2 w-4 h-4" />
           </Button>
-          <Button size="lg" variant="outline" className="border-border hover:bg-muted bg-transparent">
+          <Button size="lg" variant="outline" className="border-border hover:bg-[#487b78] hover:text-white bg-transparent">
             View Demo
           </Button>
         </div>
