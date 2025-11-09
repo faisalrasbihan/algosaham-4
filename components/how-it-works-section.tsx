@@ -11,7 +11,7 @@ export function HowItWorksSection() {
     {
       number: "02",
       title: "Uji dengan Data Historis",
-      description: "Lakukan simulasi menggunakan data historis untuk melihat bagaimana performa strategi Anda jika diterapkan di masa lalu.",
+      description: "Lakukan backtest menggunakan data historis untuk melihat bagaimana performa strategi Anda jika diterapkan di masa lalu.",
       icon: TestTube,
     },
     {
@@ -22,8 +22,8 @@ export function HowItWorksSection() {
     },
     {
       number: "04",
-      title: "Terapkan Strategi Anda",
-      description: "Implementasikan strategi yang telah teruji dan dioptimalkan, sehingga menghasilkan keputusan yang lebih percaya diri dan berbasis data.",
+      title: "Terapkan Strategi Anda dengan Keyakinan Penuh",
+      description: "Aktifkan strategi yang telah teruji dan dioptimalkan, sehingga Anda dapat melangkah ke pasar dengan keputusan yang lebih percaya diri dan berbasis data.",
       icon: Rocket,
     },
   ];
@@ -47,12 +47,14 @@ export function HowItWorksSection() {
             const IconComponent = step.icon;
             return (
               <div key={index} className="relative">
-                <div className="flex flex-col">
-                  <div className="text-6xl font-bold text-primary/20 mb-4">{step.number}</div>
-                  <h3 className="text-xl font-semibold text-foreground mb-3">{step.title}</h3>
-                  <p className="text-muted-foreground font-mono text-sm">{step.description}</p>
+                <div className="p-6 rounded-xl border-2 border-border bg-card hover:border-primary/30 hover:shadow-lg transition-all duration-300">
+                  <div className="flex flex-col">
+                    <div className="text-6xl font-bold text-primary/20 mb-4">{step.number}</div>
+                    <h3 className="text-xl font-semibold text-foreground mb-3">{step.title}</h3>
+                    <p className="text-muted-foreground font-mono text-sm leading-relaxed">{step.description}</p>
+                  </div>
                 </div>
-                {index < steps.length - 1 && <ArrowRight className="hidden lg:block absolute top-12 -right-4 w-8 h-8 text-primary/30" />}
+                {index < steps.length - 1 && <ArrowRight className="hidden lg:block absolute top-1/2 -right-4 w-8 h-8 text-primary/30 -translate-y-1/2" />}
               </div>
             );
           })}

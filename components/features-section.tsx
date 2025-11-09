@@ -45,11 +45,8 @@ export function FeaturesSection() {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Semua yang Anda Butuhkan untuk Raih Cuan Maksimal</h2>
-          <p className="text-lg text-muted-foreground font-mono max-w-3xl mx-auto mb-3">
-            Bangun strategi trading yang cuan dengan data pasar Indonesia yang real.
-          </p>
-          <p className="text-base text-muted-foreground font-mono max-w-3xl mx-auto">
-            Nikmati fitur dan tools profesional untuk menguji dan mengoptimalkan keputusan trading Anda dengan percaya diri.
+          <p className="text-lg text-muted-foreground font-mono max-w-3xl mx-auto">
+            Dari ide ke cuan, bangun, uji, dan optimalkan strategi trading Anda dengan data pasar Indonesia yang real dengan tools profesional.
           </p>
         </div>
 
@@ -57,11 +54,11 @@ export function FeaturesSection() {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="relative p-6 rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-primary/8 to-primary/10 hover:border-primary/40 hover:shadow-lg transition-all duration-300"
+              className="relative p-6 rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 hover:border-primary/40 hover:shadow-lg transition-all duration-300"
             >
-              {/* Number */}
+              {/* Number - more prominent */}
               <div className="absolute top-4 right-4">
-                <div className="text-4xl font-extrabold text-primary/20 leading-none">{feature.number}</div>
+                <div className="text-5xl font-extrabold text-primary/25 leading-none">{feature.number}</div>
               </div>
 
               {/* Icon */}
