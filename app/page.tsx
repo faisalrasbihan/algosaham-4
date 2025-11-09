@@ -6,6 +6,7 @@ import { StatsSection } from "@/components/stats-section"
 import { FeaturesSection } from "@/components/features-section"
 import { HowItWorksSection } from "@/components/how-it-works-section"
 import { PricingSection } from "@/components/pricing-section"
+import { FAQSection } from "@/components/faq-section"
 import { CTASection } from "@/components/cta-section"
 
 export default function Home() {
@@ -20,6 +21,7 @@ export default function Home() {
         {/* <StatsSection /> */}
         <HowItWorksSection />
         <PricingSection />
+        <FAQSection />
         <CTASection />
       </div>
     </div>
