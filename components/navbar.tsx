@@ -53,8 +53,8 @@ export function Navbar() {
             Portfolio
           </Link>
         </SignedIn>
-        <Link href="/pricing" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
-          Pricing
+        <Link href="/harga" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
+          Harga
         </Link>
         <Link href="/about" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Pelajari

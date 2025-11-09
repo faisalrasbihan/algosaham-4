@@ -4,24 +4,27 @@ export function HowItWorksSection() {
   const steps = [
     {
       number: "01",
-      title: "Build Your Strategy",
+      title: "Bangun Strategi Anda",
       description:
-        "Use our visual strategy builder to create your trading rules with technical indicators and conditions.",
+        "Gunakan visual strategy builder kami untuk membuat aturan trading sesuai dengan indikator-indikator pilihan Anda.",
     },
     {
       number: "02",
-      title: "Backtest Against History",
-      description: "Run your strategy against years of historical data to see how it would have performed.",
+      title: "Uji dengan Data Historis",
+      description:
+        "Lakukan simulasi menggunakan data historis untuk melihat bagaimana performa strategi Anda jika diterapkan di masa lalu.",
     },
     {
       number: "03",
-      title: "Analyze Results",
-      description: "Review detailed performance metrics, charts, and trade history to optimize your strategy.",
+      title: "Analisis Hasil Secara Mendalam",
+      description:
+        "Tinjau metrik performa, grafik, dan riwayat transaksi untuk memahami kekuatan dan peluang perbaikan strategi Anda.",
     },
     {
       number: "04",
-      title: "Deploy with Confidence",
-      description: "Take your validated strategy live knowing it's been thoroughly tested and optimized.",
+      title: "Terapkan Strategi Anda",
+      description:
+        "Implementasikan strategi yang telah teruji dan dioptimalkan, sehingga menghasilkan keputusan yang lebih percaya diri dan berbasis data.",
     },
   ]
 
@@ -29,9 +32,9 @@ export function HowItWorksSection() {
     <section className="py-24 px-4 bg-muted/30">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">How it works</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Bagaimana Algosaham.ai Bekerja</h2>
           <p className="text-lg text-muted-foreground font-mono max-w-2xl mx-auto">
-            From idea to execution in four simple steps.
+            Dari ide hingga eksekusi dalam empat langkah sederhana.
           </p>
         </div>
 
