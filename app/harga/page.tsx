@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/navbar"
 import { PricingSection } from "@/components/pricing-section"
+import { FAQSection } from "@/components/faq-section"
 
 export default function HargaPage() {
   return (
@@ -7,6 +8,7 @@ export default function HargaPage() {
       <Navbar />
       <main>
         <PricingSection />
+        <FAQSection />
       </main>
     </div>
   )
