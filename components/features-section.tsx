@@ -44,8 +44,13 @@ export function FeaturesSection() {
     <section className="py-24 px-4 border-t border-border/50">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Semua yang Anda Butuhkan untuk Sukses</h2>
-          <p className="text-lg text-muted-foreground font-mono max-w-2xl mx-auto">Tools tingkat profesional yang dirancang untuk trader yang serius dengan karier mereka.</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Semua yang Anda Butuhkan untuk Raih Cuan Maksimal</h2>
+          <p className="text-lg text-muted-foreground font-mono max-w-3xl mx-auto mb-3">
+            Bangun strategi trading yang cuan dengan data pasar Indonesia yang real.
+          </p>
+          <p className="text-base text-muted-foreground font-mono max-w-3xl mx-auto">
+            Nikmati fitur dan tools profesional untuk menguji dan mengoptimalkan keputusan trading Anda dengan percaya diri.
+          </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
