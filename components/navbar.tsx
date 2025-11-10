@@ -3,24 +3,29 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Gift, ArrowUpRight } from "lucide-react";
 import { useState, useEffect } from "react";
 
 // Mock data - replace with actual API call
 const getSubscriptionData = () => {
   // In a real app, this would fetch from your API
   return {
-    subscribedStrategies: 2,
-    maxStrategies: 5,
+    isPro: true, // Set to true if user has PRO subscription
+    credits: {
+      used: 15,
+      total: 100,
+    },
   };
 };
 
 export function Navbar() {
   const { isSignedIn, isLoaded } = useUser();
+  const [showCredits, setShowCredits] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState({
-    subscribedStrategies: 0,
-    maxStrategies: 0,
+    isPro: true,
+    credits: {
+      used: 0,
+      total: 0,
+    },
   });
 
   useEffect(() => {
@@ -31,8 +36,11 @@ export function Navbar() {
     }
   }, [isSignedIn, isLoaded]);
 
+  const userPlan = subscriptionData.isPro ? "PRO" : "FREE";
+  const credits = subscriptionData.credits;
+
   return (
-    <nav className="h-16 bg-card/50 backdrop-blur-sm border-b border-border px-6 flex items-center justify-between">
+    <nav className="h-16 bg-card/50 backdrop-blur-sm border-b border-border px-6 flex items-center justify-between relative z-50">
       <Link href="/" className="text-xl font-medium font-ibm-plex-mono">
         <span className="text-orange-500">{">"}</span>
         <span className="text-black">algosaham.ai</span>
@@ -75,71 +83,44 @@ export function Navbar() {
           </SignUpButton>
         </SignedOut>
         <SignedIn>
-          <HoverCard>
-            <HoverCardTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-white hover:bg-muted rounded-lg px-3 py-2 text-sm font-medium text-black border border-gray-200"
-              >
-                <ArrowUpRight className="w-4 h-4 mr-1.5" />
-                {subscriptionData.subscribedStrategies} / {subscriptionData.maxStrategies}
-              </Button>
-            </HoverCardTrigger>
-            <HoverCardContent className="w-80">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-semibold mb-3 text-muted-foreground">Credit Balance</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Gifted credits</span>
-                      <span className="font-medium">0.00</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Monthly credits</span>
-                      <span className="font-medium">5.00</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Purchased credits</span>
-                      <span className="font-medium">0.00</span>
-                    </div>
+          <div className="relative" onMouseEnter={() => setShowCredits(true)} onMouseLeave={() => setShowCredits(false)}>
+            <div
+              className="px-3 py-1.5 rounded-md border text-xs font-medium cursor-default !font-ibm-plex-mono"
+              style={{
+                borderColor: userPlan === "PRO" ? "#d4af37" : "#6b7280",
+                backgroundColor: userPlan === "PRO" ? "#d4af3710" : "#f3f4f610",
+                color: userPlan === "PRO" ? "#d4af37" : "#6b7280",
+              }}
+            >
+              {userPlan} PLAN
+            </div>
+            {/* Credit tooltip */}
+            {showCredits && (
+              <div className="absolute top-full right-0 mt-2 w-48 p-3 rounded-lg border border-border bg-white shadow-lg z-[100]">
+                <div className="text-xs space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Used Credit:</span>
+                    <span className="font-medium">{credits.used}</span>
                   </div>
-                </div>
-                <div className="pt-2 border-t">
-                  <div className="space-y-2 text-sm mb-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Subscribed strategies</span>
-                      <span className="font-medium">{subscriptionData.subscribedStrategies}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Max strategies</span>
-                      <span className="font-medium">{subscriptionData.maxStrategies}</span>
-                    </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Available:</span>
+                    <span className="font-medium">{credits.total - credits.used}</span>
                   </div>
-                  <Link href="/pricing" className="block">
-                    <Button
-                      className="w-full bg-black text-white hover:opacity-90 rounded-lg"
-                      size="sm"
-                    >
-                      Upgrade
-                    </Button>
-                  </Link>
+                  <div className="pt-2 border-t border-border flex justify-between">
+                    <span className="text-muted-foreground">Total Credit:</span>
+                    <span className="font-semibold">{credits.total}</span>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all"
+                      style={{ width: `${(credits.used / credits.total) * 100}%` }}
+                    />
+                  </div>
                 </div>
               </div>
-            </HoverCardContent>
-          </HoverCard>
-          <Button
-            variant="outline"
-            size="sm"
-            className="bg-white hover:bg-muted rounded-lg px-3 py-2 text-sm font-medium text-black border border-gray-200"
-            onClick={() => {
-              // Handle refer action
-              // You can add a refer modal or navigate to a refer page
-            }}
-          >
-            <Gift className="w-4 h-4 mr-1.5" />
-            Refer
-          </Button>
+            )}
+          </div>
           <UserButton />
         </SignedIn>
       </div>

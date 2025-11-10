@@ -50,7 +50,7 @@ export function TickerTape() {
   }, [])
 
   return (
-    <div className="bg-slate-50 border-b border-border overflow-hidden h-10 flex items-center">
+    <div className="bg-slate-50 border-b border-border overflow-hidden h-10 flex items-center relative z-10">
       <div className="animate-scroll flex items-center space-x-8 whitespace-nowrap min-w-full">
         {/* Triple the items for seamless infinite loop */}
         {[...items, ...items, ...items].map((item, index) => (
