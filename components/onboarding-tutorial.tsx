@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { driver } from "driver.js"
 import "driver.js/dist/driver.css"
 import { Button } from "@/components/ui/button"
@@ -10,10 +10,30 @@ interface OnboardingTutorialProps {
   onComplete?: () => void
 }
 
+const VISITED_FLAG_KEY = "algosaham_has_visited"
+
 export function OnboardingTutorial({ onComplete }: OnboardingTutorialProps) {
   const driverObj = useRef<any>(null)
+  const [hasVisited, setHasVisited] = useState<boolean | null>(null)
+  const hasInitialized = useRef(false)
 
   useEffect(() => {
+    // Check if user has visited before
+    if (typeof window !== "undefined") {
+      const hasVisitedBefore = localStorage.getItem(VISITED_FLAG_KEY) === "true"
+      setHasVisited(hasVisitedBefore)
+    }
+  }, [])
+
+  useEffect(() => {
+    // Only initialize driver.js once
+    if (hasInitialized.current) return
+    
+    // Wait until we know if user has visited
+    if (hasVisited === null) return
+
+    hasInitialized.current = true
+
     // Initialize driver.js
     driverObj.current = driver({
       showProgress: true,
@@ -80,6 +100,11 @@ export function OnboardingTutorial({ onComplete }: OnboardingTutorialProps) {
         }
       ],
       onDestroyed: () => {
+        // Mark user as having visited when tutorial is completed or closed
+        if (typeof window !== "undefined") {
+          localStorage.setItem(VISITED_FLAG_KEY, "true")
+          setHasVisited(true)
+        }
         if (onComplete) {
           onComplete()
         }
@@ -102,12 +127,51 @@ export function OnboardingTutorial({ onComplete }: OnboardingTutorialProps) {
       }
     })
 
+    // Auto-start tutorial for new users
+    if (hasVisited === false && driverObj.current) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        driverObj.current?.drive()
+      }, 500)
+      return () => {
+        clearTimeout(timer)
+        if (driverObj.current) {
+          driverObj.current.destroy()
+        }
+      }
+    }
+
     return () => {
       if (driverObj.current) {
         driverObj.current.destroy()
       }
     }
-  }, [onComplete])
+  }, [hasVisited, onComplete])
+
+  // Listen for clicks on the Run Backtest button to complete the tutorial
+  useEffect(() => {
+    const handleRunBacktestClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      // Check if the click is on the Run Backtest button or its children
+      const runBacktestButton = target.closest('[data-tutorial="run-backtest"]')
+      
+      if (runBacktestButton && driverObj.current) {
+        // Check if tutorial overlay exists (indicates tutorial is active)
+        const tutorialOverlay = document.querySelector('.driver-overlay')
+        if (tutorialOverlay) {
+          // Stop the tutorial (this will trigger onDestroyed callback)
+          driverObj.current.destroy()
+        }
+      }
+    }
+
+    // Add event listener to document to catch clicks
+    document.addEventListener('click', handleRunBacktestClick, true)
+
+    return () => {
+      document.removeEventListener('click', handleRunBacktestClick, true)
+    }
+  }, [])
 
   const startTutorial = () => {
     if (driverObj.current) {
