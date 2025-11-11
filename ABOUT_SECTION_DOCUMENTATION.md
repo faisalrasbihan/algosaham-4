@@ -1,12 +1,12 @@
-# Dokumentasi Bagian "Tentang Kami" - AlgoSaham.ai
+# Dokumentasi Bagian "Tentang Kami" - algosaham.ai
 
 ## 📋 Overview
 
-Bagian "Tentang Kami" telah dibuat dengan konten yang disesuaikan untuk AlgoSaham.ai sebagai platform strategi saham berbasis AI. Konten ini dirancang untuk meningkatkan kepercayaan pengunjung, menjelaskan nilai unik platform, dan mengoptimalkan SEO.
+Bagian "Tentang Kami" telah dibuat dengan konten yang disesuaikan untuk algosaham.ai sebagai platform strategi saham berbasis AI. Konten ini dirancang untuk meningkatkan kepercayaan pengunjung, menjelaskan nilai unik platform, dan mengoptimalkan SEO.
 
 ## 🎯 Tujuan Konten
 
-1. **Menjelaskan Identitas**: Siapa AlgoSaham.ai dan apa yang kami lakukan
+1. **Menjelaskan Identitas**: Siapa algosaham.ai dan apa yang kami lakukan
 2. **Menonjolkan Keunggulan**: Fitur-fitur unik berbasis AI dan teknologi canggih
 3. **Membangun Kepercayaan**: Pendekatan ilmiah dan tim profesional
 4. **SEO Optimization**: Kata kunci strategis untuk peringkat mesin pencari
@@ -26,7 +26,7 @@ File SEO yang berisi meta tags, structured data, dan optimasi untuk mesin pencar
 
 ### 1. **Header Section**
 
-- Judul: "Tentang AlgoSaham.ai"
+- Judul: "Tentang algosaham.ai"
 - Deskripsi: Penjelasan singkat tentang platform AI untuk strategi investasi
 
 ### 2. **Misi, Visi & Nilai**
@@ -85,7 +85,7 @@ File SEO yang berisi meta tags, structured data, dan optimasi untuk mesin pencar
 
 ### Meta Tags
 
-- **Title**: "Tentang AlgoSaham.ai - Platform Strategi Saham Berbasis AI Terdepan di Indonesia"
+- **Title**: "Tentang algosaham.ai - Platform Strategi Saham Berbasis AI Terdepan di Indonesia"
 - **Description**: Deskripsi komprehensif dengan kata kunci strategis
 - **Open Graph**: Optimasi untuk media sosial
 - **Twitter Cards**: Optimasi untuk Twitter

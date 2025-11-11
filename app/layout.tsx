@@ -23,8 +23,68 @@ const ibmPlexMono = IBM_Plex_Mono({
 })
 
 export const metadata = {
-  title: "AlgoSaham.ai - Indonesian Stock Backtesting Platform",
-  description: "Professional stock backtesting platform for Indonesian markets",
+  metadataBase: new URL("https://algosaham.ai"),
+  title: {
+    default: "Algosaham - Platform Backtesting Saham Indonesia Berbasis AI",
+    template: "%s | algosaham.ai",
+  },
+  description: "Platform backtesting saham berbasis AI terdepan di Indonesia. Eksplorasi strategi kustom, akses strategi top performer, dan nikmati strategi premium berlangganan untuk memaksimalkan keuntungan investasi Anda.",
+  keywords: [
+    "backtesting saham",
+    "strategi saham AI",
+    "trading saham Indonesia",
+    "analisis saham otomatis",
+    "platform investasi AI",
+    "algoritma trading",
+    "strategi investasi saham",
+    "backtesting Indonesia",
+    "AI trading platform",
+    "investasi berbasis data",
+  ],
+  authors: [{ name: "algosaham.ai" }],
+  creator: "algosaham.ai",
+  publisher: "algosaham.ai",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "id_ID",
+    url: "https://algosaham.ai",
+    siteName: "algosaham.ai",
+    title: "algosaham.ai - Platform Backtesting Saham Indonesia Berbasis AI",
+    description: "Platform backtesting saham berbasis AI terdepan di Indonesia. Eksplorasi strategi kustom, akses strategi top performer, dan nikmati strategi premium berlangganan.",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "algosaham.ai - Platform Backtesting Saham Indonesia",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "algosaham.ai - Platform Backtesting Saham Indonesia Berbasis AI",
+    description: "Platform backtesting saham berbasis AI terdepan di Indonesia. Eksplorasi strategi kustom dan akses strategi top performer.",
+    images: ["/og-image.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: "https://algosaham.ai",
+  },
 }
 
 export default function RootLayout({

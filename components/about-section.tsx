@@ -69,7 +69,7 @@ export function AboutSection() {
     {
       icon: Users,
       title: "Komunitas Trader",
-      description: "Bergabung dengan ribuan investor yang telah mempercayai AlgoSaham.ai untuk strategi investasi mereka.",
+      description: "Bergabung dengan ribuan investor yang telah mempercayai algosaham.ai untuk strategi investasi mereka.",
     },
     {
       icon: Award,
@@ -96,14 +96,14 @@ export function AboutSection() {
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-8 leading-snug text-center">
             Temukan strategi investasi <br /> terbaik Anda di{" "}
             <span className="text-ochre font-mono" style={{ fontFamily: "var(--font-ibm-plex-mono)" }}>
-              AlgoSaham.ai
+              algosaham.ai
             </span>
             <br />
             <span className="block mt-3 text-2xl md:text-3xl lg:text-4xl text-muted-foreground font-normal">Strategi Investasi Cerdas dengan AI</span>
           </h1>
 
           <p className="text-lg md:text-xl text-muted-foreground font-mono max-w-3xl mx-auto leading-relaxed tracking-wide text-center mb-10">
-            Platform berbasis kecerdasan buatan (AI) yang membantu investor merancang, menguji, dan mengoptimalkan strategi saham secara akurat. Melalui analisis data dan backtesting mendalam, AlgoSaham.ai menghadirkan keputusan investasi
+            Platform berbasis kecerdasan buatan (AI) yang membantu investor merancang, menguji, dan mengoptimalkan strategi saham secara akurat. Melalui analisis data dan backtesting mendalam, algosaham.ai menghadirkan keputusan investasi
             yang lebih cerdas, efisien, dan berbasis data untuk hasil optimal di pasar saham Indonesia.
           </p>
 
@@ -128,7 +128,7 @@ export function AboutSection() {
         <div className="mb-20">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-mono">
-              Mengapa <span className="text-ochre">AlgoSaham.ai</span> Berbeda?
+              Mengapa <span className="text-ochre">algosaham.ai</span> Berbeda?
             </h2>
             <p className="text-lg text-muted-foreground font-mono max-w-3xl mx-auto">
               Platform backtesting saham Indonesia pertama yang menggunakan teknologi AI untuk menganalisis ribuan data pasar dan menghasilkan strategi investasi yang terbukti menguntungkan.
@@ -151,7 +151,7 @@ export function AboutSection() {
         <div className="mb-20">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-mono">
-              Bagaimana Cara <span className="text-ochre">AlgoSaham.ai</span> Bekerja?
+              Bagaimana Cara <span className="text-ochre">algosaham.ai</span> Bekerja?
             </h2>
             <p className="text-lg text-muted-foreground font-mono max-w-3xl mx-auto">Lihat bagaimana platform kami membantu Anda menemukan, mengelola, dan memantau strategi trading terbaik.</p>
           </div>
@@ -162,7 +162,7 @@ export function AboutSection() {
                 <iframe
                   className="absolute top-0 left-0 w-full h-full rounded-2xl"
                   src="https://www.youtube.com/embed/F0Q0RFDiecU"
-                  title="AlgoSaham.ai Platform Demo"
+                  title="algosaham.ai Platform Demo"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -343,7 +343,7 @@ export function AboutSection() {
         <div className="mb-20">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-mono">
-              Keuntungan Investasi dengan <span className="text-ochre">AlgoSaham.ai</span>
+              Keuntungan Investasi dengan <span className="text-ochre">algosaham.ai</span>
             </h2>
             <p className="text-lg text-muted-foreground font-mono max-w-3xl mx-auto">Bergabunglah dengan komunitas investor sukses yang telah merasakan manfaat dari strategi saham berbasis AI dan backtesting otomatis.</p>
           </div>
@@ -415,7 +415,7 @@ export function AboutSection() {
               Siap Meningkatkan <span className="text-ochre">Keuntungan Investasi</span> Anda?
             </h2>
             <p className="text-lg text-muted-foreground font-mono mb-8 max-w-3xl mx-auto leading-relaxed">
-              Bergabunglah dengan <strong className="text-foreground">10,000+ investor sukses</strong> yang telah mempercayai AlgoSaham.ai untuk strategi investasi mereka. Temukan strategi saham terbaik dengan teknologi AI dan rasakan
+              Bergabunglah dengan <strong className="text-foreground">10,000+ investor sukses</strong> yang telah mempercayai algosaham.ai untuk strategi investasi mereka. Temukan strategi saham terbaik dengan teknologi AI dan rasakan
               perbedaan investasi berbasis data yang akurat.
             </p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center">

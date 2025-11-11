@@ -1,10 +1,10 @@
-// SEO Meta Tags untuk halaman About AlgoSaham.ai
+// SEO Meta Tags untuk halaman About algosaham.ai
 // File ini berisi meta description dan title tag yang SEO-friendly
 
 export const aboutPageSEO = {
-  title: "Tentang AlgoSaham.ai - Platform Strategi Saham Berbasis AI Terdepan di Indonesia",
+  title: "Tentang algosaham.ai - Platform Strategi Saham Berbasis AI Terdepan di Indonesia",
   description:
-    "AlgoSaham.ai adalah platform strategi saham berbasis AI terdepan di Indonesia. Eksplorasi strategi kustom, akses strategi top performer, dan nikmati strategi premium berlangganan. Platform revolusioner dengan backtesting otomatis dan analisis investasi cerdas untuk memaksimalkan keuntungan investor Indonesia.",
+    "algosaham.ai adalah platform strategi saham berbasis AI terdepan di Indonesia. Eksplorasi strategi kustom, akses strategi top performer, dan nikmati strategi premium berlangganan. Platform revolusioner dengan backtesting otomatis dan analisis investasi cerdas untuk memaksimalkan keuntungan investor Indonesia.",
   keywords: [
     "strategi saham berbasis AI",
     "eksplorasi strategi kustom",
@@ -21,9 +21,9 @@ export const aboutPageSEO = {
     "strategi investasi premium",
     "platform saham AI",
   ],
-  ogTitle: "Tentang AlgoSaham.ai - Platform AI untuk Strategi Investasi Saham",
+  ogTitle: "Tentang algosaham.ai - Platform AI untuk Strategi Investasi Saham",
   ogDescription: "Platform revolusioner yang menggabungkan AI dengan analisis data mendalam untuk strategi investasi saham yang optimal. Backtesting otomatis dan strategi dipersonalisasi untuk investor Indonesia.",
-  twitterTitle: "AlgoSaham.ai - Strategi Saham Berbasis AI untuk Investor Indonesia",
+  twitterTitle: "algosaham.ai - Strategi Saham Berbasis AI untuk Investor Indonesia",
   twitterDescription: "Platform AI terdepan untuk backtesting saham dan strategi investasi cerdas. Analisis otomatis dan strategi dipersonalisasi untuk memaksimalkan keuntungan investasi Anda.",
 };
 
@@ -31,7 +31,7 @@ export const aboutPageSEO = {
 export const aboutPageStructuredData = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "AlgoSaham.ai",
+  name: "algosaham.ai",
   description: "Platform strategi saham berbasis AI yang menyediakan backtesting otomatis dan analisis investasi cerdas untuk investor Indonesia",
   url: "https://algosaham.ai",
   logo: "https://algosaham.ai/logo.png",
@@ -64,21 +64,15 @@ export const aboutPageMetaTags = {
     description: aboutPageSEO.ogDescription,
     type: "website",
     url: "https://algosaham.ai/about",
-    siteName: "AlgoSaham.ai",
-    images: [
-      {
-        url: "https://algosaham.ai/og-about.jpg",
-        width: 1200,
-        height: 630,
-        alt: "AlgoSaham.ai - Platform Strategi Saham Berbasis AI",
-      },
-    ],
+    siteName: "algosaham.ai",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: aboutPageSEO.twitterTitle,
     description: aboutPageSEO.twitterDescription,
-    images: ["https://algosaham.ai/twitter-about.jpg"],
+  },
+  alternates: {
+    canonical: "https://algosaham.ai/about",
   },
   robots: {
     index: true,
