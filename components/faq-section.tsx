@@ -33,12 +33,12 @@ const allFAQs: FAQItem[] = [
   {
     question: "Apa saja fitur utama Algosaham.ai?",
     answer:
-      "Beberapa fitur utama meliputi: 🔹 Strategy Builder: Bangun strategi trading tanpa coding 🔹 Backtesting Engine: Uji performa strategi menggunakan data historis 🔹 Optimization Tool: Temukan parameter terbaik untuk strategi Anda 🔹 Real-Time Data Feed: Akses data pasar Indonesia secara langsung 🔹 Performance Dashboard: Pantau hasil dan analisis kinerja strategi",
+      "Beberapa fitur utama meliputi:\n\n🔹 Strategy Builder: Bangun strategi trading tanpa coding\n\n🔹 Backtesting Engine: Uji performa strategi menggunakan data historis\n\n🔹 Optimization Tool: Temukan parameter terbaik untuk strategi Anda\n\n🔹 Real-Time Data Feed: Akses data pasar Indonesia secara langsung\n\n🔹 Performance Dashboard: Pantau hasil dan analisis kinerja strategi",
   },
   {
     question: "Apa manfaat menggunakan Algosaham.ai dibandingkan platform lain?",
     answer:
-      "Keunggulan utama Algosaham.ai: Fokus pada pasar saham Indonesia, Dukungan AI dan machine learning untuk optimasi strategi, No-code interface yang mudah digunakan, Hasil pengujian yang transparan dan terukur.",
+      "Keunggulan utama Algosaham.ai:\n\n• Fokus pada pasar saham Indonesia\n\n• Dukungan AI dan machine learning untuk optimasi strategi\n\n• No-code interface yang mudah digunakan\n\n• Hasil pengujian yang transparan dan terukur",
   },
   {
     question: "Apakah Algosaham.ai bisa digunakan di perangkat mobile?",
@@ -83,7 +83,7 @@ const allFAQs: FAQItem[] = [
   {
     question: "Bagaimana cara menghubungi tim Algosaham.ai jika butuh bantuan?",
     answer:
-      "Anda dapat menghubungi kami melalui: Email: support@algosaham.ai, Menu Bantuan di dalam platform, Komunitas Discord/Telegram resmi (jika tersedia).",
+      "Anda dapat menghubungi kami melalui:\n\n• Email: support@algosaham.ai\n\n• Menu Bantuan di dalam platform\n\n• Komunitas Discord/Telegram resmi (jika tersedia)",
   },
 ];
 
@@ -130,11 +130,17 @@ export function FAQSection() {
             return (
               <div
                 key={faq.question}
-                className="border border-border rounded-lg bg-card hover:border-primary/30 transition-colors"
+                className={`border-2 rounded-lg transition-all duration-300 ${
+                  isExpanded
+                    ? "border-primary bg-gradient-to-br from-primary/5 to-primary/10 shadow-md"
+                    : "border-border bg-card hover:border-primary/30"
+                }`}
               >
                 <button
                   onClick={() => toggleItem(faq.question)}
-                  className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-muted/50 transition-colors rounded-lg"
+                  className={`w-full px-6 py-4 flex items-center justify-between text-left transition-colors rounded-lg ${
+                    isExpanded ? "bg-primary/5" : "hover:bg-muted/50"
+                  }`}
                 >
                   <h3 className="text-lg font-semibold text-foreground pr-4">{faq.question}</h3>
                   <div className="flex-shrink-0">
@@ -147,8 +153,8 @@ export function FAQSection() {
                 </button>
                 {isExpanded && (
                   <div className="px-6 pb-4">
-                    <div className="pt-2 border-t border-border">
-                      <p className="text-muted-foreground font-mono text-sm leading-relaxed whitespace-pre-line">
+                    <div className="pt-2 border-t border-primary/20">
+                      <p className="text-foreground font-mono text-sm leading-relaxed whitespace-pre-line">
                         {faq.answer}
                       </p>
                     </div>
@@ -166,7 +172,7 @@ export function FAQSection() {
               variant="outline"
               className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
             >
-              Lihat Semua Pertanyaan
+              Lihat Semua
               <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </div>
@@ -174,7 +180,14 @@ export function FAQSection() {
 
         {showAll && (
           <div className="text-center mt-8">
-            <p className="text-sm text-muted-foreground font-mono mb-4">
+            <Button
+              onClick={() => setShowAll(false)}
+              variant="outline"
+              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground mb-4"
+            >
+              Kembali
+            </Button>
+            <p className="text-sm text-muted-foreground font-mono">
               Masih punya pertanyaan? Hubungi kami di{" "}
               <a href="mailto:support@algosaham.ai" className="text-primary hover:underline">
                 support@algosaham.ai
