@@ -29,6 +29,7 @@ import {
 import { AddIndicatorModal } from "@/components/add-indicator-modal"
 import { BacktestRequest } from "@/lib/api"
 import { useEffect } from "react"
+import { useUser, SignInButton } from "@clerk/nextjs"
 
 interface Indicator {
   id: string
@@ -42,6 +43,7 @@ interface StrategyBuilderProps {
 }
 
 export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
+  const { isSignedIn, isLoaded } = useUser()
   const [marketCaps, setMarketCaps] = useState<string[]>(["Mid"])
   const [stockType, setStockType] = useState("All Stocks")
   const [sectors, setSectors] = useState<string[]>(["Banking"])
@@ -815,14 +817,26 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
 
       <div className="p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex w-full">
-          <Button
-            className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium font-mono rounded-r-none border-r border-primary-foreground/20"
-            onClick={handleRunBacktest}
-            data-tutorial="run-backtest"
-          >
-            <Play className="h-5 w-5 mr-2" />
-            Run Backtest
-          </Button>
+          {isLoaded && !isSignedIn ? (
+            <SignInButton mode="modal">
+              <Button
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium font-mono rounded-r-none border-r border-primary-foreground/20"
+                data-tutorial="run-backtest"
+              >
+                <Play className="h-5 w-5 mr-2" />
+                Run Backtest
+              </Button>
+            </SignInButton>
+          ) : (
+            <Button
+              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium font-mono rounded-r-none border-r border-primary-foreground/20"
+              onClick={handleRunBacktest}
+              data-tutorial="run-backtest"
+            >
+              <Play className="h-5 w-5 mr-2" />
+              Run Backtest
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-3 rounded-l-none">
