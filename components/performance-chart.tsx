@@ -1,7 +1,7 @@
 "use client"
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
-
+import { useEffect, useRef } from "react"
+import { createChart, IChartApi, ISeriesApi, LineStyle, ColorType, LineSeries } from "lightweight-charts"
 
 interface PerformanceChartProps {
   data?: Array<{
@@ -13,12 +13,126 @@ interface PerformanceChartProps {
 }
 
 export function PerformanceChart({ data }: PerformanceChartProps) {
+  const chartContainerRef = useRef<HTMLDivElement>(null)
+  const chartRef = useRef<IChartApi | null>(null)
+  const strategySeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+  const benchmarkSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+
   console.log('📈 [PERFORMANCE CHART] Received data:', {
     hasData: !!data,
     dataLength: data?.length || 0,
     sampleData: data?.[0] || null
   })
-  
+
+  useEffect(() => {
+    if (!chartContainerRef.current) return
+
+    // Create chart with light theme
+    const chart = createChart(chartContainerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: '#ffffff' },
+        textColor: '#1e293b',
+      },
+      grid: {
+        vertLines: { color: '#e2e8f0' },
+        horzLines: { color: '#e2e8f0' },
+      },
+      width: chartContainerRef.current.clientWidth,
+      height: 400,
+      rightPriceScale: {
+        borderColor: '#e2e8f0',
+        scaleMargins: {
+          top: 0.1,
+          bottom: 0.1,
+        },
+      },
+      timeScale: {
+        borderColor: '#e2e8f0',
+        timeVisible: true,
+        secondsVisible: false,
+      },
+    })
+
+    chartRef.current = chart
+
+    // Add strategy line series
+    const strategySeries = chart.addSeries(LineSeries, {
+      color: '#d07225',
+      lineWidth: 2,
+      title: 'Strategy',
+      priceFormat: {
+        type: 'percent',
+        precision: 2,
+        minMove: 0.01,
+      },
+      lastValueVisible: true,
+      priceLineVisible: true,
+    }) as ISeriesApi<"Line">
+    strategySeriesRef.current = strategySeries
+
+    // Add benchmark line series (dashed)
+    const benchmarkSeries = chart.addSeries(LineSeries, {
+      color: '#3b82f6',
+      lineWidth: 2,
+      lineStyle: LineStyle.Dashed,
+      title: 'LQ45 Benchmark',
+      priceFormat: {
+        type: 'percent',
+        precision: 2,
+        minMove: 0.01,
+      },
+      lastValueVisible: true,
+      priceLineVisible: true,
+    }) as ISeriesApi<"Line">
+    benchmarkSeriesRef.current = benchmarkSeries
+
+    // Handle resize
+    const handleResize = () => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth })
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      chart.remove()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!data || data.length === 0 || !strategySeriesRef.current || !benchmarkSeriesRef.current) {
+      return
+    }
+
+    // Process API data for TradingView format
+    const initialCapital = 1000000000
+    const strategyData = data.map((item) => {
+      const portfolioPercentage = (item.portfolioValue / initialCapital) * 100
+      return {
+        time: new Date(item.date).getTime() / 1000 as any, // Convert to Unix timestamp
+        value: portfolioPercentage,
+      }
+    })
+
+    const benchmarkData = data.map((item) => {
+      return {
+        time: new Date(item.date).getTime() / 1000 as any,
+        value: item.benchmarkValue,
+      }
+    })
+
+    // Set data to series
+    strategySeriesRef.current.setData(strategyData)
+    benchmarkSeriesRef.current.setData(benchmarkData)
+
+    // Fit content
+    if (chartRef.current) {
+      chartRef.current.timeScale().fitContent()
+    }
+  }, [data])
+
   // Show error state if no data
   if (!data || data.length === 0) {
     return (
@@ -30,82 +144,10 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
       </div>
     )
   }
-  
-  // Process API data
-  const chartData = data.map((item) => {
-    // Convert date to readable format
-    const date = new Date(item.date).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    })
-    
-    // Convert portfolio value to percentage (assuming initial capital is 1B)
-    const initialCapital = 1000000000
-    const portfolioPercentage = (item.portfolioValue / initialCapital) * 100
-    
-    return {
-      date: date,
-      strategy: portfolioPercentage,
-      benchmark: item.benchmarkValue
-    }
-  })
-  
-  // Calculate dynamic y-axis domain based on data range
-  const allValues = chartData.flatMap(item => [item.strategy, item.benchmark])
-  const minValue = Math.min(...allValues)
-  const maxValue = Math.max(...allValues)
-  
-  // Add 5% padding to the range for better visualization
-  const range = maxValue - minValue
-  const padding = range * 0.05
-  const yAxisDomain = [minValue - padding, maxValue + padding]
-  
-  console.log('📈 [PERFORMANCE CHART] Final chart data:', {
-    dataLength: chartData.length,
-    sampleData: chartData[0] || null,
-    lastData: chartData[chartData.length - 1] || null,
-    yAxisDomain: yAxisDomain
-  })
+
   return (
-    <div className="h-[400px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey="date" stroke="#64748b" fontSize={12} fontFamily="var(--font-mono)" />
-          <YAxis 
-            stroke="#64748b" 
-            fontSize={12} 
-            fontFamily="var(--font-mono)" 
-            domain={yAxisDomain}
-            tickFormatter={(value) => `${value.toFixed(1)}%`}
-          />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: "4px",
-              fontFamily: "var(--font-mono)",
-              fontSize: "12px",
-              color: "#1e293b",
-            }}
-            formatter={(value: number, name: string) => [
-              `${value.toFixed(2)}%`, 
-              name === 'strategy' ? 'Strategy' : 'LQ45 Benchmark'
-            ]}
-          />
-          <Legend />
-          <Line type="monotone" dataKey="strategy" stroke="#d07225" strokeWidth={2} name="Strategy" dot={false} />
-          <Line
-            type="monotone"
-            dataKey="benchmark"
-            stroke="#3b82f6"
-            strokeWidth={2}
-            strokeDasharray="5 5"
-            name="LQ45 Benchmark"
-            dot={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+    <div className="w-full">
+      <div ref={chartContainerRef} className="h-[400px] w-full" />
     </div>
   )
 }

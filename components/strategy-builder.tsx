@@ -27,6 +27,7 @@ import {
   Check,
 } from "lucide-react"
 import { AddIndicatorModal } from "@/components/add-indicator-modal"
+import { OnboardingTutorial } from "@/components/onboarding-tutorial"
 import { BacktestRequest } from "@/lib/api"
 import { useEffect } from "react"
 import { useUser, SignInButton } from "@clerk/nextjs"
@@ -337,7 +338,10 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 p-4 space-y-3 overflow-y-auto" ref={scrollContainerRef}>
+      <div className="flex-1 p-4 pb-24 space-y-3 overflow-y-auto" ref={scrollContainerRef}>
+        {/* Tutorial Button */}
+        <OnboardingTutorial />
+        
         {/* Stock Filters */}
         <Card className="border bg-card rounded-none" data-tutorial="stock-filters">
           <CardHeader className={`flex items-center ${collapsedSections.filters ? "py-2" : "pb-2"}`}>
@@ -815,12 +819,12 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
         </Card>
       </div>
 
-      <div className="p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="sticky bottom-0 p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10">
         <div className="flex w-full">
           {isLoaded && !isSignedIn ? (
             <SignInButton mode="modal">
               <Button
-                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium font-mono rounded-r-none border-r border-primary-foreground/20"
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium font-mono"
                 data-tutorial="run-backtest"
               >
                 <Play className="h-5 w-5 mr-2" />
@@ -828,32 +832,34 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
               </Button>
             </SignInButton>
           ) : (
-            <Button
-              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium font-mono rounded-r-none border-r border-primary-foreground/20"
-              onClick={handleRunBacktest}
-              data-tutorial="run-backtest"
-            >
-              <Play className="h-5 w-5 mr-2" />
-              Run Backtest
-            </Button>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-3 rounded-l-none">
-                <ChevronDown className="h-4 w-4" />
+            <>
+              <Button
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium font-mono rounded-r-none border-r border-primary-foreground/20"
+                onClick={handleRunBacktest}
+                data-tutorial="run-backtest"
+              >
+                <Play className="h-5 w-5 mr-2" />
+                Run Backtest
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end">
-              <DropdownMenuItem onClick={() => setShowSaveModal(true)} className="font-mono">
-                <Play className="h-4 w-4 mr-2" />
-                Run & Save
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowSaveModal(true)} className="font-mono">
-                <Save className="h-4 w-4 mr-2" />
-                Save Strategy
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-3 rounded-l-none">
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end">
+                  <DropdownMenuItem onClick={() => setShowSaveModal(true)} className="font-mono">
+                    <Play className="h-4 w-4 mr-2" />
+                    Run & Save
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowSaveModal(true)} className="font-mono">
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Strategy
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
         </div>
       </div>
 

@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { driver } from "driver.js"
 import "driver.js/dist/driver.css"
-import { Button } from "@/components/ui/button"
-import { Play, HelpCircle } from "lucide-react"
+import { HelpCircle } from "lucide-react"
 
 interface OnboardingTutorialProps {
   onComplete?: () => void
@@ -180,19 +179,18 @@ export function OnboardingTutorial({ onComplete }: OnboardingTutorialProps) {
   }
 
   return (
-    <div className="flex flex-col items-center space-y-2">
-      <Button
-        onClick={startTutorial}
-        variant="outline"
-        size="sm"
-        className="gap-2 font-mono border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-      >
-        <HelpCircle className="h-4 w-4" />
-        Start Tutorial
-      </Button>
-      <p className="text-xs text-muted-foreground text-center">
-        Learn how to use the backtest tool
-      </p>
-    </div>
+    <button
+      onClick={startTutorial}
+      className="w-full text-left px-1 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors rounded-sm border border-transparent hover:border-border/50"
+    >
+      <div className="flex items-start gap-1">
+        <HelpCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+        <div className="flex-1 space-y-0.5">
+          <p className="leading-relaxed">
+            Need help? click here to start tutorial
+          </p>
+        </div>
+      </div>
+    </button>
   )
 }

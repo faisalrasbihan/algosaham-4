@@ -197,3 +197,13 @@
 .grainy-gradient-button:hover {
   background: linear-gradient(135deg, #df8d4b 0%, #487b78 100%);
 }
+
+/* Hide scrollbar but keep scrolling functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
