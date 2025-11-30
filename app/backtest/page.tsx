@@ -2,7 +2,7 @@
 
 import { Navbar } from "@/components/navbar"
 import { TickerTape } from "@/components/ticker-tape"
-import { StrategyBuilder } from "@/components/strategy-builder"
+import { BacktestStrategyBuilder } from "@/components/backtest-strategy-builder"
 import { ResultsPanel } from "@/components/results-panel"
 import { useBacktest } from "@/lib/hooks/useBacktest"
 import { BacktestRequest } from "@/lib/api"
@@ -37,7 +37,7 @@ export default function BacktestPage() {
       <div className="flex h-[calc(100vh-104px)]">
         {/* Left Panel - Strategy Builder */}
         <div className="w-[380px] flex-shrink-0 bg-card border-r border-border overflow-y-auto">
-          <StrategyBuilder onRunBacktest={handleBacktestRun} />
+          <BacktestStrategyBuilder onRunBacktest={handleBacktestRun} />
         </div>
 
         {/* Right Panel - Results */}

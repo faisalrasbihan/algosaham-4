@@ -2,14 +2,15 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { TrendingUp, Heart, Info, ArrowRight, ChevronDown, ChevronUp } from "lucide-react"
-import { useState } from "react"
+import { TrendingUp, Heart, Info, ArrowRight, ChevronDown, ChevronUp, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
 import { CardCarousel } from "@/components/card-carousel"
+import { StrategyCardSkeleton } from "@/components/strategy-card-skeleton"
 
 interface Strategy {
-  id: string
+  id: number
   name: string
-  description: string
+  description: string | null
   totalReturn: number
   maxDrawdown: number
   sharpeRatio: number
@@ -19,111 +20,34 @@ interface Strategy {
   subscribers: number
 }
 
-const popularStrategies: Strategy[] = [
-  {
-    id: "p1",
-    name: "IDX30 Mean Reversion",
-    description:
-      "Advanced mean reversion strategy targeting IDX30 stocks with statistical arbitrage techniques for optimal entry and exit points",
-    totalReturn: 42.8,
-    maxDrawdown: -9.5,
-    sharpeRatio: 2.45,
-    winRate: 74.2,
-    totalTrades: 234,
-    stocksHeld: 18,
-    subscribers: 1247,
-  },
-  {
-    id: "p2",
-    name: "Commodity Momentum Master",
-    description: "High-frequency momentum strategy for mining and energy stocks with dynamic position sizing",
-    totalReturn: 38.6,
-    maxDrawdown: -11.3,
-    sharpeRatio: 2.12,
-    winRate: 69.8,
-    totalTrades: 189,
-    stocksHeld: 22,
-    subscribers: 892,
-  },
-  {
-    id: "p3",
-    name: "Consumer Defensive Shield",
-    description:
-      "Low-risk strategy focusing on consumer staples with consistent returns and minimal volatility exposure",
-    totalReturn: 16.4,
-    maxDrawdown: -4.2,
-    sharpeRatio: 1.98,
-    winRate: 78.5,
-    totalTrades: 156,
-    stocksHeld: 9,
-    subscribers: 654,
-  },
-  {
-    id: "p4",
-    name: "Banking Sector Breakout",
-    description:
-      "Momentum-based strategy capitalizing on banking sector volatility and breakout patterns with technical indicators",
-    totalReturn: 31.2,
-    maxDrawdown: -8.7,
-    sharpeRatio: 2.28,
-    winRate: 71.4,
-    totalTrades: 198,
-    stocksHeld: 12,
-    subscribers: 1089,
-  },
-  {
-    id: "p5",
-    name: "Tech Growth Accelerator",
-    description:
-      "Growth-focused strategy targeting emerging technology companies with strong fundamentals and market momentum",
-    totalReturn: 54.3,
-    maxDrawdown: -15.2,
-    sharpeRatio: 1.87,
-    winRate: 65.3,
-    totalTrades: 267,
-    stocksHeld: 25,
-    subscribers: 1523,
-  },
-  {
-    id: "p6",
-    name: "Dividend Aristocrats",
-    description:
-      "Conservative income strategy focusing on high-dividend blue-chip stocks with long track records of consistent payouts",
-    totalReturn: 12.8,
-    maxDrawdown: -3.1,
-    sharpeRatio: 2.56,
-    winRate: 82.1,
-    totalTrades: 124,
-    stocksHeld: 8,
-    subscribers: 743,
-  },
-  {
-    id: "p7",
-    name: "Small Cap Value Hunter",
-    description:
-      "Value investing approach targeting undervalued small-cap stocks with strong balance sheets and growth potential",
-    totalReturn: 47.9,
-    maxDrawdown: -12.8,
-    sharpeRatio: 2.03,
-    winRate: 68.7,
-    totalTrades: 312,
-    stocksHeld: 32,
-    subscribers: 967,
-  },
-  {
-    id: "p8",
-    name: "Infrastructure Play",
-    description:
-      "Long-term strategy focused on infrastructure and construction sector growth driven by government spending",
-    totalReturn: 28.5,
-    maxDrawdown: -7.4,
-    sharpeRatio: 2.19,
-    winRate: 73.6,
-    totalTrades: 176,
-    stocksHeld: 14,
-    subscribers: 821,
-  },
-]
+interface DBStrategy {
+  id: number
+  name: string
+  description: string | null
+  totalReturns: string | null
+  ytdReturn: string | null
+  maxDrawdown: string | null
+  sharpeRatio: string | null
+  winRate: string | null
+  totalStocks: number | null
+}
+
+// Helper function to convert DB strategy to component strategy
+function mapDBStrategyToStrategy(dbStrategy: DBStrategy, index: number): Strategy {
+  return {
+    id: dbStrategy.id,
+    name: dbStrategy.name,
+    description: dbStrategy.description,
+    totalReturn: parseFloat(dbStrategy.ytdReturn || dbStrategy.totalReturns || "0"),
+    maxDrawdown: parseFloat(dbStrategy.maxDrawdown || "0"),
+    sharpeRatio: parseFloat(dbStrategy.sharpeRatio || "0"),
+    winRate: parseFloat(dbStrategy.winRate || "0"),
+    // These fields don't exist in DB, use reasonable defaults
+    totalTrades: Math.floor((dbStrategy.totalStocks || 0) * (15 + index * 5)), // Estimate based on stocks held
+    stocksHeld: dbStrategy.totalStocks || 0,
+    subscribers: Math.floor(500 + Math.random() * 1000), // Random for now
+  }
+}
 
 function StrategyCard({ strategy }: { strategy: Strategy }) {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -142,7 +66,7 @@ function StrategyCard({ strategy }: { strategy: Strategy }) {
             </div>
             <div>
               <p className={`text-sm text-muted-foreground leading-relaxed ${!isExpanded ? "line-clamp-2" : ""}`}>
-                {strategy.description}
+                {strategy.description || "No description available"}
               </p>
               <button
                 onClick={(e) => {
@@ -257,6 +181,44 @@ function StrategyCard({ strategy }: { strategy: Strategy }) {
 }
 
 export function PopularStrategiesShowcase() {
+  const [strategies, setStrategies] = useState<Strategy[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchStrategies() {
+      try {
+        setIsLoading(true)
+        setError(null)
+        
+        const response = await fetch('/api/strategies/popular')
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch strategies: ${response.statusText}`)
+        }
+        
+        const result = await response.json()
+        
+        if (result.success && result.data) {
+          // Map database strategies to component format
+          const mappedStrategies = result.data.map((dbStrategy: DBStrategy, index: number) => 
+            mapDBStrategyToStrategy(dbStrategy, index)
+          )
+          setStrategies(mappedStrategies)
+        } else {
+          throw new Error(result.error || 'Failed to load strategies')
+        }
+      } catch (err) {
+        console.error('Error fetching strategies:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load strategies')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchStrategies()
+  }, [])
+
   return (
     <section className="py-12 dotted-background">
       {/* Section header */}
@@ -274,11 +236,33 @@ export function PopularStrategiesShowcase() {
 
       {/* Strategy cards grid */}
       <div className="mb-8 px-6">
-        <CardCarousel className="snap-x snap-mandatory" noPadding>
-          {popularStrategies.map((strategy) => (
-            <StrategyCard key={strategy.id} strategy={strategy} />
-          ))}
-        </CardCarousel>
+        {isLoading ? (
+          <CardCarousel className="snap-x snap-mandatory" noPadding>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <StrategyCardSkeleton key={i} />
+            ))}
+          </CardCarousel>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+            >
+              Try Again
+            </Button>
+          </div>
+        ) : strategies.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-muted-foreground">No strategies found</p>
+          </div>
+        ) : (
+          <CardCarousel className="snap-x snap-mandatory" noPadding>
+            {strategies.map((strategy) => (
+              <StrategyCard key={strategy.id} strategy={strategy} />
+            ))}
+          </CardCarousel>
+        )}
       </div>
 
       {/* View all button */}
