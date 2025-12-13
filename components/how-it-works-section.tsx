@@ -4,27 +4,27 @@ export function HowItWorksSection() {
   const steps = [
     {
       number: "01",
-      title: "Bangun Strategi Anda",
+      title: "Bangun Strategi Kamu",
       description:
-        "Gunakan visual strategy builder kami untuk membuat aturan trading sesuai dengan indikator-indikator pilihan Anda.",
+        "Pakai visual strategy builder yang super mudah. Pilih indikator → susun aturan buy/sell → jadi deh strategi versi kamu. Tanpa coding, tanpa pusing.",
     },
     {
       number: "02",
-      title: "Uji dengan Data Historis",
+      title: "Uji Pakai Data Historis",
       description:
-        "Lakukan simulasi menggunakan data historis untuk melihat bagaimana performa strategi Anda jika diterapkan di masa lalu.",
+        "Simulasikan strategi kamu dengan data harga masa lalu. Lihat apakah strateginya bakal cuan atau jeblok kalau dipakai dulu. Semua serba transparan.",
     },
     {
       number: "03",
-      title: "Analisis Hasil Secara Mendalam",
+      title: "Analisis Lebih Dalam",
       description:
-        "Tinjau metrik performa, grafik, dan riwayat transaksi untuk memahami kekuatan dan peluang perbaikan strategi Anda.",
+        "Pantau performa lewat grafik, metrik kinerja, dan riwayat transaksi. Temukan kekuatan strategi kamu, dan lihat peluang buat di-improve. Biar trading makin mantap, bukan mengandalkan feeling lagi.",
     },
     {
       number: "04",
-      title: "Terapkan Strategi Anda",
+      title: "Jalankan Strategi Secara Real",
       description:
-        "Implementasikan strategi yang telah teruji dan dioptimalkan, sehingga menghasilkan keputusan yang lebih percaya diri dan berbasis data.",
+        "Saatnya eksekusi! Terapkan strategi terbaik yang sudah teruji dan dioptimalkan. Biar keputusan trading kamu lebih percaya diri, konsisten, dan berbasis data.",
     },
   ]
 
@@ -32,9 +32,9 @@ export function HowItWorksSection() {
     <section className="py-24 px-4 bg-muted/30">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Bagaimana Algosaham.ai Bekerja</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Cara Algosaham.ai Bekerja</h2>
           <p className="text-lg text-muted-foreground font-mono max-w-2xl mx-auto">
-            Dari ide hingga eksekusi dalam empat langkah sederhana.
+            Semua yang Kamu Butuh untuk Bangun Strategi Trading Ada di Sini
           </p>
         </div>
 

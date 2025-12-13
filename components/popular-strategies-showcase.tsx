@@ -225,11 +225,10 @@ export function PopularStrategiesShowcase() {
       <div className="px-6 mb-8">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-3 text-balance">
-            Top Performing Strategies
+            Strategi trading terbaik, tanpa mikir panjang.
           </h2>
           <p className="text-base text-muted-foreground text-pretty leading-relaxed">
-            Discover proven strategies from our community of expert traders. Subscribe to follow their trades and
-            replicate their success.
+            Dibuat dari analisis data historis berbasis ML dan sudah dicoba komunitas trader. Kamu tinggal ikuti atau modifikasi biar makin cuan.
           </p>
         </div>
       </div>

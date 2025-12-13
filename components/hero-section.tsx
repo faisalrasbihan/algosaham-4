@@ -27,9 +27,20 @@ export function HeroSection() {
 
           {/* Right side - Description and CTAs */}
           <div className="space-y-6">
-            <p className="text-lg lg:text-xl text-muted-foreground text-pretty leading-relaxed font-mono">
-              Bangun, uji, dan optimalkan strategi trading Anda dengan data pasar Indonesia yang real. Bergabunglah dengan ribuan trader yang membuat keputusan berbasis data.
-            </p>
+            <div className="space-y-4">
+              <h2 className="text-xl lg:text-2xl font-bold text-foreground">
+                Mau trading lebih cuan tanpa ribet?
+              </h2>
+              {/* <p className="text-base lg:text-lg text-muted-foreground text-pretty leading-relaxed font-mono">
+                Cari, uji, dan pakai strategi trading siap pakai di algosaham.ai. Bikin keputusan lebih yakin, bukan karena FOMO.
+              </p> */}
+              <p className="text-base lg:text-lg text-muted-foreground text-pretty leading-relaxed font-mono">
+                Di sini, kamu bisa nemuin strategi trading yang udah diuji dengan data pasar Indonesia yang real. Tinggal pilih strateginya, cek performanya, terus optimalkan sesuai gaya trading kamu.
+              </p>
+              <p className="text-base lg:text-lg text-muted-foreground text-pretty leading-relaxed font-mono">
+                Gampang, jelas, dan anti pusing.
+              </p>
+            </div>
 
             <div className="flex flex-col sm:flex-row items-start gap-4">
               <Link href="/backtest">
