@@ -55,9 +55,9 @@ CLERK_SECRET_KEY=sk_test_xxxxx
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 
-# API Configuration
-NEXT_PUBLIC_API_URL=https://your-api-url.com
-FASTAPI_URL=https://your-api-url.com
+# API Configuration (Railway Backend)
+# The Next.js API routes will proxy requests to this backend
+RAILWAY_URL=https://algosaham-4-production.up.railway.app
 
 # PostHog Analytics (Optional)
 NEXT_PUBLIC_POSTHOG_KEY=phc_xxxxx

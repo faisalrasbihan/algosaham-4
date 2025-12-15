@@ -19,6 +19,7 @@ import {
   Info,
 } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
+import { useUser } from "@clerk/nextjs"
 
 interface Strategy {
   id: string
@@ -304,6 +305,7 @@ const subscribedStrategies: Strategy[] = [
 ]
 
 export function StrategyCards() {
+  const { isSignedIn, isLoaded } = useUser()
   const [subscribed, setSubscribed] = useState<Set<string>>(new Set(["s1"]))
   const [showScrollIndicator, setShowScrollIndicator] = useState({
     saved: false,
@@ -616,34 +618,36 @@ export function StrategyCards() {
 
   return (
     <div className="space-y-8">
-      {/* Saved Strategies Section */}
-      <section>
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">My Strategies</h2>
-              <p className="text-muted-foreground">Strategies you've created and backtested</p>
+      {/* Saved Strategies Section - Only show when logged in */}
+      {isLoaded && isSignedIn && (
+        <section>
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">My Strategies</h2>
+                <p className="text-muted-foreground">Strategies you've created and backtested</p>
+              </div>
+              <Button className="bg-primary hover:bg-primary/90">
+                <Plus className="w-4 h-4 mr-2" />
+                Create New Strategy
+              </Button>
             </div>
-            <Button className="bg-primary hover:bg-primary/90">
-              <Plus className="w-4 h-4 mr-2" />
-              Create New Strategy
-            </Button>
           </div>
-        </div>
 
-        <div className="relative">
-          <div ref={savedScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide pl-6">
-            {savedStrategies.map((strategy) => (
-              <StrategyCard key={strategy.id} strategy={strategy} type="saved" />
-            ))}
-          </div>
-          {showScrollIndicator.saved && (
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background/80 to-transparent pl-8 pr-2 py-2">
-              <ChevronRight className="w-5 h-5 text-ochre animate-pulse" />
+          <div className="relative">
+            <div ref={savedScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide pl-6">
+              {savedStrategies.map((strategy) => (
+                <StrategyCard key={strategy.id} strategy={strategy} type="saved" />
+              ))}
             </div>
-          )}
-        </div>
-      </section>
+            {showScrollIndicator.saved && (
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background/80 to-transparent pl-8 pr-2 py-2">
+                <ChevronRight className="w-5 h-5 text-ochre animate-pulse" />
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Popular Strategies Section */}
       <section>

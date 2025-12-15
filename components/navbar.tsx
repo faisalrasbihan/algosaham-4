@@ -51,10 +51,10 @@ export function Navbar() {
           Home
         </Link>
         <Link href="/backtest" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
-          Backtest
+          Simulasi
         </Link>
         <Link href="/strategies" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
-          Strategies
+          Strategi
         </Link>
         <SignedIn>
           <Link href="/portfolio" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">

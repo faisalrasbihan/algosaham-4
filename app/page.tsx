@@ -5,7 +5,7 @@ import { PopularStrategiesShowcase } from "@/components/popular-strategies-showc
 import { StatsSection } from "@/components/stats-section"
 import { FeaturesSection } from "@/components/features-section"
 import { HowItWorksSection } from "@/components/how-it-works-section"
-import { PricingSection } from "@/components/pricing-section"
+import { PricingMatrix } from "@/components/pricing-matrix"
 import { FAQSection } from "@/components/faq-section"
 import { CTASection } from "@/components/cta-section"
 
@@ -20,7 +20,7 @@ export default function Home() {
         <FeaturesSection />
         {/* <StatsSection /> */}
         <HowItWorksSection />
-        <PricingSection />
+        <PricingMatrix />
         <FAQSection />
         <CTASection />
       </div>

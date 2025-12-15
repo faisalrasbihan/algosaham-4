@@ -1,18 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// FastAPI backend URL - can be configured via environment variable
-const FASTAPI_URL = process.env.FASTAPI_URL //|| 'https://backtester-psi.vercel.app'
+// Railway backend URL - configured via environment variable
+const RAILWAY_URL = process.env.RAILWAY_URL
 
 export async function POST(request: NextRequest) {
   console.log('🚀 [API ROUTE] Starting backtest API call...')
-  console.log('🚀 [API ROUTE] FastAPI URL:', FASTAPI_URL)
+  console.log('🚀 [API ROUTE] Railway URL:', RAILWAY_URL)
   
-  // Log environment variable status
-  if (!process.env.FASTAPI_URL) {
-    console.warn('⚠️ [API ROUTE] FASTAPI_URL environment variable not set, using fallback URL')
-  } else {
-    console.log('✅ [API ROUTE] Using FASTAPI_URL from environment variable')
+  // Check if RAILWAY_URL is set
+  if (!RAILWAY_URL) {
+    console.error('❌ [API ROUTE] RAILWAY_URL environment variable not set')
+    return NextResponse.json(
+      { 
+        error: 'Server configuration error',
+        details: 'RAILWAY_URL environment variable is not configured. Please set it in your .env file.'
+      }, 
+      { status: 500 }
+    )
   }
+  
+  console.log('✅ [API ROUTE] Using RAILWAY_URL:', RAILWAY_URL)
   
   try {
     // Parse the request body
@@ -38,11 +45,11 @@ export async function POST(request: NextRequest) {
       config: body.config
     }
     
-    console.log('🔄 [API ROUTE] Calling FastAPI endpoint:', `${FASTAPI_URL}/run_backtest`)
-    console.log('📤 [API ROUTE] Sending to FastAPI:', JSON.stringify(fastApiRequest, null, 2))
+    console.log('🔄 [API ROUTE] Calling Railway endpoint:', `${RAILWAY_URL}/run_backtest`)
+    console.log('📤 [API ROUTE] Sending to Railway:', JSON.stringify(fastApiRequest, null, 2))
     
-    // Call FastAPI backend
-    const response = await fetch(`${FASTAPI_URL}/run_backtest`, {
+    // Call Railway backend
+    const response = await fetch(`${RAILWAY_URL}/run_backtest`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -50,16 +57,21 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(fastApiRequest),
     })
     
-    console.log('📡 [API ROUTE] FastAPI response status:', response.status)
-    console.log('📡 [API ROUTE] FastAPI response headers:', Object.fromEntries(response.headers.entries()))
+    console.log('📡 [API ROUTE] Railway response status:', response.status)
+    console.log('📡 [API ROUTE] Railway response headers:', Object.fromEntries(response.headers.entries()))
     
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('❌ [API ROUTE] FastAPI error response:', errorText)
+      console.error('❌ [API ROUTE] Railway error response:', errorText)
+      console.error('❌ [API ROUTE] Request config that caused error:', JSON.stringify(fastApiRequest, null, 2))
       return NextResponse.json(
         { 
-          error: `FastAPI error: ${response.status} ${response.statusText}`,
-          details: errorText 
+          error: `Railway error: ${response.status} ${response.statusText}`,
+          details: errorText,
+          hint: response.status === 500 
+            ? 'Check Railway backend logs for detailed error. Common causes: date range has no data, no stocks match filters, or missing stock data.'
+            : undefined,
+          requestSent: fastApiRequest
         }, 
         { status: response.status }
       )
@@ -67,7 +79,7 @@ export async function POST(request: NextRequest) {
     
     // Parse the response
     const result = await response.json()
-    console.log('✅ [API ROUTE] FastAPI response received successfully')
+    console.log('✅ [API ROUTE] Railway response received successfully')
     console.log('📊 [API ROUTE] Response data keys:', Object.keys(result))
     console.log('📈 [API ROUTE] Response sample:', JSON.stringify(result, null, 2).substring(0, 500) + '...')
     

@@ -45,7 +45,7 @@ interface StrategyBuilderProps {
 
 export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
   const { isSignedIn, isLoaded } = useUser()
-  const [marketCaps, setMarketCaps] = useState<string[]>(["Mid"])
+  const [marketCaps, setMarketCaps] = useState<string[]>(["mid"])
   const [stockType, setStockType] = useState("All Stocks")
   const [sectors, setSectors] = useState<string[]>(["Banking"])
   const [sectorDropdownOpen, setSectorDropdownOpen] = useState(false)
@@ -80,7 +80,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
     backtest: false,
   })
 
-  const marketCapOptions = ["Small", "Mid", "Large"]
+  const marketCapOptions = ["small", "mid", "large"]
   const sectorOptions = [
     "Banking",
     "Consumer",
@@ -294,7 +294,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
     const backtestConfig: BacktestRequest = {
       backtestId: `strategy_${Date.now()}`,
       filters: {
-        marketCap: marketCaps[0] || "Large",
+        marketCap: marketCaps[0] || "large",
         is_syariah: stockType === "Syariah Only"
       },
       fundamentalIndicators: apiFundamentalIndicators,
@@ -369,10 +369,9 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
                         className="cursor-pointer hover:bg-accent/20 text-xs font-mono"
                         onClick={() => toggleMarketCap(cap)}
                       >
-                        {cap}
+                        {cap.charAt(0).toUpperCase() + cap.slice(1)}
                       </Badge>
-                    ))}
-                  </div>
+                    ))}                  </div>
                 </div>
 
                 <div>

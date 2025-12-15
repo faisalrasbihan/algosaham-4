@@ -7,11 +7,12 @@ import { HelpCircle } from "lucide-react"
 
 interface OnboardingTutorialProps {
   onComplete?: () => void
+  onStart?: () => void
 }
 
 const VISITED_FLAG_KEY = "algosaham_has_visited"
 
-export function OnboardingTutorial({ onComplete }: OnboardingTutorialProps) {
+export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialProps) {
   const driverObj = useRef<any>(null)
   const [hasVisited, setHasVisited] = useState<boolean | null>(null)
   const hasInitialized = useRef(false)
@@ -108,6 +109,12 @@ export function OnboardingTutorial({ onComplete }: OnboardingTutorialProps) {
           onComplete()
         }
       },
+      onHighlightStarted: () => {
+        // Call onStart when tutorial begins
+        if (onStart) {
+          onStart()
+        }
+      },
       onHighlighted: (element) => {
         // Auto-expand collapsed sections when they are highlighted
         if (!element) return
@@ -181,16 +188,10 @@ export function OnboardingTutorial({ onComplete }: OnboardingTutorialProps) {
   return (
     <button
       onClick={startTutorial}
-      className="w-full text-left px-1 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors rounded-sm border border-transparent hover:border-border/50"
+      className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors rounded-sm border border-transparent hover:border-border/50 flex items-center gap-1"
     >
-      <div className="flex items-start gap-1">
-        <HelpCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-        <div className="flex-1 space-y-0.5">
-          <p className="leading-relaxed">
-            Need help? click here to start tutorial
-          </p>
-        </div>
-      </div>
+      <HelpCircle className="h-3.5 w-3.5 flex-shrink-0" />
+      <span>Start Tutorial</span>
     </button>
   )
 }

@@ -88,16 +88,6 @@ export interface BacktestResult {
   error?: string
 }
 
-// Use Next.js API route instead of direct FastAPI call
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL //|| 'https://backtester-psi.vercel.app'
-
-// Log environment variable status
-if (!process.env.NEXT_PUBLIC_API_URL) {
-  console.warn('⚠️ [API SERVICE] NEXT_PUBLIC_API_URL environment variable not set, using fallback URL')
-} else {
-  console.log('✅ [API SERVICE] Using NEXT_PUBLIC_API_URL from environment variable')
-}
-
 export class ApiService {
   private static async makeRequest<T>(
     endpoint: string,
@@ -110,7 +100,7 @@ export class ApiService {
       body: options.body ? 'Body present' : 'No body'
     })
     
-    const url = `${API_BASE_URL}${endpoint}`
+    const url = endpoint
     console.log('🌐 [API SERVICE] Full URL:', url)
     
     const defaultOptions: RequestInit = {
@@ -166,18 +156,10 @@ export class ApiService {
       backtestConfig: config.backtestConfig
     })
     
-    // Check if API_BASE_URL is configured
-    if (!API_BASE_URL) {
-      const error = 'API_BASE_URL environment variable is not configured'
-      console.error('❌ [API SERVICE] Environment variable error:', error)
-      throw new Error(error)
-    }
-    
-    console.log('🌐 [API SERVICE] Using API_BASE_URL:', API_BASE_URL)
-    
     try {
-      console.log('🔄 [API SERVICE] Calling FastAPI backend directly...')
-      const response = await fetch(`${API_BASE_URL}/run_backtest`, {
+      console.log('🔄 [API SERVICE] Calling Next.js API route (which proxies to Railway)...')
+      // Call Next.js API route instead of Railway directly to avoid CORS issues
+      const response = await fetch('/api/backtest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,7 +169,7 @@ export class ApiService {
       
       if (!response.ok) {
         const errorText = await response.text()
-        throw new Error(`FastAPI request failed: ${response.status} ${response.statusText} - ${errorText}`)
+        throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`)
       }
       
       const result = await response.json()

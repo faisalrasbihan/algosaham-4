@@ -156,11 +156,15 @@ export function PricingMatrix() {
             <p className="text-lg text-muted-foreground font-mono max-w-2xl mx-auto mb-8">
               Mulai gratis dan upgrade sesuai kebutuhan trading Anda
             </p>
-            <div className="inline-flex items-center gap-1 p-1 rounded-full bg-muted border border-border">
+            <div className={`inline-flex items-center gap-1 p-1 rounded-full border transition-all ${
+              isYearly ? "bg-[#d07225] border-[#d07225]" : "bg-muted border-border"
+            }`}>
               <button
                 onClick={() => setIsYearly(false)}
                 className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
-                  !isYearly ? "bg-foreground text-background shadow-md" : "text-muted-foreground hover:text-foreground"
+                  !isYearly 
+                    ? "bg-slate-700 text-white shadow-md" 
+                    : "text-white/70 hover:text-white"
                 }`}
               >
                 Bulanan
@@ -168,12 +172,14 @@ export function PricingMatrix() {
               <button
                 onClick={() => setIsYearly(true)}
                 className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
-                  isYearly ? "bg-emerald-600 text-white shadow-md" : "text-muted-foreground hover:text-foreground"
+                  isYearly 
+                    ? "bg-white text-[#d07225] shadow-md" 
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Tahunan
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                  isYearly ? "bg-emerald-700 text-white" : "bg-primary text-primary-foreground"
+                  isYearly ? "bg-[#d07225] text-white" : "bg-[#d07225] text-white"
                 }`}>
                   -50%
                 </span>
@@ -213,7 +219,7 @@ export function PricingMatrix() {
                       </span>
                     </div>
                     <span className="text-sm text-muted-foreground font-mono">
-                      {plan.monthlyPrice === 0 ? "selamanya" : isYearly ? "/bulan (billed yearly)" : "/bulan"}
+                      {plan.monthlyPrice === 0 ? "selamanya" : isYearly ? "/bulan (ditagih tahunan)" : "/bulan"}
                     </span>
                   </div>
 

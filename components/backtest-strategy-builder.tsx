@@ -77,7 +77,7 @@ interface BacktestStrategyBuilderProps {
 }
 
 export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuilderProps) {
-  const [marketCaps, setMarketCaps] = useState<string[]>(["Large"])
+  const [marketCaps, setMarketCaps] = useState<string[]>(["large"])
   const [stockType, setStockType] = useState("All Stocks")
   const [sectors, setSectors] = useState<string[]>(["Banking"])
   const [sectorDropdownOpen, setSectorDropdownOpen] = useState(false)
@@ -95,7 +95,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   const [strategyName, setStrategyName] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [editingIndicators, setEditingIndicators] = useState<Record<string, boolean>>({})
-  const [activeTab, setActiveTab] = useState<string>("chat")
+  const [activeTab, setActiveTab] = useState<string>("strategy")
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: "1",
@@ -114,6 +114,8 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
     risk: false,
     backtest: false,
   })
+  const [isTutorialActive, setIsTutorialActive] = useState(false)
+  const [hasVisited, setHasVisited] = useState<boolean | null>(null)
   
   // Backtest config states
   const [stopLoss, setStopLoss] = useState<number>(5)
@@ -123,7 +125,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   const [endDate, setEndDate] = useState<string>("2024-01-01")
   const [initialCapital, setInitialCapital] = useState<number>(100000000)
 
-  const marketCapOptions = ["Small", "Mid", "Large"]
+  const marketCapOptions = ["small", "mid", "large"]
   const sectorOptions = [
     "Banking",
     "Consumer",
@@ -139,6 +141,18 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
+
+  // Check if user has visited before
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hasVisitedBefore = localStorage.getItem("algosaham_has_visited") === "true"
+      setHasVisited(hasVisitedBefore)
+      // If first time visitor, set tutorial as active
+      if (!hasVisitedBefore) {
+        setIsTutorialActive(true)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -228,12 +242,12 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
         is_syariah: stockType === "Syariah Only",
       },
       fundamentalIndicators: fundamentalIndicators.map((ind) => ({
-        type: ind.name.toLowerCase().replace(/\s+/g, "_"),
+        type: ind.name.toUpperCase().replace(/\s+/g, "_"),
         min: ind.params.min,
         max: ind.params.max,
       })),
       technicalIndicators: technicalIndicators.map((ind) => ({
-        type: ind.name.toLowerCase().replace(/\s+/g, "_"),
+        type: ind.name.toUpperCase().replace(/\s+/g, "_"),
         ...ind.params,
       })),
       backtestConfig: {
@@ -391,20 +405,34 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
     setActiveTab("strategy")
   }
 
+  const handleTutorialStart = () => {
+    setIsTutorialActive(true)
+  }
+
+  const handleTutorialComplete = () => {
+    setIsTutorialActive(false)
+  }
+
   return (
-    <div className="h-full flex flex-col bg-background border-r">
+    <div className="h-full flex flex-col bg-background border-r relative">
+      {/* Blocking overlay when tutorial is active for first-time visitors */}
+      {isTutorialActive && hasVisited === false && (
+        <div className="absolute inset-0 bg-black/5 z-40 pointer-events-none" />
+      )}
+      
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <div className="border-b px-4 py-2">
-          <TabsList className="gap-0">
-            <TabsTrigger value="chat" className="text-sm gap-2">
-              <Sparkles className="h-4 w-4" />
-              Agent
-            </TabsTrigger>
+        <div className="border-b px-4 py-2 flex items-center justify-between">
+          <TabsList>
             <TabsTrigger value="strategy" className="text-sm gap-2">
               <Settings className="h-4 w-4" />
               Builder
             </TabsTrigger>
+            <TabsTrigger value="chat" className="text-sm gap-2">
+              <Sparkles className="h-4 w-4" />
+              Agent
+            </TabsTrigger>
           </TabsList>
+          <OnboardingTutorial onComplete={handleTutorialComplete} onStart={handleTutorialStart} />
         </div>
 
         <TabsContent value="chat" className="flex-1 flex flex-col m-0 overflow-hidden">
@@ -544,9 +572,6 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
 
         <TabsContent value="strategy" className="flex-1 flex flex-col m-0 overflow-hidden">
           <div className="flex-1 p-4 space-y-3 overflow-y-auto" ref={scrollContainerRef}>
-            {/* Tutorial Button */}
-            <OnboardingTutorial />
-            
             {/* Stock Filters */}
             <Card className="border bg-card rounded-none" data-tutorial="stock-filters">
               <CardHeader className={`flex items-center ${collapsedSections.filters ? "py-2" : "pb-2"}`}>
@@ -578,7 +603,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                             className="cursor-pointer hover:bg-accent/20 text-xs font-mono"
                             onClick={() => toggleMarketCap(cap)}
                           >
-                            {cap}
+                            {cap.charAt(0).toUpperCase() + cap.slice(1)}
                           </Badge>
                         ))}
                       </div>

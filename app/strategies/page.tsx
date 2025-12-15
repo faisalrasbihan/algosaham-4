@@ -22,6 +22,7 @@ import { useState } from "react"
 import { Navbar } from "@/components/navbar"
 import { TickerTape } from "@/components/ticker-tape"
 import { CardCarousel } from "@/components/card-carousel"
+import { useUser } from "@clerk/nextjs"
 
 interface Strategy {
   id: string
@@ -307,6 +308,7 @@ const subscribedStrategies: Strategy[] = [
 ]
 
 export default function Strategies() {
+  const { isSignedIn, isLoaded } = useUser()
   const [subscribed, setSubscribed] = useState<Set<string>>(new Set(["s1"]))
 
   const handleSubscribe = (strategyId: string) => {
@@ -524,27 +526,29 @@ export default function Strategies() {
       <TickerTape />
       <div className="flex-1 overflow-y-auto mt-8">
         <div className="space-y-8">
-          {/* Saved Strategies Section */}
-          <section>
-            <div className="pl-6 pr-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-foreground">My Strategies</h2>
-                  <p className="text-muted-foreground">Strategies you've created and backtested</p>
+          {/* Saved Strategies Section - Only show when logged in */}
+          {isLoaded && isSignedIn && (
+            <section>
+              <div className="pl-6 pr-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground">My Strategies</h2>
+                    <p className="text-muted-foreground">Strategies you've created and backtested</p>
+                  </div>
+                  <Button className="bg-primary hover:bg-primary/90">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create New Strategy
+                  </Button>
                 </div>
-                <Button className="bg-primary hover:bg-primary/90">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create New Strategy
-                </Button>
               </div>
-            </div>
 
-            <CardCarousel>
-              {savedStrategies.map((strategy) => (
-                <StrategyCard key={strategy.id} strategy={strategy} type="saved" />
-              ))}
-            </CardCarousel>
-          </section>
+              <CardCarousel>
+                {savedStrategies.map((strategy) => (
+                  <StrategyCard key={strategy.id} strategy={strategy} type="saved" />
+                ))}
+              </CardCarousel>
+            </section>
+          )}
 
           {/* Popular Strategies Section */}
           <section>
