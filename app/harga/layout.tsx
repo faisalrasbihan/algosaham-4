@@ -24,6 +24,14 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://algosaham.ai/harga",
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
 };
 
 export default function HargaLayout({

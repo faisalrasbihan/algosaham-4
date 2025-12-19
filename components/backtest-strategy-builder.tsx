@@ -121,8 +121,8 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   const [stopLoss, setStopLoss] = useState<number>(5)
   const [takeProfit, setTakeProfit] = useState<number>(15)
   const [maxHoldingPeriod, setMaxHoldingPeriod] = useState<string>("no-limit")
-  const [startDate, setStartDate] = useState<string>("2022-01-01")
-  const [endDate, setEndDate] = useState<string>("2024-01-01")
+  const [startDate, setStartDate] = useState<string>("2024-01-01")
+  const [endDate, setEndDate] = useState<string>("2024-01-06")
   const [initialCapital, setInitialCapital] = useState<number>(100000000)
 
   const marketCapOptions = ["small", "mid", "large"]
@@ -153,6 +153,16 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
       }
     }
   }, [])
+
+  // Auto-run backtest on page load
+  useEffect(() => {
+    // Small delay to ensure component is fully mounted
+    const timer = setTimeout(() => {
+      handleRunBacktest()
+    }, 500)
+    
+    return () => clearTimeout(timer)
+  }, []) // Empty dependency array ensures this only runs once on mount
 
   useEffect(() => {
     if (chatContainerRef.current) {

@@ -25,6 +25,14 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://algosaham.ai/backtest",
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
 };
 
 export default function BacktestLayout({
