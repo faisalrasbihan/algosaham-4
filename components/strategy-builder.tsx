@@ -55,7 +55,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
     { id: "3", name: "ROE %", type: "fundamental", params: { min: 15, max: 50 } },
   ])
   const [technicalIndicators, setTechnicalIndicators] = useState<Indicator[]>([
-    { id: "5", name: "RSI", type: "technical", params: { period: 14, oversold: 70, overbought: 30 } },
+    { id: "5", name: "RSI", type: "technical", params: { period: 14, oversold: 30, overbought: 70 } },
   ])
   const [showModal, setShowModal] = useState(false)
   const [modalType, setModalType] = useState<"fundamental" | "technical">("fundamental")
@@ -105,8 +105,8 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
       const initialConfig: BacktestRequest = {
         backtestId: "test1",
         filters: {
-          marketCap: "mid",
-          is_syariah: false
+          marketCap: ["mid"],
+          syariah: false
         },
         fundamentalIndicators: [
           { type: "PE_RATIO", min: 0, max: 20 },
@@ -114,7 +114,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
           { type: "ROE", min: 15 }
         ],
         technicalIndicators: [
-          { type: "RSI", period: 14, oversold: 70, overbought: 30 }
+          { type: "RSI", period: 14, oversold: 30, overbought: 70 }
         ],
         backtestConfig: {
           initialCapital: 1000000000,
@@ -278,8 +278,21 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
       } else if (indicator.name === "SMA Crossover") {
         converted = {
           type: "SMA_CROSSOVER",
-          shortPeriod: indicator.params.short,
-          longPeriod: indicator.params.long
+          shortPeriod: indicator.params.shortPeriod,
+          longPeriod: indicator.params.longPeriod
+        }
+      } else if (indicator.name === "MACD") {
+        converted = {
+          type: "MACD",
+          fastPeriod: indicator.params.fastPeriod,
+          slowPeriod: indicator.params.slowPeriod,
+          signalPeriod: indicator.params.signalPeriod
+        }
+      } else if (indicator.name === "Bollinger Bands") {
+        converted = {
+          type: "BOLLINGER_BANDS",
+          period: indicator.params.period,
+          stdDev: indicator.params.stdDev
         }
       } else {
         converted = {
@@ -294,8 +307,8 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
     const backtestConfig: BacktestRequest = {
       backtestId: `strategy_${Date.now()}`,
       filters: {
-        marketCap: marketCaps[0] || "large",
-        is_syariah: stockType === "Syariah Only"
+        marketCap: marketCaps.length > 0 ? marketCaps : ["large"],
+        syariah: stockType === "Syariah Only"
       },
       fundamentalIndicators: apiFundamentalIndicators,
       technicalIndicators: apiTechnicalIndicators,

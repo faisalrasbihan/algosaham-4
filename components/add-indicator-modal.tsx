@@ -26,11 +26,11 @@ const fundamentalIndicators = [
 
 const technicalIndicators = [
   { name: "RSI", description: "Relative Strength Index", params: { period: 14, oversold: 30, overbought: 70 } },
-  { name: "SMA Crossover", description: "Simple Moving Average crossover", params: { short: 20, long: 50 } },
-  { name: "EMA Crossover", description: "Exponential Moving Average crossover", params: { short: 12, long: 26 } },
-  { name: "MACD", description: "Moving Average Convergence Divergence", params: { fast: 12, slow: 26, signal: 9 } },
-  { name: "Bollinger Bands", description: "Bollinger Bands indicator", params: { period: 20, deviation: 2 } },
-  { name: "Stochastic", description: "Stochastic oscillator", params: { k: 14, d: 3, smooth: 3 } },
+  { name: "SMA Crossover", description: "Simple Moving Average crossover", params: { shortPeriod: 20, longPeriod: 50 } },
+  { name: "EMA Crossover", description: "Exponential Moving Average crossover", params: { shortPeriod: 12, longPeriod: 26 } },
+  { name: "MACD", description: "Moving Average Convergence Divergence", params: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 } },
+  { name: "Bollinger Bands", description: "Bollinger Bands indicator", params: { period: 20, stdDev: 2 } },
+  { name: "Stochastic", description: "Stochastic oscillator", params: { kPeriod: 14, dPeriod: 3, smooth: 3 } },
 ]
 
 export function AddIndicatorModal({ open, onOpenChange, type, onAddIndicator }: AddIndicatorModalProps) {

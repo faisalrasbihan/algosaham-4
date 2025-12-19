@@ -87,7 +87,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   ])
   const [technicalIndicators, setTechnicalIndicators] = useState<Indicator[]>([
     { id: "3", name: "RSI", type: "technical", params: { period: 14, oversold: 30, overbought: 70 } },
-    { id: "4", name: "SMA Crossover", type: "technical", params: { short: 20, long: 50 } },
+    { id: "4", name: "SMA Crossover", type: "technical", params: { shortPeriod: 20, longPeriod: 50 } },
   ])
   const [showModal, setShowModal] = useState(false)
   const [modalType, setModalType] = useState<"fundamental" | "technical">("fundamental")
@@ -248,8 +248,8 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
     return {
       backtestId: `backtest_${Date.now()}`,
       filters: {
-        marketCap: marketCaps.join(","),
-        is_syariah: stockType === "Syariah Only",
+        marketCap: marketCaps.length > 0 ? marketCaps : ["large"],
+        syariah: stockType === "Syariah Only",
       },
       fundamentalIndicators: fundamentalIndicators.map((ind) => ({
         type: ind.name.toUpperCase().replace(/\s+/g, "_"),
@@ -265,9 +265,9 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
         startDate,
         endDate,
         tradingCosts: {
-          brokerFee: 0.0015,
-          sellFee: 0.0025,
-          minimumFee: 0,
+          brokerFee: 0.15,
+          sellFee: 0.15,
+          minimumFee: 1000,
         },
         portfolio: {
           positionSizePercent: 100,

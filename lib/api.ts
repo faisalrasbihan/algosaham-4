@@ -3,8 +3,8 @@
 export interface BacktestRequest {
   backtestId: string
   filters: {
-    marketCap: string
-    is_syariah: boolean
+    marketCap: string[]
+    syariah: boolean
   }
   fundamentalIndicators: Array<{
     type: string
