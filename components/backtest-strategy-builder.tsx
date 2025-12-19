@@ -77,17 +77,13 @@ interface BacktestStrategyBuilderProps {
 }
 
 export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuilderProps) {
-  const [marketCaps, setMarketCaps] = useState<string[]>(["large"])
+  const [marketCaps, setMarketCaps] = useState<string[]>(["large", "mid"])
   const [stockType, setStockType] = useState("All Stocks")
-  const [sectors, setSectors] = useState<string[]>(["Banking"])
+  const [sectors, setSectors] = useState<string[]>([])
   const [sectorDropdownOpen, setSectorDropdownOpen] = useState(false)
-  const [fundamentalIndicators, setFundamentalIndicators] = useState<Indicator[]>([
-    { id: "1", name: "PE Ratio", type: "fundamental", params: { min: 5, max: 20 } },
-    { id: "2", name: "ROE", type: "fundamental", params: { min: 10, max: 50 } },
-  ])
+  const [fundamentalIndicators, setFundamentalIndicators] = useState<Indicator[]>([])
   const [technicalIndicators, setTechnicalIndicators] = useState<Indicator[]>([
-    { id: "3", name: "RSI", type: "technical", params: { period: 14, oversold: 30, overbought: 70 } },
-    { id: "4", name: "SMA Crossover", type: "technical", params: { shortPeriod: 20, longPeriod: 50 } },
+    { id: "1", name: "RSI", type: "technical", params: { period: 14, oversold: 30, overbought: 70 } },
   ])
   const [showModal, setShowModal] = useState(false)
   const [modalType, setModalType] = useState<"fundamental" | "technical">("fundamental")
@@ -118,11 +114,11 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   const [hasVisited, setHasVisited] = useState<boolean | null>(null)
   
   // Backtest config states
-  const [stopLoss, setStopLoss] = useState<number>(5)
+  const [stopLoss, setStopLoss] = useState<number>(7)
   const [takeProfit, setTakeProfit] = useState<number>(15)
-  const [maxHoldingPeriod, setMaxHoldingPeriod] = useState<string>("no-limit")
-  const [startDate, setStartDate] = useState<string>("2024-01-01")
-  const [endDate, setEndDate] = useState<string>("2024-01-06")
+  const [maxHoldingPeriod, setMaxHoldingPeriod] = useState<string>("14")
+  const [startDate, setStartDate] = useState<string>("2024-06-01")
+  const [endDate, setEndDate] = useState<string>("2024-08-31")
   const [initialCapital, setInitialCapital] = useState<number>(100000000)
 
   const marketCapOptions = ["small", "mid", "large"]
@@ -270,9 +266,9 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
           minimumFee: 1000,
         },
         portfolio: {
-          positionSizePercent: 100,
+          positionSizePercent: 25,
           minPositionPercent: 5,
-          maxPositions: 10,
+          maxPositions: 4,
         },
         riskManagement: {
           stopLossPercent: stopLoss,
@@ -997,6 +993,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="no-limit">No limit</SelectItem>
+                        <SelectItem value="14">14 days</SelectItem>
                         <SelectItem value="30">30 days</SelectItem>
                         <SelectItem value="60">60 days</SelectItem>
                         <SelectItem value="90">90 days</SelectItem>

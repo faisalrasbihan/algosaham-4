@@ -62,7 +62,10 @@ export function MonthlyPerformanceHeatmap() {
         <div className="overflow-x-auto">
           <div className="min-w-[800px]">
             {/* Header with months */}
-            <div className="grid grid-cols-13 gap-1 mb-2">
+            <div 
+              className="grid gap-1 mb-2"
+              style={{ gridTemplateColumns: '100px repeat(12, 1fr)' }}
+            >
               <div className="text-xs font-medium text-muted-foreground p-2"></div>
               {months.map((month, index) => (
                 <div key={index} className="text-xs font-medium text-center text-muted-foreground p-2">
@@ -73,14 +76,18 @@ export function MonthlyPerformanceHeatmap() {
 
             {/* Performance metrics rows */}
             {performanceData.map((row, rowIndex) => (
-              <div key={rowIndex} className="grid grid-cols-13 gap-1 mb-1">
-                <div className="text-xs font-medium text-muted-foreground p-2 flex items-center font-mono">
+              <div 
+                key={rowIndex} 
+                className="grid gap-1 mb-1"
+                style={{ gridTemplateColumns: '100px repeat(12, 1fr)' }}
+              >
+                <div className="text-xs font-medium text-muted-foreground p-2 flex items-center font-mono whitespace-nowrap">
                   {row.metric}
                 </div>
                 {row.data.map((value, colIndex) => (
                   <div
                     key={colIndex}
-                    className="p-2 rounded text-center text-xs font-mono font-medium border border-border/30 hover:border-border transition-colors cursor-pointer"
+                    className="p-2 rounded text-center text-xs font-mono font-medium border border-border/30 hover:border-border transition-colors cursor-pointer h-10 flex items-center justify-center"
                     style={{ backgroundColor: getColorIntensity(value, row.metric) }}
                     title={`${months[colIndex].fullMonth}: ${formatValue(value, row.metric)}`}
                   >
