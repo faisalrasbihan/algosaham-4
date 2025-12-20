@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // Railway backend URL - configured via environment variable
-const RAILWAY_URL = process.env.RAILWAY_URL
+// Prepend https:// if not already present
+const rawUrl = process.env.RAILWAY_URL || ''
+const RAILWAY_URL = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`
 
 export async function POST(request: NextRequest) {
   console.log('🚀 [API ROUTE] Starting backtest API call...')
   console.log('🚀 [API ROUTE] Railway URL:', RAILWAY_URL)
   
   // Check if RAILWAY_URL is set
-  if (!RAILWAY_URL) {
+  if (!rawUrl) {
     console.error('❌ [API ROUTE] RAILWAY_URL environment variable not set')
     return NextResponse.json(
       { 
@@ -114,14 +116,14 @@ export async function POST(request: NextRequest) {
 }
 
 // Handle OPTIONS for CORS
-export async function OPTIONS() {
-  console.log('🔧 [API ROUTE] Handling CORS preflight request')
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  })
-}
+// export async function OPTIONS() {
+//   console.log('🔧 [API ROUTE] Handling CORS preflight request')
+//   return new NextResponse(null, {
+//     status: 200,
+//     headers: {
+//       'Access-Control-Allow-Origin': '*',
+//       'Access-Control-Allow-Methods': 'POST, OPTIONS',
+//       'Access-Control-Allow-Headers': 'Content-Type',
+//     },
+//   })
+// }
