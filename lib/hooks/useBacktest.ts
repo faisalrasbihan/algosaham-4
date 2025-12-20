@@ -11,7 +11,7 @@ interface UseBacktestReturn {
 
 export function useBacktest(): UseBacktestReturn {
   const [results, setResults] = useState<BacktestResult | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true) // Start with loading true since backtest auto-runs on mount
   const [error, setError] = useState<string | null>(null)
 
   const runBacktest = useCallback(async (config: BacktestRequest) => {

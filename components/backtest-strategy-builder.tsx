@@ -170,12 +170,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
 
   // Auto-run backtest on page load
   useEffect(() => {
-    // Small delay to ensure component is fully mounted
-    const timer = setTimeout(() => {
-      handleRunBacktest()
-    }, 500)
-    
-    return () => clearTimeout(timer)
+    handleRunBacktest()
   }, []) // Empty dependency array ensures this only runs once on mount
 
   useEffect(() => {
