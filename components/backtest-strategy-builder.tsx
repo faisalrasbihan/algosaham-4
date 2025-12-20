@@ -137,6 +137,24 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
+  const sectorDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close sector dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sectorDropdownRef.current && !sectorDropdownRef.current.contains(event.target as Node)) {
+        setSectorDropdownOpen(false)
+      }
+    }
+
+    if (sectorDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [sectorDropdownOpen])
 
   // Check if user has visited before
   useEffect(() => {
@@ -420,11 +438,11 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   }
 
   return (
-    <div className="h-full flex flex-col bg-background border-r relative">
+    <div className="h-full flex flex-col relative">
       {/* Blocking overlay when tutorial is active for first-time visitors */}
-      {isTutorialActive && hasVisited === false && (
+      {/* {isTutorialActive && hasVisited === false && (
         <div className="absolute inset-0 bg-black/5 z-40 pointer-events-none" />
-      )}
+      )} */}
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         <div className="border-b px-4 py-2 flex items-center justify-between">
@@ -632,7 +650,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground mb-2 block">Sectors</Label>
-                    <div className="relative">
+                    <div className="relative" ref={sectorDropdownRef}>
                       <Button
                         variant="outline"
                         className="w-full justify-between h-9 px-3 font-normal bg-background border-input hover:bg-slate-50 hover:text-slate-900 font-mono"

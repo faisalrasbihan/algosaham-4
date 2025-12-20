@@ -48,16 +48,18 @@ export function TradeHistoryTable({ trades }: TradeHistoryTableProps) {
     )
   }
 
-  // Process API trades data
-  const displayTrades = trades.map(trade => ({
-    date: trade.date,
-    stock: trade.ticker,
-    company: trade.companyName || trade.ticker,
-    action: trade.action,
-    quantity: trade.quantity,
-    price: trade.price,
-    pnl: trade.profitLoss || 0
-  }))
+  // Process API trades data and sort by date descending (most recent first)
+  const displayTrades = trades
+    .map(trade => ({
+      date: trade.date,
+      stock: trade.ticker,
+      company: trade.companyName || trade.ticker,
+      action: trade.action,
+      quantity: trade.quantity,
+      price: trade.price,
+      pnl: trade.profitLoss || 0
+    }))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   return (
     <div className="overflow-x-auto">
