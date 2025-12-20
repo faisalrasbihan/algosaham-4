@@ -49,7 +49,7 @@ export function AddIndicatorModal({ open, onOpenChange, type, onAddIndicator }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="font-mono text-accent">
+          <DialogTitle className="font-mono text-slate-800">
             Add {type === "fundamental" ? "Fundamental" : "Technical"} Indicator
           </DialogTitle>
         </DialogHeader>

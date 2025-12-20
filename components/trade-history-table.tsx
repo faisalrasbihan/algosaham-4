@@ -83,11 +83,11 @@ export function TradeHistoryTable({ trades }: TradeHistoryTableProps) {
               <TableCell className="text-xs">{trade.company}</TableCell>
               <TableCell>
                 <Badge
-                  variant={trade.action === "BUY" ? "default" : "destructive"}
+                  variant="outline"
                   className={`font-mono text-xs ${
                     trade.action === "BUY"
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-destructive text-destructive-foreground"
+                      ? "bg-blue-100 text-blue-700 border-blue-200"
+                      : "bg-slate-100 text-slate-700 border-slate-200"
                   }`}
                 >
                   {trade.action}

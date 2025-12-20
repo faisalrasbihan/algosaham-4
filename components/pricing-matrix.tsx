@@ -157,14 +157,14 @@ export function PricingMatrix() {
               Mulai gratis dan upgrade sesuai kebutuhan trading Anda
             </p>
             <div className={`inline-flex items-center gap-1 p-1 rounded-full border transition-all ${
-              isYearly ? "bg-[#d07225] border-[#d07225]" : "bg-muted border-border"
+              isYearly ? "bg-slate-200 border-slate-300" : "bg-slate-200 border-slate-300"
             }`}>
               <button
                 onClick={() => setIsYearly(false)}
                 className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
                   !isYearly 
-                    ? "bg-slate-700 text-white shadow-md" 
-                    : "text-white/70 hover:text-white"
+                    ? "bg-slate-500 text-white shadow-md" 
+                    : "text-slate-500 hover:text-slate-700"
                 }`}
               >
                 Bulanan
@@ -173,13 +173,13 @@ export function PricingMatrix() {
                 onClick={() => setIsYearly(true)}
                 className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
                   isYearly 
-                    ? "bg-white text-[#d07225] shadow-md" 
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-[#d07225] text-white shadow-md" 
+                    : "text-slate-500 hover:text-slate-700"
                 }`}
               >
                 Tahunan
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                  isYearly ? "bg-[#d07225] text-white" : "bg-[#d07225] text-white"
+                  isYearly ? "bg-white/20 text-white" : "bg-[#d07225] text-white"
                 }`}>
                   -50%
                 </span>

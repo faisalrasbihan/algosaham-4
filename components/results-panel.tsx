@@ -67,13 +67,19 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
     },
     { 
       label: "Best Stock", 
-      value: currentResults.summary?.bestTrade?.ticker || "N/A", 
-      positive: true 
+      value: currentResults.summary?.bestTrade?.ticker || "N/A",
+      subValue: currentResults.summary?.bestTrade?.return != null 
+        ? `+${currentResults.summary.bestTrade.return.toFixed(1)}%` 
+        : null,
+      subPositive: true
     },
     { 
       label: "Worst Stock", 
-      value: currentResults.summary?.worstTrade?.ticker || "N/A", 
-      positive: false 
+      value: currentResults.summary?.worstTrade?.ticker || "N/A",
+      subValue: currentResults.summary?.worstTrade?.return != null 
+        ? `${currentResults.summary.worstTrade.return.toFixed(1)}%` 
+        : null,
+      subPositive: false
     },
   ] : []
 
@@ -149,13 +155,28 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
                 <div className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">
                   {stat.label}
                 </div>
-                <div
-                  className={`font-mono text-xl font-bold ${
-                    stat.positive ? "text-green-700" : stat.positive === false ? "text-red-600" : "text-foreground"
-                  }`}
-                >
-                  {stat.value}
-                </div>
+                {stat.subValue ? (
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="font-mono text-xl font-bold text-foreground">
+                      {stat.value}
+                    </span>
+                    <span
+                      className={`font-mono text-sm font-semibold ${
+                        stat.subPositive ? "text-green-600" : "text-red-500"
+                      }`}
+                    >
+                      {stat.subValue}
+                    </span>
+                  </div>
+                ) : (
+                  <div
+                    className={`font-mono text-xl font-bold ${
+                      stat.positive ? "text-green-700" : stat.positive === false ? "text-red-600" : "text-foreground"
+                    }`}
+                  >
+                    {stat.value}
+                  </div>
+                )}
               </div>
             ))}
           </div>

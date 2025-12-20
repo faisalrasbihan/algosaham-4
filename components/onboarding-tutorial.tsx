@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { driver } from "driver.js"
 import "driver.js/dist/driver.css"
 import { HelpCircle } from "lucide-react"
@@ -16,6 +16,16 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
   const driverObj = useRef<any>(null)
   const [hasVisited, setHasVisited] = useState<boolean | null>(null)
   const hasInitialized = useRef(false)
+  
+  // Store callbacks in refs to avoid re-triggering effects
+  const onCompleteRef = useRef(onComplete)
+  const onStartRef = useRef(onStart)
+  
+  // Update refs when callbacks change
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+    onStartRef.current = onStart
+  }, [onComplete, onStart])
 
   useEffect(() => {
     // Check if user has visited before
@@ -105,14 +115,14 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
           localStorage.setItem(VISITED_FLAG_KEY, "true")
           setHasVisited(true)
         }
-        if (onComplete) {
-          onComplete()
+        if (onCompleteRef.current) {
+          onCompleteRef.current()
         }
       },
       onHighlightStarted: () => {
         // Call onStart when tutorial begins
-        if (onStart) {
-          onStart()
+        if (onStartRef.current) {
+          onStartRef.current()
         }
       },
       onHighlighted: (element) => {
@@ -152,7 +162,7 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
         driverObj.current.destroy()
       }
     }
-  }, [hasVisited, onComplete])
+  }, [hasVisited]) // Only re-run when hasVisited changes, not on callback changes
 
   // Listen for clicks on the Run Backtest button to complete the tutorial
   useEffect(() => {
