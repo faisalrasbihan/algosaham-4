@@ -1,17 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+
+// Environment-based logging - only log in development
+const isDev = process.env.NODE_ENV === 'development'
+const log = isDev ? console.log.bind(console) : () => {}
 
 // Railway backend URL - configured via environment variable
 // Prepend https:// if not already present
 const rawUrl = process.env.RAILWAY_URL || ''
 const RAILWAY_URL = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`
 
+// Zod schema for input validation (matches BACKTESTER_API_SPEC.md)
+const backtestConfigSchema = z.object({
+  config: z.object({
+    backtestId: z.string().min(1),
+    filters: z.object({
+      tickers: z.array(z.string()).optional(),
+      marketCap: z.array(z.string()).optional(),
+      minDailyValue: z.number().optional(),
+      syariah: z.boolean().optional(),
+      sectors: z.array(z.string()).optional(),
+    }),
+    fundamentalIndicators: z.array(z.object({
+      type: z.string(),
+      min: z.number().optional(),
+      max: z.number().optional(),
+    })).optional().default([]),
+    technicalIndicators: z.array(z.object({
+      type: z.string(),
+    }).passthrough()).optional().default([]),
+    backtestConfig: z.object({
+      initialCapital: z.number().positive(),
+      startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),
+      endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),
+      tradingCosts: z.object({
+        brokerFee: z.number().min(0),
+        sellFee: z.number().min(0),
+        minimumFee: z.number().min(0),
+      }),
+      portfolio: z.object({
+        positionSizePercent: z.number().min(1).max(100),
+        minPositionPercent: z.number().min(0).max(100),
+        maxPositions: z.number().int().positive(),
+      }),
+      riskManagement: z.object({
+        stopLossPercent: z.number().min(0),
+        takeProfitPercent: z.number().min(0),  // No upper limit per API spec
+        maxHoldingDays: z.number().int().positive(),
+      }),
+    }),
+  }),
+})
+
 export async function POST(request: NextRequest) {
-  console.log('🚀 [API ROUTE] Starting backtest API call...')
-  console.log('🚀 [API ROUTE] Railway URL:', RAILWAY_URL)
+  log('🚀 [API ROUTE] Starting backtest API call...')
   
   // Check if RAILWAY_URL is set
   if (!rawUrl) {
-    console.error('❌ [API ROUTE] RAILWAY_URL environment variable not set')
+    console.error('[API ROUTE] RAILWAY_URL environment variable not set')
     return NextResponse.json(
       { 
         error: 'Server configuration error',
@@ -21,34 +67,35 @@ export async function POST(request: NextRequest) {
     )
   }
   
-  console.log('✅ [API ROUTE] Using RAILWAY_URL:', RAILWAY_URL)
-  
   try {
     // Parse the request body
     const body = await request.json()
-    console.log('📦 [API ROUTE] Request body received:', JSON.stringify(body, null, 2))
+    log('📦 [API ROUTE] Request received for backtest:', body.config?.backtestId)
     
-    // Validate request structure
-    if (!body.config) {
-      console.error('❌ [API ROUTE] Missing config in request body')
-      return NextResponse.json({ error: 'Missing config in request body' }, { status: 400 })
+    // Validate request with Zod
+    const validationResult = backtestConfigSchema.safeParse(body)
+    
+    if (!validationResult.success) {
+      const errors = validationResult.error.flatten()
+      log('❌ [API ROUTE] Validation failed:', errors)
+      return NextResponse.json(
+        { 
+          error: 'Invalid request body',
+          details: errors.fieldErrors,
+        }, 
+        { status: 400 }
+      )
     }
     
-    console.log('📋 [API ROUTE] Config structure:', {
-      backtestId: body.config.backtestId,
-      filters: body.config.filters,
-      fundamentalIndicators: body.config.fundamentalIndicators?.length || 0,
-      technicalIndicators: body.config.technicalIndicators?.length || 0,
-      backtestConfig: body.config.backtestConfig
-    })
+    // Use validated data
+    const validatedBody = validationResult.data
     
     // Prepare the request to FastAPI
     const fastApiRequest = {
-      config: body.config
+      config: validatedBody.config
     }
     
-    console.log('🔄 [API ROUTE] Calling Railway endpoint:', `${RAILWAY_URL}/run_backtest`)
-    console.log('📤 [API ROUTE] Sending to Railway:', JSON.stringify(fastApiRequest, null, 2))
+    log('🔄 [API ROUTE] Calling Railway endpoint...')
     
     // Call Railway backend
     const response = await fetch(`${RAILWAY_URL}/run_backtest`, {
@@ -59,21 +106,18 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(fastApiRequest),
     })
     
-    console.log('📡 [API ROUTE] Railway response status:', response.status)
-    console.log('📡 [API ROUTE] Railway response headers:', Object.fromEntries(response.headers.entries()))
+    log('📡 [API ROUTE] Railway response status:', response.status)
     
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('❌ [API ROUTE] Railway error response:', errorText)
-      console.error('❌ [API ROUTE] Request config that caused error:', JSON.stringify(fastApiRequest, null, 2))
+      console.error('[API ROUTE] Railway error:', response.status, errorText.substring(0, 200))
       return NextResponse.json(
         { 
           error: `Railway error: ${response.status} ${response.statusText}`,
           details: errorText,
           hint: response.status === 500 
             ? 'Check Railway backend logs for detailed error. Common causes: date range has no data, no stocks match filters, or missing stock data.'
-            : undefined,
-          requestSent: fastApiRequest
+            : undefined
         }, 
         { status: response.status }
       )
@@ -81,29 +125,12 @@ export async function POST(request: NextRequest) {
     
     // Parse the response
     const result = await response.json()
-    console.log('✅ [API ROUTE] Railway response received successfully')
-    console.log('📊 [API ROUTE] Response data keys:', Object.keys(result))
-    console.log('📈 [API ROUTE] Response sample:', JSON.stringify(result, null, 2).substring(0, 500) + '...')
-    
-    // Log specific performance metrics if available
-    if (result.totalReturn !== undefined) {
-      console.log('📈 [API ROUTE] Total Return:', result.totalReturn)
-    }
-    if (result.annualReturn !== undefined) {
-      console.log('📈 [API ROUTE] Annual Return:', result.annualReturn)
-    }
-    if (result.trades && Array.isArray(result.trades)) {
-      console.log('📈 [API ROUTE] Number of trades:', result.trades.length)
-    }
-    if (result.performanceData && Array.isArray(result.performanceData)) {
-      console.log('📈 [API ROUTE] Performance data points:', result.performanceData.length)
-    }
+    log('✅ [API ROUTE] Backtest completed, trades:', result.trades?.length || 0)
     
     return NextResponse.json(result)
     
   } catch (error) {
-    console.error('💥 [API ROUTE] Unexpected error:', error)
-    console.error('💥 [API ROUTE] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('[API ROUTE] Unexpected error:', error instanceof Error ? error.message : 'Unknown error')
     
     return NextResponse.json(
       { 
@@ -114,16 +141,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
-// Handle OPTIONS for CORS
-// export async function OPTIONS() {
-//   console.log('🔧 [API ROUTE] Handling CORS preflight request')
-//   return new NextResponse(null, {
-//     status: 200,
-//     headers: {
-//       'Access-Control-Allow-Origin': '*',
-//       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-//       'Access-Control-Allow-Headers': 'Content-Type',
-//     },
-//   })
-// }
