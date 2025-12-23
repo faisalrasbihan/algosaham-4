@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-// LineStyle is used for benchmark dashed line - uncomment when benchmark is enabled
-import { createChart, IChartApi, ISeriesApi, /* LineStyle, */ ColorType, BaselineSeries } from "lightweight-charts"
+import { createChart, IChartApi, ISeriesApi, LineStyle, ColorType, BaselineSeries, LineSeries } from "lightweight-charts"
 
 interface PerformanceChartProps {
   data?: Array<{
@@ -38,14 +37,23 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const strategySeriesRef = useRef<ISeriesApi<"Baseline"> | null>(null)
+  const benchmarkSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
-  // TODO: Uncomment when LQ45 benchmark data is properly returned from API
-  // const benchmarkSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+
+  // Check if benchmark data is available
+  const hasBenchmarkData = data?.some(item => 
+    item.benchmarkValue !== undefined && 
+    item.benchmarkValue !== null && 
+    !isNaN(item.benchmarkValue) && 
+    item.benchmarkValue > 0
+  ) || false
 
   console.log('📈 [PERFORMANCE CHART] Received data:', {
     hasData: !!data,
     dataLength: data?.length || 0,
-    sampleData: data?.[0] || null
+    sampleData: data?.[0] || null,
+    hasBenchmarkData,
+    sampleBenchmark: data?.[0]?.benchmarkValue
   })
 
   useEffect(() => {
@@ -100,22 +108,20 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
     }) as ISeriesApi<"Baseline">
     strategySeriesRef.current = strategySeries
 
-    // TODO: Uncomment when LQ45 benchmark data is properly returned from API
-    // Add benchmark line series (dashed)
-    // const benchmarkSeries = chart.addSeries(LineSeries, {
-    //   color: '#3b82f6',
-    //   lineWidth: 2,
-    //   lineStyle: LineStyle.Dashed,
-    //   title: 'LQ45 Benchmark',
-    //   priceFormat: {
-    //     type: 'percent',
-    //     precision: 2,
-    //     minMove: 0.01,
-    //   },
-    //   lastValueVisible: true,
-    //   priceLineVisible: true,
-    // }) as ISeriesApi<"Line">
-    // benchmarkSeriesRef.current = benchmarkSeries
+    // Add benchmark line series (dashed) for IHSG/Index comparison
+    const benchmarkSeries = chart.addSeries(LineSeries, {
+      color: '#3b82f6',
+      lineWidth: 2,
+      lineStyle: LineStyle.Dashed,
+      title: 'IHSG Index',
+      priceFormat: {
+        type: 'custom',
+        formatter: (price: number) => `${price.toFixed(2)}%`,
+      },
+      lastValueVisible: true,
+      priceLineVisible: true,
+    }) as ISeriesApi<"Line">
+    benchmarkSeriesRef.current = benchmarkSeries
 
     // Create tooltip element
     const toolTip = document.createElement('div')
@@ -133,7 +139,7 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
     toolTip.style.color = '#1e293b'
     toolTip.style.border = '1px solid #e2e8f0'
     toolTip.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-    toolTip.style.minWidth = '180px'
+    toolTip.style.minWidth = '200px'
     chartContainerRef.current.appendChild(toolTip)
     tooltipRef.current = toolTip
 
@@ -151,12 +157,23 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
       } else {
         toolTip.style.display = 'block'
         const seriesData = param.seriesData.get(strategySeries)
+        const benchmarkData = param.seriesData.get(benchmarkSeries)
+        
         if (seriesData) {
           const value = (seriesData as { value: number }).value
           const initialCapital = 100000000
           const portfolioValue = (value / 100) * initialCapital
           const returnPercent = value - 100
           const isProfit = returnPercent >= 0
+
+          // Get benchmark value if available
+          const benchmarkValue = benchmarkData ? (benchmarkData as { value: number }).value : null
+          const benchmarkReturn = benchmarkValue ? benchmarkValue - 100 : null
+          const isBenchmarkProfit = benchmarkReturn !== null && benchmarkReturn >= 0
+
+          // Calculate alpha (strategy outperformance vs benchmark)
+          const alpha = benchmarkReturn !== null ? returnPercent - benchmarkReturn : null
+          const isAlphaPositive = alpha !== null && alpha >= 0
 
           const dateStr = formatDate(param.time as number)
           
@@ -167,20 +184,30 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
               <span style="font-weight: 600;">${formatRupiah(portfolioValue)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-              <span style="color: #64748b;">Value:</span>
-              <span style="font-weight: 600;">${value.toFixed(2)}%</span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span style="color: #64748b;">Return:</span>
+              <span style="color: rgba(38, 166, 154, 1);">Strategy:</span>
               <span style="font-weight: 600; color: ${isProfit ? 'rgba(38, 166, 154, 1)' : 'rgba(239, 83, 80, 1)'};">
                 ${isProfit ? '+' : ''}${returnPercent.toFixed(2)}%
               </span>
             </div>
+            ${benchmarkReturn !== null ? `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span style="color: #3b82f6;">IHSG:</span>
+              <span style="font-weight: 600; color: ${isBenchmarkProfit ? 'rgba(38, 166, 154, 1)' : 'rgba(239, 83, 80, 1)'};">
+                ${isBenchmarkProfit ? '+' : ''}${benchmarkReturn.toFixed(2)}%
+              </span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 4px; margin-top: 4px;">
+              <span style="color: #64748b;">Alpha:</span>
+              <span style="font-weight: 600; color: ${isAlphaPositive ? 'rgba(38, 166, 154, 1)' : 'rgba(239, 83, 80, 1)'};">
+                ${isAlphaPositive ? '+' : ''}${alpha?.toFixed(2)}%
+              </span>
+            </div>
+            ` : ''}
           `
 
           // Position tooltip
-          const toolTipWidth = 180
-          const toolTipHeight = 100
+          const toolTipWidth = 200
+          const toolTipHeight = benchmarkReturn !== null ? 150 : 100
           let left = param.point.x + 15
           let top = param.point.y - toolTipHeight / 2
 
@@ -234,17 +261,36 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
       }
     })
 
-    // TODO: Uncomment when LQ45 benchmark data is properly returned from API
-    // const benchmarkData = data.map((item) => {
-    //   return {
-    //     time: new Date(item.date).getTime() / 1000 as any,
-    //     value: item.benchmarkValue,
-    //   }
-    // })
-
+    // Process benchmark data - normalize to 100 baseline like strategy
+    // benchmarkValue from API represents the index value, we normalize to percentage relative to first day
+    // Check if benchmark data is available and valid
+    const hasBenchmarkData = data.some(item => 
+      item.benchmarkValue !== undefined && 
+      item.benchmarkValue !== null && 
+      !isNaN(item.benchmarkValue) && 
+      item.benchmarkValue > 0
+    )
+    
     // Set data to series
     strategySeriesRef.current.setData(strategyData)
-    // benchmarkSeriesRef.current.setData(benchmarkData)
+    
+    if (benchmarkSeriesRef.current && hasBenchmarkData) {
+      const firstBenchmark = data[0]?.benchmarkValue || 100
+      const benchmarkData = data
+        .filter(item => item.benchmarkValue !== undefined && item.benchmarkValue !== null && !isNaN(item.benchmarkValue))
+        .map((item) => {
+          // Normalize benchmark to percentage where first day = 100%
+          const benchmarkPercentage = (item.benchmarkValue / firstBenchmark) * 100
+          return {
+            time: new Date(item.date).getTime() / 1000 as any,
+            value: benchmarkPercentage,
+          }
+        })
+      
+      if (benchmarkData.length > 0) {
+        benchmarkSeriesRef.current.setData(benchmarkData)
+      }
+    }
 
     // Fit content
     if (chartRef.current) {
@@ -267,6 +313,19 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
   return (
     <div className="w-full">
       <div ref={chartContainerRef} className="h-[400px] w-full relative" />
+      {/* Chart Legend */}
+      <div className="flex items-center justify-center gap-6 mt-4 text-sm font-mono">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-0.5 bg-[rgba(38,166,154,1)]" />
+          <span className="text-muted-foreground">Strategy Return</span>
+        </div>
+        {hasBenchmarkData && (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-0.5 bg-[#3b82f6]" style={{ borderTop: '2px dashed #3b82f6' }} />
+            <span className="text-muted-foreground">IHSG Index</span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -18,8 +18,7 @@ import {
   ChevronRight,
   Info,
 } from "lucide-react"
-import { useState, useRef, useEffect } from "react"
-import { useUser } from "@clerk/nextjs"
+import { useState, useRef, useEffect, useMemo } from "react"
 
 interface Strategy {
   id: string
@@ -302,11 +301,96 @@ const subscribedStrategies: Strategy[] = [
     subscriptionDate: "2024-03-01", // Date when user first subscribed
     returnSinceSubscription: 12.3, // Return since user subscribed
   },
+  {
+    id: "s2",
+    name: "Healthcare Innovator",
+    description: "Innovative strategy focusing on healthcare stocks with high growth potential",
+    creator: "HealthInvestor",
+    totalReturn: 32.1,
+    yoyReturn: 29.6,
+    momReturn: 2.8,
+    weeklyReturn: 0.6,
+    maxDrawdown: -10.2,
+    sharpeRatio: 2.05,
+    sortinoRatio: 2.48,
+    calmarRatio: 3.21,
+    profitFactor: 1.92,
+    winRate: 67.1,
+    totalTrades: 110,
+    avgTradeDuration: 4.3,
+    stocksHeld: 13,
+    createdDate: "2024-01-22",
+    subscribers: 500,
+    isSubscribed: true,
+    subscriptionDate: "2024-03-02",
+    returnSinceSubscription: 15.4,
+  },
+  {
+    id: "s3",
+    name: "Financial Services Diversifier",
+    description: "Diversified strategy focusing on financial services stocks",
+    creator: "FinanceGuru",
+    totalReturn: 26.3,
+    yoyReturn: 23.9,
+    momReturn: 2.4,
+    weeklyReturn: 0.5,
+    maxDrawdown: -9.8,
+    sharpeRatio: 1.88,
+    sortinoRatio: 2.33,
+    calmarRatio: 2.67,
+    profitFactor: 1.75,
+    winRate: 66.8,
+    totalTrades: 105,
+    avgTradeDuration: 4.8,
+    stocksHeld: 12,
+    createdDate: "2024-02-07",
+    subscribers: 350,
+    isSubscribed: true,
+    subscriptionDate: "2024-03-03",
+    returnSinceSubscription: 13.5,
+  },
 ]
 
+// Utility functions for sparkline and heatmap
+const generateSparklineData = (baseReturn: number): { month: string; value: number; return: number }[] => {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  const points = 12
+  const data: { month: string; value: number; return: number }[] = []
+  let current = 100
+
+  for (let i = 0; i < points; i++) {
+    const randomChange = (Math.random() - 0.4) * 2
+    current = current * (1 + randomChange / 100)
+    const monthReturn = randomChange * 2
+    data.push({
+      month: months[i],
+      value: current,
+      return: monthReturn,
+    })
+  }
+
+  // Ensure the final value reflects the actual return
+  const scaleFactor = (100 + baseReturn) / current
+  return data.map((d) => ({
+    ...d,
+    value: d.value * scaleFactor,
+  }))
+}
+
+const generateHeatmapData = (): { month: string; value: number; color: string }[] => {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  return months.map((month) => {
+    const value = (Math.random() - 0.3) * 20
+    let color = "bg-emerald-500/20"
+    if (value < -5) color = "bg-red-500/40"
+    else if (value < 0) color = "bg-red-500/20"
+    else if (value > 5) color = "bg-emerald-500/40"
+    return { month, value, color }
+  })
+}
+
 export function StrategyCards() {
-  const { isSignedIn, isLoaded } = useUser()
-  const [subscribed, setSubscribed] = useState<Set<string>>(new Set(["s1"]))
+  const [subscribed, setSubscribed] = useState<Set<string>>(new Set(["s1", "s2", "s3"]))
   const [showScrollIndicator, setShowScrollIndicator] = useState({
     saved: false,
     popular: false,
@@ -351,220 +435,336 @@ export function StrategyCards() {
     })
   }
 
+  const FeaturedStrategyCard = ({ strategy }: { strategy: Strategy }) => {
+    const [hoveredBar, setHoveredBar] = useState<number | null>(null)
+    
+    // Memoize the data so it doesn't regenerate on hover
+    const sparklineData = useMemo(() => generateSparklineData(strategy.totalReturn), [strategy.totalReturn])
+    const heatmapData = useMemo(() => generateHeatmapData(), [])
+
+    const maxSparkline = Math.max(...sparklineData.map((d) => d.value))
+    const minSparkline = Math.min(...sparklineData.map((d) => d.value))
+    const sparklineRange = maxSparkline - minSparkline
+
+    return (
+      <Card className="border-ochre/20 hover:border-ochre/40 transition-all duration-300 cursor-pointer bg-gradient-to-br from-ochre/5 via-background to-background relative overflow-hidden">
+        {/* Background pattern */}
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage: `radial-gradient(circle at 2px 2px, rgba(234, 88, 12, 0.15) 1px, transparent 0)`,
+            backgroundSize: "32px 32px",
+          }}
+        />
+
+        <CardContent className="p-5 relative z-10">
+          <div className="space-y-3">
+            {/* Title */}
+            <h3 className="text-base font-semibold text-foreground">{strategy.name}</h3>
+
+            {/* Return with Sparkline */}
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Return</div>
+                <div
+                  className={`text-3xl font-bold font-mono ${
+                    strategy.totalReturn >= 0 ? "text-emerald-500" : "text-red-500"
+                  }`}
+                >
+                  {strategy.totalReturn >= 0 ? "+" : ""}
+                  {strategy.totalReturn.toFixed(2)}%
+                </div>
+              </div>
+
+              <div className="relative">
+                <div className="flex items-end gap-0.5 h-12 w-24">
+                  {sparklineData.map((data, i) => {
+                    const height = ((data.value - minSparkline) / sparklineRange) * 100
+                    return (
+                      <div
+                        key={i}
+                        className={`flex-1 ${strategy.totalReturn >= 0 ? "bg-emerald-500/60" : "bg-red-500/60"} rounded-sm transition-all ${hoveredBar === i ? "opacity-100" : "opacity-70"}`}
+                        style={{ height: `${height}%` }}
+                        onMouseEnter={() => setHoveredBar(i)}
+                        onMouseLeave={() => setHoveredBar(null)}
+                      />
+                    )
+                  })}
+                </div>
+                {/* Tooltip */}
+                {hoveredBar !== null && (
+                  <div className="absolute -top-16 left-1/2 -translate-x-1/2 bg-popover border border-border rounded-md px-3 py-2 shadow-lg z-20 whitespace-nowrap">
+                    <div className="text-xs font-semibold text-foreground">{sparklineData[hoveredBar].month}</div>
+                    <div
+                      className={`text-xs font-mono font-semibold ${sparklineData[hoveredBar].return >= 0 ? "text-emerald-500" : "text-red-500"}`}
+                    >
+                      {sparklineData[hoveredBar].return >= 0 ? "+" : ""}
+                      {sparklineData[hoveredBar].return.toFixed(2)}%
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4 pt-1">
+              {/* Left side metrics */}
+              <div className="flex-1 grid grid-cols-3 gap-x-4 gap-y-2 text-xs font-mono">
+                <div>
+                  <div className="text-muted-foreground mb-0.5">Trades</div>
+                  <div className="font-semibold text-foreground">{strategy.totalTrades}</div>
+                </div>
+
+                <div>
+                  <div className="text-muted-foreground mb-0.5">Success Rate</div>
+                  <div
+                    className={`font-semibold ${
+                      strategy.winRate >= 60
+                        ? "text-emerald-500"
+                        : strategy.winRate >= 40
+                          ? "text-yellow-500"
+                          : "text-red-500"
+                    }`}
+                  >
+                    {strategy.winRate.toFixed(0)}%
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-muted-foreground mb-0.5">Stocks</div>
+                  <div className="font-semibold text-foreground">{strategy.stocksHeld}</div>
+                </div>
+
+                <div>
+                  <div className="text-muted-foreground mb-0.5">Quality</div>
+                  <div
+                    className={`font-semibold ${
+                      strategy.sharpeRatio >= 2
+                        ? "text-emerald-500"
+                        : strategy.sharpeRatio >= 1
+                          ? "text-yellow-500"
+                          : "text-red-500"
+                    }`}
+                  >
+                    {strategy.sharpeRatio >= 2
+                      ? "Excellent"
+                      : strategy.sharpeRatio >= 1.5
+                        ? "Good"
+                        : strategy.sharpeRatio >= 1
+                          ? "Fair"
+                          : "Poor"}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-muted-foreground mb-0.5">Avg Duration</div>
+                  <div className="font-semibold text-foreground">{strategy.avgTradeDuration}d</div>
+                </div>
+
+                <div>
+                  <div className="text-muted-foreground mb-0.5">Max. Drawdown</div>
+                  <div className="font-semibold text-red-500">-{Math.abs(strategy.maxDrawdown).toFixed(1)}%</div>
+                </div>
+              </div>
+
+              {/* Heatmap */}
+              <div className="flex-shrink-0">
+                <div className="text-xs text-muted-foreground mb-1">Monthly Performance</div>
+                <div className="grid grid-cols-6 gap-1">
+                  {heatmapData.map((data, i) => (
+                    <div
+                      key={i}
+                      className={`w-5 h-5 rounded-sm ${data.color} flex items-center justify-center relative group`}
+                      title={`${data.month}: ${data.value >= 0 ? "+" : ""}${data.value.toFixed(1)}%`}
+                    >
+                      <span className="text-[8px] font-mono font-semibold text-foreground/60">
+                        {data.month.charAt(0)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   const StrategyCard = ({ strategy, type }: { strategy: Strategy; type: "saved" | "popular" | "subscribed" }) => (
-    <Card className="flex-shrink-0 w-80 hover:shadow-md transition-shadow">
+    <Card className="flex-shrink-0 w-80 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer">
       <CardContent className="p-4">
         <div className="space-y-3">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-base font-semibold text-foreground truncate">{strategy.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-foreground truncate">{strategy.name}</h3>
                 {(type === "popular" || type === "subscribed") && (
                   <Badge variant="secondary" className="bg-ochre/20 text-ochre-100 border-ochre/30 text-xs font-medium">
                     <Users className="w-3 h-3 mr-1" />
-                    {strategy.subscribers}
+                    <span className="font-mono">{strategy.subscribers}</span>
                   </Badge>
                 )}
               </div>
 
               {strategy.description && (
-                <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{strategy.description}</p>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{strategy.description}</p>
               )}
 
               {strategy.creator && (
-                <p className="text-xs text-muted-foreground mb-2">
+                <p className="text-xs text-muted-foreground mt-1">
                   by <span className="text-ochre font-medium">{strategy.creator}</span>
                 </p>
               )}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+          <div className="border-t border-b border-border py-3">
             {type === "subscribed" ? (
-              <>
-                <div className="flex items-center gap-1">
+              <div className="space-y-2">
+                <div className="flex items-center justify-center gap-2">
                   {strategy.totalReturn >= 0 ? (
                     <TrendingUp className="w-3 h-3 text-green-600" />
                   ) : (
                     <TrendingDown className="w-3 h-3 text-red-600" />
                   )}
-                  <span className="text-muted-foreground">Total Return:</span>
-                  <span className={`font-medium ${strategy.totalReturn >= 0 ? "text-green-600" : "text-red-600"}`}>
-                    {strategy.totalReturn > 0 ? "+" : ""}
-                    {strategy.totalReturn}%
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Strategy Performance
                   </span>
-                  <div className="relative group">
-                    <Info className="w-2.5 h-2.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      Total return of the strategy since inception
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground mb-0.5">Total Return</div>
+                    <div
+                      className={`text-xl font-mono ${strategy.totalReturn >= 0 ? "text-green-600" : "text-red-600"}`}
+                    >
+                      {strategy.totalReturn > 0 ? "+" : ""}
+                      {strategy.totalReturn}%
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground mb-0.5">Since Subscribed</div>
+                    <div
+                      className={`text-xl font-mono ${(strategy as any).returnSinceSubscription >= 0 ? "text-green-600" : "text-red-600"}`}
+                    >
+                      {(strategy as any).returnSinceSubscription > 0 ? "+" : ""}
+                      {(strategy as any).returnSinceSubscription}%
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-1">
-                  {(strategy as any).returnSinceSubscription >= 0 ? (
-                    <TrendingUp className="w-3 h-3 text-green-600" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3 text-red-600" />
-                  )}
-                  <span className="text-muted-foreground">Since Sub:</span>
-                  <span
-                    className={`font-medium ${(strategy as any).returnSinceSubscription >= 0 ? "text-green-600" : "text-red-600"}`}
-                  >
-                    {(strategy as any).returnSinceSubscription > 0 ? "+" : ""}
-                    {(strategy as any).returnSinceSubscription}%
-                  </span>
-                  <div className="relative group">
-                    <Info className="w-2.5 h-2.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      Return since you subscribed to this strategy
-                    </div>
-                  </div>
-                </div>
-              </>
+              </div>
             ) : (
-              <div className="flex items-center gap-1">
-                {strategy.totalReturn >= 0 ? (
-                  <TrendingUp className="w-3 h-3 text-green-600" />
-                ) : (
-                  <TrendingDown className="w-3 h-3 text-red-600" />
-                )}
-                <span className="text-muted-foreground">Return:</span>
-                <span className={`font-medium ${strategy.totalReturn >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <div className="text-center">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
+                  Return
+                </span>
+                <div className={`text-3xl font-mono ${strategy.totalReturn >= 0 ? "text-green-600" : "text-red-600"}`}>
                   {strategy.totalReturn > 0 ? "+" : ""}
                   {strategy.totalReturn}%
-                </span>
-                <div className="relative group">
-                  <Info className="w-2.5 h-2.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                    <div className="space-y-1">
-                      <div>
-                        Total: {strategy.totalReturn > 0 ? "+" : ""}
-                        {strategy.totalReturn}%
-                      </div>
-                      <div>
-                        YoY: {strategy.yoyReturn > 0 ? "+" : ""}
-                        {strategy.yoyReturn}%
-                      </div>
-                      <div>
-                        Monthly: {strategy.momReturn > 0 ? "+" : ""}
-                        {strategy.momReturn}%
-                      </div>
-                      <div>
-                        Weekly: {strategy.weeklyReturn > 0 ? "+" : ""}
-                        {strategy.weeklyReturn}%
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
+          </div>
 
-            <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">Drawdown:</span>
-              <span className="font-medium text-red-600">{strategy.maxDrawdown}%</span>
-              <div className="relative group">
-                <Info className="w-2.5 h-2.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                  Maximum peak-to-trough decline in portfolio value
+          <div className="space-y-2.5 font-mono">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground mb-0.5">Max. Drawdown</div>
+                <div className="flex items-center justify-center gap-1">
+                  <span
+                    className={`text-sm ${Math.abs(strategy.maxDrawdown) <= 10 ? "text-green-600" : Math.abs(strategy.maxDrawdown) <= 20 ? "text-yellow-600" : "text-red-600"}`}
+                  >
+                    {strategy.maxDrawdown}%
+                  </span>
+                  <div className="relative inline-block group">
+                    <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      Maximum peak-to-trough decline
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground mb-0.5">Success Rate</div>
+                <div className="flex items-center justify-center gap-1">
+                  <span
+                    className={`text-sm ${strategy.winRate >= 70 ? "text-green-600" : strategy.winRate >= 60 ? "text-yellow-600" : "text-red-600"}`}
+                  >
+                    {strategy.winRate.toFixed(0)}%
+                  </span>
+                  <div className="relative inline-block group">
+                    <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      Percentage of profitable trades
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">Sharpe:</span>
-              <span
-                className={`font-medium ${strategy.sharpeRatio >= 1.5 ? "text-green-600" : strategy.sharpeRatio >= 1 ? "text-yellow-600" : "text-red-600"}`}
-              >
-                {strategy.sharpeRatio.toFixed(2)}
-              </span>
-              <div className="relative group">
-                <Info className="w-2.5 h-2.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                  Risk-adjusted return (excess return / volatility)
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <div className="text-xs text-muted-foreground mb-0.5">Quality</div>
+                <div className="flex items-center justify-center gap-1">
+                  <span
+                    className={`text-xs font-semibold ${strategy.sharpeRatio >= 1.5 ? "text-green-600" : strategy.sharpeRatio >= 1 ? "text-yellow-600" : "text-red-600"}`}
+                  >
+                    {strategy.sharpeRatio >= 2
+                      ? "Excellent"
+                      : strategy.sharpeRatio >= 1.5
+                        ? "Good"
+                        : strategy.sharpeRatio >= 1
+                          ? "Fair"
+                          : "Poor"}
+                  </span>
+                  <div className="relative inline-block group">
+                    <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      Sharpe Ratio: {strategy.sharpeRatio.toFixed(2)}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">Sortino:</span>
-              <span
-                className={`font-medium ${strategy.sortinoRatio >= 1.5 ? "text-green-600" : strategy.sortinoRatio >= 1 ? "text-yellow-600" : "text-red-600"}`}
-              >
-                {strategy.sortinoRatio.toFixed(2)}
-              </span>
-              <div className="relative group">
-                <Info className="w-2.5 h-2.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                  Risk-adjusted return using downside deviation only
+              <div>
+                <div className="text-xs text-muted-foreground mb-0.5">Trades</div>
+                <div className="flex items-center justify-center gap-1">
+                  <span className="text-xs text-foreground">{strategy.totalTrades}</span>
+                  <div className="relative inline-block group">
+                    <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      Total number of trades executed
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">Win Rate:</span>
-              <span
-                className={`font-medium ${strategy.winRate >= 70 ? "text-green-600" : strategy.winRate >= 60 ? "text-yellow-600" : "text-red-600"}`}
-              >
-                {strategy.winRate}%
-              </span>
-              <div className="relative group">
-                <Info className="w-2.5 h-2.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                  Percentage of profitable trades
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">P.Factor:</span>
-              <span
-                className={`font-medium ${strategy.profitFactor >= 1.5 ? "text-green-600" : strategy.profitFactor >= 1.2 ? "text-yellow-600" : "text-red-600"}`}
-              >
-                {strategy.profitFactor.toFixed(2)}
-              </span>
-              <div className="relative group">
-                <Info className="w-2.5 h-2.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                  Gross profit divided by gross loss
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">Trades:</span>
-              <span className="font-medium">{strategy.totalTrades}</span>
-              <div className="relative group">
-                <Info className="w-2.5 h-2.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                  Total number of executed trades
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">Stocks:</span>
-              <span className="font-medium">{strategy.stocksHeld}</span>
-              <div className="relative group">
-                <Info className="w-2.5 h-2.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                  Number of stocks held in portfolio
+              <div>
+                <div className="text-xs text-muted-foreground mb-0.5">Stocks</div>
+                <div className="flex items-center justify-center gap-1">
+                  <span className="text-xs text-foreground">{strategy.stocksHeld}</span>
+                  <div className="relative inline-block group">
+                    <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      Number of stocks in portfolio
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
             <Calendar className="w-3 h-3" />
             {type === "subscribed"
               ? `Subscribed: ${new Date((strategy as any).subscriptionDate || strategy.createdDate).toLocaleDateString()}`
               : `Created: ${new Date(strategy.createdDate).toLocaleDateString()}`}
           </div>
 
-          <div className="flex items-center gap-2 pt-2">
+          <div className="flex items-center gap-2 pt-1">
             {type === "saved" && (
               <>
-                <Button variant="outline" size="sm" className="text-xs bg-transparent">
+                <Button variant="default" size="sm" className="text-xs bg-ochre hover:bg-ochre/90 text-white">
                   <Edit className="w-3 h-3 mr-1" />
                   Edit
                 </Button>
@@ -618,53 +818,43 @@ export function StrategyCards() {
 
   return (
     <div className="space-y-8">
-      {/* Saved Strategies Section - Only show when logged in */}
-      {isLoaded && isSignedIn && (
-        <section>
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-foreground">My Strategies</h2>
-                <p className="text-muted-foreground">Strategies you've created and backtested</p>
-              </div>
-              <Button className="bg-primary hover:bg-primary/90">
-                <Plus className="w-4 h-4 mr-2" />
-                Create New Strategy
-              </Button>
-            </div>
-          </div>
-
-          <div className="relative">
-            <div ref={savedScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide pl-6">
-              {savedStrategies.map((strategy) => (
-                <StrategyCard key={strategy.id} strategy={strategy} type="saved" />
-              ))}
-            </div>
-            {showScrollIndicator.saved && (
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background/80 to-transparent pl-8 pr-2 py-2">
-                <ChevronRight className="w-5 h-5 text-ochre animate-pulse" />
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Popular Strategies Section */}
       <section>
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="px-6">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-foreground">Popular Strategies</h2>
-            <p className="text-muted-foreground">Top-performing strategies from the community</p>
+            <h2 className="text-2xl font-bold text-foreground mb-1">Strategy Showcase</h2>
+            <p className="text-muted-foreground">Top-performing strategies of the week</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <FeaturedStrategyCard strategy={popularStrategies[0]} />
+            <FeaturedStrategyCard strategy={popularStrategies[1]} />
+            <FeaturedStrategyCard strategy={popularStrategies[2]} />
+          </div>
+        </div>
+      </section>
+
+      {/* Saved Strategies Section */}
+      <section>
+        <div className="pl-6 pr-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">My Strategies</h2>
+              <p className="text-muted-foreground">Strategies you've created and backtested</p>
+            </div>
+            <Button className="bg-primary hover:bg-primary/90">
+              <Plus className="w-4 h-4 mr-2" />
+              Create New Strategy
+            </Button>
           </div>
         </div>
 
         <div className="relative">
-          <div ref={popularScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide pl-6">
-            {popularStrategies.map((strategy) => (
-              <StrategyCard key={strategy.id} strategy={strategy} type="popular" />
+          <div ref={savedScrollRef} className="flex overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-0 gap-5">
+            {savedStrategies.map((strategy) => (
+              <StrategyCard key={strategy.id} strategy={strategy} type="saved" />
             ))}
+            <div className="w-6 flex-shrink-0" />
           </div>
-          {showScrollIndicator.popular && (
+          {showScrollIndicator.saved && (
             <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background/80 to-transparent pl-8 pr-2 py-2">
               <ChevronRight className="w-5 h-5 text-ochre animate-pulse" />
             </div>
@@ -674,7 +864,7 @@ export function StrategyCards() {
 
       {/* Subscribed Strategies Section */}
       <section>
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="pl-6 pr-6">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-foreground">Subscribed Strategies</h2>
             <p className="text-muted-foreground">Strategies you're following from other traders</p>
@@ -682,19 +872,11 @@ export function StrategyCards() {
         </div>
 
         <div className="relative">
-          <div ref={subscribedScrollRef} className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide pl-6">
-            {subscribedStrategies
-              .filter((s) => subscribed.has(s.id))
-              .map((strategy) => (
-                <StrategyCard key={strategy.id} strategy={strategy} type="subscribed" />
-              ))}
-            {subscribedStrategies.filter((s) => subscribed.has(s.id)).length === 0 && (
-              <Card className="flex-shrink-0 w-80 p-8 text-center">
-                <p className="text-muted-foreground">
-                  No subscribed strategies yet. Browse popular strategies to get started!
-                </p>
-              </Card>
-            )}
+          <div ref={subscribedScrollRef} className="flex gap-5 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-0">
+            {subscribedStrategies.map((strategy) => (
+              <StrategyCard key={strategy.id} strategy={strategy} type="subscribed" />
+            ))}
+            <div className="w-6 flex-shrink-0" />
           </div>
           {showScrollIndicator.subscribed && (
             <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background/80 to-transparent pl-8 pr-2 py-2">
