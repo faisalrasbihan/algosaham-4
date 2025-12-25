@@ -15,22 +15,30 @@ interface AddIndicatorModalProps {
   onAddIndicator: (indicator: Omit<Indicator, "id">) => void
 }
 
+// Fundamental indicators matching API spec
 const fundamentalIndicators = [
   { name: "PE Ratio", description: "Price to Earnings ratio", params: { min: 0, max: 50 } },
-  { name: "PBV Ratio", description: "Price to Book Value ratio", params: { min: 0, max: 10 } },
+  { name: "PBV", description: "Price to Book Value ratio", params: { min: 0, max: 10 } },
   { name: "ROE", description: "Return on Equity percentage", params: { min: 0, max: 100 } },
-  { name: "DER", description: "Debt to Equity Ratio", params: { min: 0, max: 5 } },
+  { name: "DE Ratio", description: "Debt to Equity Ratio", params: { min: 0, max: 5 } },
+  { name: "ROA", description: "Return on Assets percentage", params: { min: 0, max: 50 } },
+  { name: "NPM", description: "Net Profit Margin percentage", params: { min: 0, max: 100 } },
   { name: "EPS", description: "Earnings Per Share", params: { min: 0, max: 1000 } },
-  { name: "Dividend Yield", description: "Annual dividend yield percentage", params: { min: 0, max: 20 } },
 ]
 
+// Technical indicators matching API spec
 const technicalIndicators = [
+  { name: "SMA Crossover", description: "Simple Moving Average crossover signal", params: { shortPeriod: 20, longPeriod: 50 } },
+  { name: "SMA Trend", description: "SMA Trend direction analysis", params: { shortPeriod: 20, longPeriod: 50 } },
   { name: "RSI", description: "Relative Strength Index", params: { period: 14, oversold: 30, overbought: 70 } },
-  { name: "SMA Crossover", description: "Simple Moving Average crossover", params: { shortPeriod: 20, longPeriod: 50 } },
-  { name: "EMA Crossover", description: "Exponential Moving Average crossover", params: { shortPeriod: 12, longPeriod: 26 } },
   { name: "MACD", description: "Moving Average Convergence Divergence", params: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 } },
   { name: "Bollinger Bands", description: "Bollinger Bands indicator", params: { period: 20, stdDev: 2 } },
-  { name: "Stochastic", description: "Stochastic oscillator", params: { kPeriod: 14, dPeriod: 3, smooth: 3 } },
+  { name: "ATR", description: "Average True Range volatility", params: { period: 14 } },
+  { name: "Volatility Breakout", description: "Volatility breakout detection", params: { period: 20, multiplier: 2 } },
+  { name: "Volume SMA", description: "Volume Moving Average", params: { period: 20, threshold: 1.5 } },
+  { name: "OBV", description: "On-Balance Volume", params: { period: 14 } },
+  { name: "VWAP", description: "Volume Weighted Average Price", params: { period: 20 } },
+  { name: "Volume Price Trend", description: "Volume Price Trend indicator", params: { period: 14 } },
 ]
 
 export function AddIndicatorModal({ open, onOpenChange, type, onAddIndicator }: AddIndicatorModalProps) {

@@ -313,7 +313,9 @@ interface BacktestResponse {
   dailyPortfolio: Array<{
     date: string;
     portfolioValue: number;
-    benchmarkValue: number;
+    portfolioNormalized: number;  // Normalized to 100 baseline
+    ihsgValue: number;            // IHSG index normalized to 100
+    lq45Value: number;            // LQ45 index normalized to 100
     drawdown: number;
   }>;
 }

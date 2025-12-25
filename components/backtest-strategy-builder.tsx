@@ -253,6 +253,46 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
     }
   }
 
+  // Map indicator names to API types
+  const fundamentalTypeMap: Record<string, string> = {
+    "PE Ratio": "PE_RATIO",
+    "PBV": "PBV",
+    "ROE": "ROE",
+    "DE Ratio": "DE_RATIO",
+    "ROA": "ROA",
+    "NPM": "NPM",
+    "EPS": "EPS"
+  }
+
+  const mapTechnicalIndicator = (ind: Indicator) => {
+    switch (ind.name) {
+      case "SMA Crossover":
+        return { type: "SMA_CROSSOVER", shortPeriod: ind.params.shortPeriod, longPeriod: ind.params.longPeriod }
+      case "SMA Trend":
+        return { type: "SMA_TREND", shortPeriod: ind.params.shortPeriod, longPeriod: ind.params.longPeriod }
+      case "RSI":
+        return { type: "RSI", period: ind.params.period, oversold: ind.params.oversold, overbought: ind.params.overbought }
+      case "MACD":
+        return { type: "MACD", fastPeriod: ind.params.fastPeriod, slowPeriod: ind.params.slowPeriod, signalPeriod: ind.params.signalPeriod }
+      case "Bollinger Bands":
+        return { type: "BOLLINGER_BANDS", period: ind.params.period, stdDev: ind.params.stdDev }
+      case "ATR":
+        return { type: "ATR", period: ind.params.period }
+      case "Volatility Breakout":
+        return { type: "VOLATILITY_BREAKOUT", period: ind.params.period, multiplier: ind.params.multiplier }
+      case "Volume SMA":
+        return { type: "VOLUME_SMA", period: ind.params.period, threshold: ind.params.threshold }
+      case "OBV":
+        return { type: "OBV", period: ind.params.period }
+      case "VWAP":
+        return { type: "VWAP", period: ind.params.period }
+      case "Volume Price Trend":
+        return { type: "VOLUME_PRICE_TREND", period: ind.params.period }
+      default:
+        return { type: ind.name.toUpperCase().replace(/\s+/g, "_"), ...ind.params }
+    }
+  }
+
   const buildBacktestConfig = (): BacktestRequest => {
     return {
       backtestId: `backtest_${Date.now()}`,
@@ -261,14 +301,11 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
         syariah: stockType === "Syariah Only",
       },
       fundamentalIndicators: fundamentalIndicators.map((ind) => ({
-        type: ind.name.toUpperCase().replace(/\s+/g, "_"),
+        type: fundamentalTypeMap[ind.name] || ind.name.toUpperCase().replace(/\s+/g, "_"),
         min: ind.params.min,
         max: ind.params.max,
       })),
-      technicalIndicators: technicalIndicators.map((ind) => ({
-        type: ind.name.toUpperCase().replace(/\s+/g, "_"),
-        ...ind.params,
-      })),
+      technicalIndicators: technicalIndicators.map(mapTechnicalIndicator),
       backtestConfig: {
         initialCapital,
         startDate,

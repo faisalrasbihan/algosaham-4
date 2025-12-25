@@ -52,7 +52,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
   const [fundamentalIndicators, setFundamentalIndicators] = useState<Indicator[]>([
     { id: "1", name: "PE Ratio", type: "fundamental", params: { min: 0, max: 20 } },
     { id: "2", name: "PBV", type: "fundamental", params: { min: 0, max: 3 } },
-    { id: "3", name: "ROE %", type: "fundamental", params: { min: 15, max: 50 } },
+    { id: "3", name: "ROE", type: "fundamental", params: { min: 15, max: 50 } },
   ])
   const [technicalIndicators, setTechnicalIndicators] = useState<Indicator[]>([
     { id: "5", name: "RSI", type: "technical", params: { period: 14, oversold: 30, overbought: 70 } },
@@ -251,10 +251,18 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
     // Convert indicators to API format
     console.log('🔄 [STRATEGY BUILDER] Converting fundamental indicators...')
     const apiFundamentalIndicators = fundamentalIndicators.map(indicator => {
-      const type = indicator.name === "PE Ratio" ? "PE_RATIO" : 
-                   indicator.name === "PBV" ? "PBV" :
-                   indicator.name === "ROE %" ? "ROE" : 
-                   indicator.name.toUpperCase().replace(/\s+/g, '_')
+      // Map indicator names to API types
+      const typeMap: Record<string, string> = {
+        "PE Ratio": "PE_RATIO",
+        "PBV": "PBV",
+        "ROE": "ROE",
+        "DE Ratio": "DE_RATIO",
+        "ROA": "ROA",
+        "NPM": "NPM",
+        "EPS": "EPS"
+      }
+      
+      const type = typeMap[indicator.name] || indicator.name.toUpperCase().replace(/\s+/g, '_')
       
       const converted = {
         type,
@@ -268,37 +276,87 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
     console.log('🔄 [STRATEGY BUILDER] Converting technical indicators...')
     const apiTechnicalIndicators = technicalIndicators.map(indicator => {
       let converted
-      if (indicator.name === "RSI") {
-        converted = {
-          type: "RSI",
-          period: indicator.params.period,
-          oversold: indicator.params.oversold,
-          overbought: indicator.params.overbought
-        }
-      } else if (indicator.name === "SMA Crossover") {
-        converted = {
-          type: "SMA_CROSSOVER",
-          shortPeriod: indicator.params.shortPeriod,
-          longPeriod: indicator.params.longPeriod
-        }
-      } else if (indicator.name === "MACD") {
-        converted = {
-          type: "MACD",
-          fastPeriod: indicator.params.fastPeriod,
-          slowPeriod: indicator.params.slowPeriod,
-          signalPeriod: indicator.params.signalPeriod
-        }
-      } else if (indicator.name === "Bollinger Bands") {
-        converted = {
-          type: "BOLLINGER_BANDS",
-          period: indicator.params.period,
-          stdDev: indicator.params.stdDev
-        }
-      } else {
-        converted = {
-          type: indicator.name.toUpperCase().replace(/\s+/g, '_'),
-          ...indicator.params
-        }
+      switch (indicator.name) {
+        case "SMA Crossover":
+          converted = {
+            type: "SMA_CROSSOVER",
+            shortPeriod: indicator.params.shortPeriod,
+            longPeriod: indicator.params.longPeriod
+          }
+          break
+        case "SMA Trend":
+          converted = {
+            type: "SMA_TREND",
+            shortPeriod: indicator.params.shortPeriod,
+            longPeriod: indicator.params.longPeriod
+          }
+          break
+        case "RSI":
+          converted = {
+            type: "RSI",
+            period: indicator.params.period,
+            oversold: indicator.params.oversold,
+            overbought: indicator.params.overbought
+          }
+          break
+        case "MACD":
+          converted = {
+            type: "MACD",
+            fastPeriod: indicator.params.fastPeriod,
+            slowPeriod: indicator.params.slowPeriod,
+            signalPeriod: indicator.params.signalPeriod
+          }
+          break
+        case "Bollinger Bands":
+          converted = {
+            type: "BOLLINGER_BANDS",
+            period: indicator.params.period,
+            stdDev: indicator.params.stdDev
+          }
+          break
+        case "ATR":
+          converted = {
+            type: "ATR",
+            period: indicator.params.period
+          }
+          break
+        case "Volatility Breakout":
+          converted = {
+            type: "VOLATILITY_BREAKOUT",
+            period: indicator.params.period,
+            multiplier: indicator.params.multiplier
+          }
+          break
+        case "Volume SMA":
+          converted = {
+            type: "VOLUME_SMA",
+            period: indicator.params.period,
+            threshold: indicator.params.threshold
+          }
+          break
+        case "OBV":
+          converted = {
+            type: "OBV",
+            period: indicator.params.period
+          }
+          break
+        case "VWAP":
+          converted = {
+            type: "VWAP",
+            period: indicator.params.period
+          }
+          break
+        case "Volume Price Trend":
+          converted = {
+            type: "VOLUME_PRICE_TREND",
+            period: indicator.params.period
+          }
+          break
+        default:
+          converted = {
+            type: indicator.name.toUpperCase().replace(/\s+/g, '_'),
+            ...indicator.params
+          }
       }
       console.log('🔄 [STRATEGY BUILDER] Converted technical indicator:', converted)
       return converted

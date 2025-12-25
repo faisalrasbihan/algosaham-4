@@ -7,7 +7,9 @@ interface PerformanceChartProps {
   data?: Array<{
     date: string
     portfolioValue: number
-    benchmarkValue: number
+    portfolioNormalized: number
+    ihsgValue: number
+    lq45Value: number 
     drawdown: number
   }>
 }
@@ -40,20 +42,21 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
   const benchmarkSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
 
-  // Check if benchmark data is available
-  const hasBenchmarkData = data?.some(item => 
-    item.benchmarkValue !== undefined && 
-    item.benchmarkValue !== null && 
-    !isNaN(item.benchmarkValue) && 
-    item.benchmarkValue > 0
+  // Check if IHSG benchmark data is available
+  const hasIhsgData = data?.some(item => 
+    item.ihsgValue !== undefined && 
+    item.ihsgValue !== null && 
+    !isNaN(item.ihsgValue) && 
+    item.ihsgValue > 0
   ) || false
 
   console.log('📈 [PERFORMANCE CHART] Received data:', {
     hasData: !!data,
     dataLength: data?.length || 0,
     sampleData: data?.[0] || null,
-    hasBenchmarkData,
-    sampleBenchmark: data?.[0]?.benchmarkValue
+    hasIhsgData,
+    sampleIhsg: data?.[0]?.ihsgValue,
+    sampleLq45: data?.[0]?.lq45Value
   })
 
   useEffect(() => {
@@ -251,44 +254,71 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
       return
     }
 
+    // 🔍 LOG: Print raw data received from API
+    console.log('📊 [PERFORMANCE CHART] ===== RAW CHART DATA =====')
+    console.log('📊 [PERFORMANCE CHART] Total data points:', data.length)
+    console.log('📊 [PERFORMANCE CHART] Full raw data:', JSON.stringify(data, null, 2))
+
     // Process API data for TradingView format
-    const initialCapital = 100000000
+    // Use portfolioNormalized from API if available (already normalized to 100 baseline)
     const strategyData = data.map((item) => {
-      const portfolioPercentage = (item.portfolioValue / initialCapital) * 100
+      // Prefer portfolioNormalized from API, fallback to manual calculation
+      const normalizedValue = item.portfolioNormalized !== undefined 
+        ? item.portfolioNormalized 
+        : (item.portfolioValue / 100000000) * 100
       return {
         time: new Date(item.date).getTime() / 1000 as any, // Convert to Unix timestamp
-        value: portfolioPercentage,
+        value: normalizedValue,
       }
     })
 
-    // Process benchmark data - normalize to 100 baseline like strategy
-    // benchmarkValue from API represents the index value, we normalize to percentage relative to first day
-    // Check if benchmark data is available and valid
-    const hasBenchmarkData = data.some(item => 
-      item.benchmarkValue !== undefined && 
-      item.benchmarkValue !== null && 
-      !isNaN(item.benchmarkValue) && 
-      item.benchmarkValue > 0
+    // 🔍 LOG: Print processed strategy data
+    console.log('📈 [PERFORMANCE CHART] ===== PROCESSED STRATEGY DATA =====')
+    console.log('📈 [PERFORMANCE CHART] Using portfolioNormalized from API:', data[0]?.portfolioNormalized !== undefined)
+    console.log('📈 [PERFORMANCE CHART] Strategy data points:', strategyData.length)
+    console.log('📈 [PERFORMANCE CHART] Full strategy data:', JSON.stringify(strategyData, null, 2))
+    console.log('📈 [PERFORMANCE CHART] First point:', strategyData[0])
+    console.log('📈 [PERFORMANCE CHART] Last point:', strategyData[strategyData.length - 1])
+
+    // Process IHSG benchmark data - API already returns normalized values (100 = baseline)
+    // Check if IHSG data is available and valid
+    const hasIhsgData = data.some(item => 
+      item.ihsgValue !== undefined && 
+      item.ihsgValue !== null && 
+      !isNaN(item.ihsgValue) && 
+      item.ihsgValue > 0
     )
+    
+    // 🔍 LOG: Print benchmark availability
+    console.log('📉 [PERFORMANCE CHART] ===== BENCHMARK DATA =====')
+    console.log('📉 [PERFORMANCE CHART] Has IHSG data:', hasIhsgData)
+    console.log('📉 [PERFORMANCE CHART] Sample values:', data.slice(0, 5).map(d => ({ 
+      date: d.date, 
+      portfolioNormalized: d.portfolioNormalized,
+      ihsgValue: d.ihsgValue, 
+      lq45Value: d.lq45Value 
+    })))
     
     // Set data to series
     strategySeriesRef.current.setData(strategyData)
     
-    if (benchmarkSeriesRef.current && hasBenchmarkData) {
-      const firstBenchmark = data[0]?.benchmarkValue || 100
-      const benchmarkData = data
-        .filter(item => item.benchmarkValue !== undefined && item.benchmarkValue !== null && !isNaN(item.benchmarkValue))
+    if (benchmarkSeriesRef.current && hasIhsgData) {
+      // API returns ihsgValue already normalized to 100 baseline, use directly
+      const ihsgData = data
+        .filter(item => item.ihsgValue !== undefined && item.ihsgValue !== null && !isNaN(item.ihsgValue))
         .map((item) => {
-          // Normalize benchmark to percentage where first day = 100%
-          const benchmarkPercentage = (item.benchmarkValue / firstBenchmark) * 100
           return {
             time: new Date(item.date).getTime() / 1000 as any,
-            value: benchmarkPercentage,
+            value: item.ihsgValue, // Already normalized by API
           }
         })
       
-      if (benchmarkData.length > 0) {
-        benchmarkSeriesRef.current.setData(benchmarkData)
+      // 🔍 LOG: Print processed IHSG data
+      console.log('📉 [PERFORMANCE CHART] IHSG data points:', ihsgData.length)
+      console.log('📉 [PERFORMANCE CHART] Processed IHSG data:', JSON.stringify(ihsgData, null, 2))
+      
+      if (ihsgData.length > 0) {
+        benchmarkSeriesRef.current.setData(ihsgData)
       }
     }
 
@@ -296,6 +326,8 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
     if (chartRef.current) {
       chartRef.current.timeScale().fitContent()
     }
+    
+    console.log('✅ [PERFORMANCE CHART] ===== CHART DATA LOAD COMPLETE =====')
   }, [data])
 
   // Show error state if no data
@@ -319,7 +351,7 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
           <div className="w-4 h-0.5 bg-[rgba(38,166,154,1)]" />
           <span className="text-muted-foreground">Strategy Return</span>
         </div>
-        {hasBenchmarkData && (
+        {hasIhsgData && (
           <div className="flex items-center gap-2">
             <div className="w-4 h-0.5 bg-[#3b82f6]" style={{ borderTop: '2px dashed #3b82f6' }} />
             <span className="text-muted-foreground">IHSG Index</span>

@@ -76,9 +76,11 @@ export interface BacktestResult {
   dailyPortfolio?: Array<{
     date: string
     portfolioValue: number
-    benchmarkValue: number
+    portfolioNormalized: number
+    ihsgValue: number
+    lq45Value: number
     drawdown: number
-    month: Record<string, any>
+    month?: Record<string, any>
   }>
   performanceData?: Array<{
     date: string
