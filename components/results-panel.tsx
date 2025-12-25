@@ -1,7 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { PerformanceChart } from "@/components/performance-chart"
+import { PerformanceChart, BenchmarkType } from "@/components/performance-chart"
 import { TradeHistoryTable } from "@/components/trade-history-table"
 import { MonthlyPerformanceHeatmap } from "@/components/monthly-performance-heatmap"
 import { useBacktest } from "@/lib/hooks/useBacktest"
@@ -15,6 +16,7 @@ interface ResultsPanelProps {
 
 export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelProps) {
   const { results } = useBacktest()
+  const [selectedBenchmark, setSelectedBenchmark] = useState<BenchmarkType>("ihsg")
   
   console.log('📊 [RESULTS PANEL] Component rendered with props:', {
     hasBacktestResults: !!backtestResults,
@@ -132,11 +134,34 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
     <div className="p-6 space-y-6 py-3.5 px-3.5">
       {/* Performance Chart */}
       <Card className="rounded-md">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-foreground font-mono font-bold text-base">Performance Chart</CardTitle>
+          {/* Benchmark Toggle */}
+          <div className="inline-flex items-center bg-slate-100 rounded-lg p-0.5 text-xs font-mono">
+            <button
+              onClick={() => setSelectedBenchmark("ihsg")}
+              className={`px-3 py-1.5 rounded-md transition-all ${
+                selectedBenchmark === "ihsg"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              IHSG
+            </button>
+            <button
+              onClick={() => setSelectedBenchmark("lq45")}
+              className={`px-3 py-1.5 rounded-md transition-all ${
+                selectedBenchmark === "lq45"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              LQ45
+            </button>
+          </div>
         </CardHeader>
         <CardContent>
-          <PerformanceChart data={currentResults?.dailyPortfolio} />
+          <PerformanceChart data={currentResults?.dailyPortfolio} selectedBenchmark={selectedBenchmark} />
         </CardContent>
       </Card>
 

@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react"
 import { createChart, IChartApi, ISeriesApi, LineStyle, ColorType, BaselineSeries, LineSeries } from "lightweight-charts"
 
+export type BenchmarkType = "ihsg" | "lq45"
+
 interface PerformanceChartProps {
   data?: Array<{
     date: string
@@ -12,6 +14,7 @@ interface PerformanceChartProps {
     lq45Value: number 
     drawdown: number
   }>
+  selectedBenchmark?: BenchmarkType
 }
 
 // Format number as Indonesian Rupiah
@@ -35,14 +38,15 @@ const formatDate = (timestamp: number) => {
   })
 }
 
-export function PerformanceChart({ data }: PerformanceChartProps) {
+export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: PerformanceChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const strategySeriesRef = useRef<ISeriesApi<"Baseline"> | null>(null)
   const benchmarkSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
+  const benchmarkLabelRef = useRef<string>("IHSG")
 
-  // Check if IHSG benchmark data is available
+  // Check if benchmark data is available
   const hasIhsgData = data?.some(item => 
     item.ihsgValue !== undefined && 
     item.ihsgValue !== null && 
@@ -50,11 +54,26 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
     item.ihsgValue > 0
   ) || false
 
+  const hasLq45Data = data?.some(item => 
+    item.lq45Value !== undefined && 
+    item.lq45Value !== null && 
+    !isNaN(item.lq45Value) && 
+    item.lq45Value > 0
+  ) || false
+
+  const hasBenchmarkData = selectedBenchmark === "ihsg" ? hasIhsgData : hasLq45Data
+  const benchmarkLabel = selectedBenchmark === "ihsg" ? "IHSG" : "LQ45"
+  
+  // Keep ref in sync with state for tooltip access
+  benchmarkLabelRef.current = benchmarkLabel
+
   console.log('📈 [PERFORMANCE CHART] Received data:', {
     hasData: !!data,
     dataLength: data?.length || 0,
     sampleData: data?.[0] || null,
     hasIhsgData,
+    hasLq45Data,
+    selectedBenchmark,
     sampleIhsg: data?.[0]?.ihsgValue,
     sampleLq45: data?.[0]?.lq45Value
   })
@@ -194,7 +213,7 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
             </div>
             ${benchmarkReturn !== null ? `
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-              <span style="color: #3b82f6;">IHSG:</span>
+              <span style="color: #3b82f6;">${benchmarkLabelRef.current}:</span>
               <span style="font-weight: 600; color: ${isBenchmarkProfit ? 'rgba(38, 166, 154, 1)' : 'rgba(239, 83, 80, 1)'};">
                 ${isBenchmarkProfit ? '+' : ''}${benchmarkReturn.toFixed(2)}%
               </span>
@@ -239,9 +258,23 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
     }
 
     window.addEventListener('resize', handleResize)
+    
+    // Use ResizeObserver for more reliable resize handling
+    const resizeObserver = new ResizeObserver((entries) => {
+      if (entries[0] && chartRef.current) {
+        const { width } = entries[0].contentRect
+        chartRef.current.applyOptions({ width })
+        chartRef.current.timeScale().fitContent()
+      }
+    })
+    
+    if (chartContainerRef.current) {
+      resizeObserver.observe(chartContainerRef.current)
+    }
 
     return () => {
       window.removeEventListener('resize', handleResize)
+      resizeObserver.disconnect()
       if (tooltipRef.current && chartContainerRef.current) {
         chartContainerRef.current.removeChild(tooltipRef.current)
       }
@@ -280,18 +313,12 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
     console.log('📈 [PERFORMANCE CHART] First point:', strategyData[0])
     console.log('📈 [PERFORMANCE CHART] Last point:', strategyData[strategyData.length - 1])
 
-    // Process IHSG benchmark data - API already returns normalized values (100 = baseline)
-    // Check if IHSG data is available and valid
-    const hasIhsgData = data.some(item => 
-      item.ihsgValue !== undefined && 
-      item.ihsgValue !== null && 
-      !isNaN(item.ihsgValue) && 
-      item.ihsgValue > 0
-    )
-    
+    // Process benchmark data - API already returns normalized values (100 = baseline)
     // 🔍 LOG: Print benchmark availability
     console.log('📉 [PERFORMANCE CHART] ===== BENCHMARK DATA =====')
+    console.log('📉 [PERFORMANCE CHART] Selected benchmark:', selectedBenchmark)
     console.log('📉 [PERFORMANCE CHART] Has IHSG data:', hasIhsgData)
+    console.log('📉 [PERFORMANCE CHART] Has LQ45 data:', hasLq45Data)
     console.log('📉 [PERFORMANCE CHART] Sample values:', data.slice(0, 5).map(d => ({ 
       date: d.date, 
       portfolioNormalized: d.portfolioNormalized,
@@ -302,33 +329,46 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
     // Set data to series
     strategySeriesRef.current.setData(strategyData)
     
-    if (benchmarkSeriesRef.current && hasIhsgData) {
-      // API returns ihsgValue already normalized to 100 baseline, use directly
-      const ihsgData = data
-        .filter(item => item.ihsgValue !== undefined && item.ihsgValue !== null && !isNaN(item.ihsgValue))
+    // Use selected benchmark (IHSG or LQ45)
+    if (benchmarkSeriesRef.current && hasBenchmarkData) {
+      // Update the series title to match selected benchmark
+      benchmarkSeriesRef.current.applyOptions({
+        title: `${benchmarkLabel} Index`,
+      })
+      
+      const benchmarkData = data
+        .filter(item => {
+          const value = selectedBenchmark === "ihsg" ? item.ihsgValue : item.lq45Value
+          return value !== undefined && value !== null && !isNaN(value)
+        })
         .map((item) => {
+          const value = selectedBenchmark === "ihsg" ? item.ihsgValue : item.lq45Value
           return {
             time: new Date(item.date).getTime() / 1000 as any,
-            value: item.ihsgValue, // Already normalized by API
+            value: value, // Already normalized by API
           }
         })
       
-      // 🔍 LOG: Print processed IHSG data
-      console.log('📉 [PERFORMANCE CHART] IHSG data points:', ihsgData.length)
-      console.log('📉 [PERFORMANCE CHART] Processed IHSG data:', JSON.stringify(ihsgData, null, 2))
+      // 🔍 LOG: Print processed benchmark data
+      console.log(`📉 [PERFORMANCE CHART] ${benchmarkLabel} data points:`, benchmarkData.length)
+      console.log(`📉 [PERFORMANCE CHART] Processed ${benchmarkLabel} data:`, JSON.stringify(benchmarkData.slice(0, 5), null, 2))
       
-      if (ihsgData.length > 0) {
-        benchmarkSeriesRef.current.setData(ihsgData)
+      if (benchmarkData.length > 0) {
+        benchmarkSeriesRef.current.setData(benchmarkData)
       }
     }
 
-    // Fit content
+    // Fit content and trigger resize
     if (chartRef.current) {
       chartRef.current.timeScale().fitContent()
+      // Trigger resize to ensure proper rendering
+      if (chartContainerRef.current) {
+        chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth })
+      }
     }
     
     console.log('✅ [PERFORMANCE CHART] ===== CHART DATA LOAD COMPLETE =====')
-  }, [data])
+  }, [data, selectedBenchmark, hasBenchmarkData, benchmarkLabel, hasIhsgData, hasLq45Data])
 
   // Show error state if no data
   if (!data || data.length === 0) {
@@ -351,10 +391,10 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
           <div className="w-4 h-0.5 bg-[rgba(38,166,154,1)]" />
           <span className="text-muted-foreground">Strategy Return</span>
         </div>
-        {hasIhsgData && (
+        {hasBenchmarkData && (
           <div className="flex items-center gap-2">
             <div className="w-4 h-0.5 bg-[#3b82f6]" style={{ borderTop: '2px dashed #3b82f6' }} />
-            <span className="text-muted-foreground">IHSG Index</span>
+            <span className="text-muted-foreground">{benchmarkLabel} Index</span>
           </div>
         )}
       </div>
