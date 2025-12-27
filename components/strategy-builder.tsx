@@ -48,6 +48,21 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
   const [marketCaps, setMarketCaps] = useState<string[]>(["mid"])
   const [stockType, setStockType] = useState("All Stocks")
   const [sectors, setSectors] = useState<string[]>(["Banking"])
+  const [selectedTicker, setSelectedTicker] = useState<string>("")
+  
+  // Placeholder ticker data - will be populated from database fetch later
+  const tickerOptions = [
+    { value: "BBCA", label: "BBCA - Bank Central Asia" },
+    { value: "BBRI", label: "BBRI - Bank Rakyat Indonesia" },
+    { value: "BMRI", label: "BMRI - Bank Mandiri" },
+    { value: "TLKM", label: "TLKM - Telkom Indonesia" },
+    { value: "ASII", label: "ASII - Astra International" },
+    { value: "UNVR", label: "UNVR - Unilever Indonesia" },
+    { value: "ICBP", label: "ICBP - Indofood CBP" },
+    { value: "INDF", label: "INDF - Indofood Sukses Makmur" },
+    { value: "GGRM", label: "GGRM - Gudang Garam" },
+    { value: "HMSP", label: "HMSP - HM Sampoerna" },
+  ]
   const [sectorDropdownOpen, setSectorDropdownOpen] = useState(false)
   const [fundamentalIndicators, setFundamentalIndicators] = useState<Indicator[]>([
     { id: "1", name: "PE Ratio", type: "fundamental", params: { min: 0, max: 20 } },
@@ -460,6 +475,22 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
                     ))}
                   </div>
                 </div>
+              </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground mb-2 block">Ticker</Label>
+                <Select value={selectedTicker} onValueChange={setSelectedTicker}>
+                  <SelectTrigger className="w-full font-mono">
+                    <SelectValue placeholder="Select a ticker..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tickerOptions.map((ticker) => (
+                      <SelectItem key={ticker.value} value={ticker.value} className="font-mono">
+                        {ticker.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>

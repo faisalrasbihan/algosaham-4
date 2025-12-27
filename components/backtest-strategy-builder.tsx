@@ -81,6 +81,10 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   const [stockType, setStockType] = useState("All Stocks")
   const [sectors, setSectors] = useState<string[]>([])
   const [sectorDropdownOpen, setSectorDropdownOpen] = useState(false)
+  const [selectedTicker, setSelectedTicker] = useState<string>("")
+  const [tickerOptions, setTickerOptions] = useState<{ value: string; label: string }[]>([])
+  const [isLoadingTickers, setIsLoadingTickers] = useState(false)
+  const [tickersLoaded, setTickersLoaded] = useState(false)
   const [fundamentalIndicators, setFundamentalIndicators] = useState<Indicator[]>([])
   const [technicalIndicators, setTechnicalIndicators] = useState<Indicator[]>([
     { id: "1", name: "RSI", type: "technical", params: { period: 14, oversold: 30, overbought: 70 } },
@@ -185,6 +189,25 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
 
   const toggleSector = (sector: string) => {
     setSectors((prev) => (prev.includes(sector) ? prev.filter((s) => s !== sector) : [...prev, sector]))
+  }
+
+  // Lazy-load tickers from database when dropdown is opened
+  const fetchTickers = async () => {
+    if (tickersLoaded || isLoadingTickers) return
+    
+    setIsLoadingTickers(true)
+    try {
+      const response = await fetch("/api/stocks/tickers")
+      const data = await response.json()
+      if (data.tickers) {
+        setTickerOptions(data.tickers)
+        setTickersLoaded(true)
+      }
+    } catch (error) {
+      console.error("Failed to fetch tickers:", error)
+    } finally {
+      setIsLoadingTickers(false)
+    }
   }
 
   const removeIndicator = (id: string, type: "fundamental" | "technical") => {
@@ -680,6 +703,40 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                       </div>
                     </div>
                   </div>
+                  
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-2 block">Ticker</Label>
+                    <Select 
+                      value={selectedTicker} 
+                      onValueChange={setSelectedTicker}
+                      onOpenChange={(open) => {
+                        if (open) fetchTickers()
+                      }}
+                    >
+                      <SelectTrigger className="w-full font-mono">
+                        <SelectValue placeholder="Select a ticker..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {isLoadingTickers ? (
+                          <div className="flex items-center justify-center py-4">
+                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                            <span className="ml-2 text-sm text-muted-foreground">Loading tickers...</span>
+                          </div>
+                        ) : tickerOptions.length === 0 ? (
+                          <div className="py-4 text-center text-sm text-muted-foreground">
+                            No tickers available
+                          </div>
+                        ) : (
+                          tickerOptions.map((ticker) => (
+                            <SelectItem key={ticker.value} value={ticker.value} className="font-mono">
+                              {ticker.label}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div>
                     <Label className="text-xs text-muted-foreground mb-2 block">Sectors</Label>
                     <div className="relative" ref={sectorDropdownRef}>
