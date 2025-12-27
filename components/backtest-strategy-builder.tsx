@@ -127,6 +127,57 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   const [endDate, setEndDate] = useState<string>("2024-08-31")
   const [initialCapital, setInitialCapital] = useState<number>(100000000)
 
+  // Backtest preset state
+  const [backtestPeriod, setBacktestPeriod] = useState<string>("Last 1 year")
+
+  const backtestPeriodOptions = [
+    "Last 1 month",
+    "Last 3 months",
+    "Last 6 months",
+    "Last 1 year",
+    "Last 2 years",
+    "Last 3 years",
+    "Last 5 years",
+  ]
+
+  const applyPreset = (period: string) => {
+    setBacktestPeriod(period)
+    const end = new Date()
+    const start = new Date()
+
+    switch (period) {
+      case "Last 1 month":
+        start.setMonth(end.getMonth() - 1)
+        break
+      case "Last 3 months":
+        start.setMonth(end.getMonth() - 3)
+        break
+      case "Last 6 months":
+        start.setMonth(end.getMonth() - 6)
+        break
+      case "Last 1 year":
+        start.setFullYear(end.getFullYear() - 1)
+        break
+      case "Last 2 years":
+        start.setFullYear(end.getFullYear() - 2)
+        break
+      case "Last 3 years":
+        start.setFullYear(end.getFullYear() - 3)
+        break
+      case "Last 5 years":
+        start.setFullYear(end.getFullYear() - 5)
+        break
+    }
+
+    setEndDate(end.toISOString().split("T")[0])
+    setStartDate(start.toISOString().split("T")[0])
+  }
+
+  // Initialize with default preset
+  useEffect(() => {
+    applyPreset("Last 1 year")
+  }, [])
+
   const marketCapOptions = ["small", "mid", "large"]
   const sectorOptions = [
     "Banking",
@@ -1164,6 +1215,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="no-limit">No limit</SelectItem>
+                        <SelectItem value="7">7 days</SelectItem>
                         <SelectItem value="14">14 days</SelectItem>
                         <SelectItem value="30">30 days</SelectItem>
                         <SelectItem value="60">60 days</SelectItem>
@@ -1195,28 +1247,9 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
               </CardHeader>
               {!collapsedSections.backtest && (
                 <CardContent className="pt-0 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Start Date</Label>
-                      <Input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="border-slate-200"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">End Date</Label>
-                      <Input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="border-slate-200"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Initial Capital</Label>
+                  {/* Initial Capital - Moved to top */}
+                  <div className="mb-4">
+                    <Label className="text-xs text-muted-foreground mb-2 block">Initial Capital</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">Rp</span>
                       <Input
@@ -1233,6 +1266,61 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                       />
                     </div>
                   </div>
+
+                  <Tabs defaultValue="preset" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 h-9">
+                      <TabsTrigger value="preset" className="text-xs">
+                        Preset
+                      </TabsTrigger>
+                      <TabsTrigger value="custom" className="text-xs">
+                        Custom
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="preset" className="mt-3 space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        {backtestPeriodOptions.map((period) => (
+                          <Badge
+                            key={period}
+                            variant={backtestPeriod === period ? "default" : "outline"}
+                            className={`cursor-pointer text-xs px-3 py-1.5 ${backtestPeriod === period ? "bg-[#d07225] hover:bg-[#a65b1d]" : "hover:bg-accent/20"}`}
+                            onClick={() => applyPreset(period)}
+                          >
+                            {period}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="custom" className="mt-3 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1.5 block">Start Date</Label>
+                          <Input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => {
+                              setStartDate(e.target.value)
+                              setBacktestPeriod("") // Clear preset when custom date is modified
+                            }}
+                            className="border-slate-200 h-9"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1.5 block">End Date</Label>
+                          <Input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => {
+                              setEndDate(e.target.value)
+                              setBacktestPeriod("") // Clear preset when custom date is modified
+                            }}
+                            className="border-slate-200 h-9"
+                          />
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </CardContent>
               )}
             </Card>
@@ -1267,8 +1355,8 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
               </DropdownMenu>
             </div>
           </div>
-        </TabsContent>
-      </Tabs>
+        </TabsContent >
+      </Tabs >
 
       <Dialog open={showSaveModal} onOpenChange={setShowSaveModal}>
         <DialogContent className="sm:max-w-md">

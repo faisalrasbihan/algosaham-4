@@ -88,6 +88,14 @@ export interface BacktestResult {
     value: number
   }>
   monthlyReturns?: Record<string, number>
+  monthlyPerformance?: Array<{
+    month: string
+    winRate: number
+    returns: number
+    benchmarkReturns: number
+    probability: number
+    tradesCount: number
+  }>
   error?: string
 }
 

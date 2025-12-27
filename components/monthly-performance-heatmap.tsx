@@ -2,34 +2,52 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-export function MonthlyPerformanceHeatmap() {
-  // Generate last 12 months
-  const months: { month: string; fullMonth: string }[] = []
-  const currentDate = new Date()
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1)
-    months.push({
-      month: date.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
-      fullMonth: date.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-    })
+export interface MonthlyPerformance {
+  month: string
+  winRate: number
+  returns: number
+  benchmarkReturns: number
+  probability: number
+  tradesCount: number
+}
+
+interface MonthlyPerformanceHeatmapProps {
+  monthlyPerformance?: MonthlyPerformance[]
+}
+
+export function MonthlyPerformanceHeatmap({ monthlyPerformance = [] }: MonthlyPerformanceHeatmapProps) {
+  // If no data, show placeholder or empty state
+  if (!monthlyPerformance || monthlyPerformance.length === 0) {
+    return (
+      <Card className="rounded-md">
+        <CardHeader>
+          <CardTitle className="text-foreground font-mono font-bold text-base">Monthly Performance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center p-8 text-muted-foreground font-mono text-sm">
+            No monthly performance data available
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
-  // Mock monthly performance data
-  const performanceData = [
-    { metric: "Win Rate (%)", data: [65, 72, 58, 81, 69, 74, 62, 77, 83, 59, 71, 68] },
-    { metric: "Returns (%)", data: [4.2, 7.8, -2.1, 12.3, 5.6, 8.9, -1.4, 9.7, 11.2, -3.2, 6.8, 4.5] },
-    { metric: "Benchmark (%)", data: [2.1, 3.4, -1.8, 5.2, 2.9, 4.1, -0.8, 4.6, 5.8, -2.1, 3.2, 2.7] },
-    { metric: "Probability", data: [0.68, 0.74, 0.52, 0.85, 0.71, 0.76, 0.58, 0.79, 0.87, 0.54, 0.73, 0.69] },
+  // Define metrics to display based on API structure
+  const metrics = [
+    { label: "Win Rate (%)", key: "winRate" as const, format: (v: number) => `${v.toFixed(0)}%` },
+    { label: "Returns (%)", key: "returns" as const, format: (v: number) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%` },
+    { label: "Benchmark (%)", key: "benchmarkReturns" as const, format: (v: number) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%` },
+    { label: "Probability", key: "probability" as const, format: (v: number) => v.toFixed(2) },
   ]
 
-  const getColorIntensity = (value: number, metric: string) => {
+  const getColorIntensity = (value: number, metricKey: string) => {
     let normalizedValue = 0
 
-    if (metric === "Win Rate (%)") {
+    if (metricKey === "winRate") {
       normalizedValue = (value - 50) / 50 // 50-100% range
-    } else if (metric === "Returns (%)" || metric === "Benchmark (%)") {
+    } else if (metricKey === "returns" || metricKey === "benchmarkReturns") {
       normalizedValue = value / 15 // -15% to +15% range
-    } else if (metric === "Probability") {
+    } else if (metricKey === "probability") {
       normalizedValue = (value - 0.5) / 0.5 // 0.5-1.0 range
     }
 
@@ -42,17 +60,6 @@ export function MonthlyPerformanceHeatmap() {
     }
   }
 
-  const formatValue = (value: number, metric: string) => {
-    if (metric === "Win Rate (%)") {
-      return `${value}%`
-    } else if (metric === "Returns (%)" || metric === "Benchmark (%)") {
-      return `${value > 0 ? "+" : ""}${value}%`
-    } else if (metric === "Probability") {
-      return value.toFixed(2)
-    }
-    return value.toString()
-  }
-
   return (
     <Card className="rounded-md">
       <CardHeader>
@@ -62,38 +69,44 @@ export function MonthlyPerformanceHeatmap() {
         <div className="overflow-x-auto">
           <div className="min-w-[800px]">
             {/* Header with months */}
-            <div 
+            <div
               className="grid gap-1 mb-2"
-              style={{ gridTemplateColumns: '100px repeat(12, 1fr)' }}
+              style={{ gridTemplateColumns: `100px repeat(${monthlyPerformance.length}, 1fr)` }}
             >
               <div className="text-xs font-medium text-muted-foreground p-2"></div>
-              {months.map((month, index) => (
+              {monthlyPerformance.map((item, index) => (
                 <div key={index} className="text-xs font-medium text-center text-muted-foreground p-2">
-                  {month.month}
+                  {item.month}
                 </div>
               ))}
             </div>
 
             {/* Performance metrics rows */}
-            {performanceData.map((row, rowIndex) => (
-              <div 
-                key={rowIndex} 
+            {metrics.map((metric, rowIndex) => (
+              <div
+                key={rowIndex}
                 className="grid gap-1 mb-1"
-                style={{ gridTemplateColumns: '100px repeat(12, 1fr)' }}
+                style={{ gridTemplateColumns: `100px repeat(${monthlyPerformance.length}, 1fr)` }}
               >
                 <div className="text-xs font-medium text-muted-foreground p-2 flex items-center font-mono whitespace-nowrap">
-                  {row.metric}
+                  {metric.label}
                 </div>
-                {row.data.map((value, colIndex) => (
-                  <div
-                    key={colIndex}
-                    className="p-2 rounded text-center text-xs font-mono font-medium border border-border/30 hover:border-border transition-colors cursor-pointer h-10 flex items-center justify-center"
-                    style={{ backgroundColor: getColorIntensity(value, row.metric) }}
-                    title={`${months[colIndex].fullMonth}: ${formatValue(value, row.metric)}`}
-                  >
-                    {formatValue(value, row.metric)}
-                  </div>
-                ))}
+                {monthlyPerformance.map((item, colIndex) => {
+                  const value = item[metric.key]
+                  // Handle possibly undefined/null values safely
+                  const safeValue = typeof value === 'number' ? value : 0
+
+                  return (
+                    <div
+                      key={colIndex}
+                      className="p-2 rounded text-center text-xs font-mono font-medium border border-border/30 hover:border-border transition-colors cursor-pointer h-10 flex items-center justify-center"
+                      style={{ backgroundColor: getColorIntensity(safeValue, metric.key) }}
+                      title={`${item.month}: ${metric.format(safeValue)}`}
+                    >
+                      {metric.format(safeValue)}
+                    </div>
+                  )
+                })}
               </div>
             ))}
           </div>

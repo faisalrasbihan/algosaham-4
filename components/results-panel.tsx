@@ -17,69 +17,69 @@ interface ResultsPanelProps {
 export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelProps) {
   const { results } = useBacktest()
   const [selectedBenchmark, setSelectedBenchmark] = useState<BenchmarkType>("ihsg")
-  
+
   console.log('📊 [RESULTS PANEL] Component rendered with props:', {
     hasBacktestResults: !!backtestResults,
     hasHookResults: !!results,
     loading,
     hasError: !!error
   })
-  
+
   // Use props if provided, otherwise use hook results
   const currentResults = backtestResults || results
-  
+
   console.log('📊 [RESULTS PANEL] Current results:', {
     hasCurrentResults: !!currentResults,
     currentResultsKeys: currentResults ? Object.keys(currentResults) : [],
     totalReturn: currentResults?.totalReturn,
     tradesCount: currentResults?.trades?.length || 0
   })
-  
+
   // Only show data if we have real results
   const performanceStats = currentResults ? [
-    { 
-      label: "Total Return", 
-      value: `${(currentResults.summary?.totalReturn || 0).toFixed(1)}%`, 
-      positive: (currentResults.summary?.totalReturn || 0) >= 0 
+    {
+      label: "Total Return",
+      value: `${(currentResults.summary?.totalReturn || 0).toFixed(1)}%`,
+      positive: (currentResults.summary?.totalReturn || 0) >= 0
     },
-    { 
-      label: "Annual Return", 
-      value: `${(currentResults.summary?.annualizedReturn || 0).toFixed(1)}%`, 
-      positive: (currentResults.summary?.annualizedReturn || 0) >= 0 
+    {
+      label: "Annual Return",
+      value: `${(currentResults.summary?.annualizedReturn || 0).toFixed(1)}%`,
+      positive: (currentResults.summary?.annualizedReturn || 0) >= 0
     },
-    { 
-      label: "Max Drawdown", 
-      value: `${(currentResults.summary?.maxDrawdown || 0).toFixed(1)}%`, 
-      positive: (currentResults.summary?.maxDrawdown || 0) >= 0 
+    {
+      label: "Max Drawdown",
+      value: `${(currentResults.summary?.maxDrawdown || 0).toFixed(1)}%`,
+      positive: (currentResults.summary?.maxDrawdown || 0) >= 0
     },
-    { 
-      label: "Win Rate", 
-      value: `${(currentResults.summary?.winRate || 0).toFixed(1)}%`, 
-      positive: (currentResults.summary?.winRate || 0) >= 50 
+    {
+      label: "Win Rate",
+      value: `${(currentResults.summary?.winRate || 0).toFixed(1)}%`,
+      positive: (currentResults.summary?.winRate || 0) >= 50
     },
-    { 
-      label: "Total Trades", 
-      value: `${currentResults.summary?.totalTrades || 0}`, 
-      neutral: true 
+    {
+      label: "Total Trades",
+      value: `${currentResults.summary?.totalTrades || 0}`,
+      neutral: true
     },
-    { 
-      label: "Avg Hold Days", 
-      value: `${(currentResults.summary?.averageHoldingDays || 0).toFixed(1)}`, 
-      neutral: true 
+    {
+      label: "Avg Hold Days",
+      value: `${(currentResults.summary?.averageHoldingDays || 0).toFixed(1)}`,
+      neutral: true
     },
-    { 
-      label: "Best Stock", 
+    {
+      label: "Best Stock",
       value: currentResults.summary?.bestTrade?.ticker || "N/A",
-      subValue: currentResults.summary?.bestTrade?.return != null 
-        ? `+${currentResults.summary.bestTrade.return.toFixed(1)}%` 
+      subValue: currentResults.summary?.bestTrade?.return != null
+        ? `+${currentResults.summary.bestTrade.return.toFixed(1)}%`
         : null,
       subPositive: true
     },
-    { 
-      label: "Worst Stock", 
+    {
+      label: "Worst Stock",
       value: currentResults.summary?.worstTrade?.ticker || "N/A",
-      subValue: currentResults.summary?.worstTrade?.return != null 
-        ? `${currentResults.summary.worstTrade.return.toFixed(1)}%` 
+      subValue: currentResults.summary?.worstTrade?.return != null
+        ? `${currentResults.summary.worstTrade.return.toFixed(1)}%`
         : null,
       subPositive: false
     },
@@ -140,21 +140,19 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
           <div className="inline-flex items-center bg-slate-100 rounded-lg p-0.5 text-xs font-mono">
             <button
               onClick={() => setSelectedBenchmark("ihsg")}
-              className={`px-3 py-1.5 rounded-md transition-all ${
-                selectedBenchmark === "ihsg"
+              className={`px-3 py-1.5 rounded-md transition-all ${selectedBenchmark === "ihsg"
                   ? "bg-white text-slate-900 shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
-              }`}
+                }`}
             >
               IHSG
             </button>
             <button
               onClick={() => setSelectedBenchmark("lq45")}
-              className={`px-3 py-1.5 rounded-md transition-all ${
-                selectedBenchmark === "lq45"
+              className={`px-3 py-1.5 rounded-md transition-all ${selectedBenchmark === "lq45"
                   ? "bg-white text-slate-900 shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
-              }`}
+                }`}
             >
               LQ45
             </button>
@@ -186,18 +184,16 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
                       {stat.value}
                     </span>
                     <span
-                      className={`font-mono text-sm font-semibold ${
-                        stat.subPositive ? "text-green-600" : "text-red-500"
-                      }`}
+                      className={`font-mono text-sm font-semibold ${stat.subPositive ? "text-green-600" : "text-red-500"
+                        }`}
                     >
                       {stat.subValue}
                     </span>
                   </div>
                 ) : (
                   <div
-                    className={`font-mono text-xl font-bold ${
-                      stat.positive ? "text-green-700" : stat.positive === false ? "text-red-600" : "text-foreground"
-                    }`}
+                    className={`font-mono text-xl font-bold ${stat.positive ? "text-green-700" : stat.positive === false ? "text-red-600" : "text-foreground"
+                      }`}
                   >
                     {stat.value}
                   </div>
@@ -209,7 +205,7 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
       </Card>
 
       {/* Monthly Performance Heatmap */}
-      <MonthlyPerformanceHeatmap />
+      <MonthlyPerformanceHeatmap monthlyPerformance={currentResults?.monthlyPerformance} />
 
       {/* Trade History */}
       <Card className="rounded-md">
