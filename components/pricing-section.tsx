@@ -71,8 +71,7 @@ export function PricingSection() {
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Harga Transparan, Fitur Lengkap, dan Fleksibel</h2>
           <p className="text-lg text-muted-foreground font-mono max-w-3xl mx-auto leading-relaxed">
-            Temukan paket langganan terbaik untuk mendukung strategi trading Anda. Mulai dari paket gratis hingga solusi profesional — semuanya dilengkapi dengan <span className="font-semibold text-primary">uji coba gratis 14 hari</span>{" "}
-            tanpa kartu kredit.
+            Pilih level sesuai gaya trading kamu. Naik level kapan aja!
           </p>
         </div>
 
@@ -80,9 +79,8 @@ export function PricingSection() {
           {plans.map((plan, index) => (
             <div
               key={index}
-              className={`relative rounded-xl border-2 p-8 flex flex-col transition-all duration-300 hover:shadow-xl ${
-                plan.highlighted ? "border-primary bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg scale-105 ring-2 ring-primary/20" : "border-border bg-card hover:border-primary/30"
-              }`}
+              className={`relative rounded-xl border-2 p-8 flex flex-col transition-all duration-300 hover:shadow-xl ${plan.highlighted ? "border-primary bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg scale-105 ring-2 ring-primary/20" : "border-border bg-card hover:border-primary/30"
+                }`}
             >
               {plan.highlighted && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">

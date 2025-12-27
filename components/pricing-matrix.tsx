@@ -152,35 +152,31 @@ export function PricingMatrix() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Pilih Paket yang Sesuai</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Harga Transparan, Fitur Lengkap, dan Fleksibel</h1>
             <p className="text-lg text-muted-foreground font-mono max-w-2xl mx-auto mb-8">
-              Mulai gratis dan upgrade sesuai kebutuhan trading Anda
+              Pilih level sesuai gaya trading kamu. Naik level kapan aja!
             </p>
-            <div className={`inline-flex items-center gap-1 p-1 rounded-full border transition-all ${
-              isYearly ? "bg-slate-200 border-slate-300" : "bg-slate-200 border-slate-300"
-            }`}>
+            <div className={`inline-flex items-center gap-1 p-1 rounded-full border transition-all ${isYearly ? "bg-slate-200 border-slate-300" : "bg-slate-200 border-slate-300"
+              }`}>
               <button
                 onClick={() => setIsYearly(false)}
-                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
-                  !isYearly 
-                    ? "bg-slate-500 text-white shadow-md" 
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${!isYearly
+                  ? "bg-slate-500 text-white shadow-md"
+                  : "text-slate-500 hover:text-slate-700"
+                  }`}
               >
                 Bulanan
               </button>
               <button
                 onClick={() => setIsYearly(true)}
-                className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
-                  isYearly 
-                    ? "bg-[#d07225] text-white shadow-md" 
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${isYearly
+                  ? "bg-[#d07225] text-white shadow-md"
+                  : "text-slate-500 hover:text-slate-700"
+                  }`}
               >
                 Tahunan
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                  isYearly ? "bg-white/20 text-white" : "bg-[#d07225] text-white"
-                }`}>
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isYearly ? "bg-white/20 text-white" : "bg-[#d07225] text-white"
+                  }`}>
                   -50%
                 </span>
               </button>
@@ -191,11 +187,10 @@ export function PricingMatrix() {
             {plans.map((plan, index) => (
               <div
                 key={index}
-                className={`relative rounded-xl border flex flex-col transition-all duration-300 ${
-                  plan.highlighted 
-                    ? "border-primary bg-primary/5 shadow-xl scale-[1.02]" 
-                    : "border-border bg-card hover:border-primary/50 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                }`}
+                className={`relative rounded-xl border flex flex-col transition-all duration-300 ${plan.highlighted
+                  ? "border-primary bg-primary/5 shadow-xl scale-[1.02]"
+                  : "border-border bg-card hover:border-primary/50 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+                  }`}
               >
                 {plan.badge && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -224,11 +219,10 @@ export function PricingMatrix() {
                   </div>
 
                   <Button
-                    className={`w-full ${
-                      plan.highlighted
-                        ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                        : "bg-secondary hover:bg-secondary/80 text-foreground"
-                    }`}
+                    className={`w-full ${plan.highlighted
+                      ? "bg-primary hover:bg-primary/90 text-primary-foreground"
+                      : "bg-secondary hover:bg-secondary/80 text-foreground"
+                      }`}
                   >
                     {plan.monthlyPrice === 0 ? "Mulai Gratis" : "Pilih Paket"}
                   </Button>
@@ -241,7 +235,7 @@ export function PricingMatrix() {
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
                         {category.category}
                       </h4>
-                      <div className="space-y-1">
+                      <div className="space-y-1 pl-4">
                         {category.features.map((feature, featureIndex) => {
                           const value = getFeatureValue(plan.key, feature)
                           return (

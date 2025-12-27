@@ -18,11 +18,14 @@ export function HeroSection() {
           {/* Left side - Main heading */}
           <div>
             <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight text-balance">
-              Cari strategi trading saham paling cuan di{" "}
+              Cari dan pakai strategi trading di{" "}
               <span className="text-ochre font-mono" style={{ fontFamily: "var(--font-ibm-plex-mono)" }}>
                 algosaham.ai
               </span>
             </h1>
+            {/* <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight mt-1 italic">
+              Trading #AntiFOMO
+            </h1> */}
           </div>
 
           {/* Right side - Description and CTAs */}

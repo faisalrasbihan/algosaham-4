@@ -81,8 +81,10 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   const [stockType, setStockType] = useState("All Stocks")
   const [sectors, setSectors] = useState<string[]>([])
   const [sectorDropdownOpen, setSectorDropdownOpen] = useState(false)
-  const [selectedTicker, setSelectedTicker] = useState<string>("")
+  const [selectedTickers, setSelectedTickers] = useState<string[]>([])
   const [tickerOptions, setTickerOptions] = useState<{ value: string; label: string }[]>([])
+  const [tickerDropdownOpen, setTickerDropdownOpen] = useState(false)
+  const [tickerSearch, setTickerSearch] = useState("")
   const [isLoadingTickers, setIsLoadingTickers] = useState(false)
   const [tickersLoaded, setTickersLoaded] = useState(false)
   const [fundamentalIndicators, setFundamentalIndicators] = useState<Indicator[]>([])
@@ -116,7 +118,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   })
   const [isTutorialActive, setIsTutorialActive] = useState(false)
   const [hasVisited, setHasVisited] = useState<boolean | null>(null)
-  
+
   // Backtest config states
   const [stopLoss, setStopLoss] = useState<number>(7)
   const [takeProfit, setTakeProfit] = useState<number>(15)
@@ -142,23 +144,28 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const sectorDropdownRef = useRef<HTMLDivElement>(null)
+  const tickerDropdownRef = useRef<HTMLDivElement>(null)
 
   // Close sector dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (sectorDropdownRef.current && !sectorDropdownRef.current.contains(event.target as Node)) {
         setSectorDropdownOpen(false)
       }
+      if (tickerDropdownRef.current && !tickerDropdownRef.current.contains(event.target as Node)) {
+        setTickerDropdownOpen(false)
+      }
     }
 
-    if (sectorDropdownOpen) {
+    if (sectorDropdownOpen || tickerDropdownOpen) {
       document.addEventListener("mousedown", handleClickOutside)
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [sectorDropdownOpen])
+  }, [sectorDropdownOpen, tickerDropdownOpen])
 
   // Check if user has visited before
   useEffect(() => {
@@ -191,10 +198,14 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
     setSectors((prev) => (prev.includes(sector) ? prev.filter((s) => s !== sector) : [...prev, sector]))
   }
 
+  const toggleTicker = (ticker: string) => {
+    setSelectedTickers((prev) => (prev.includes(ticker) ? prev.filter((t) => t !== ticker) : [...prev, ticker]))
+  }
+
   // Lazy-load tickers from database when dropdown is opened
   const fetchTickers = async () => {
     if (tickersLoaded || isLoadingTickers) return
-    
+
     setIsLoadingTickers(true)
     try {
       const response = await fetch("/api/stocks/tickers")
@@ -322,6 +333,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
       filters: {
         marketCap: marketCaps.length > 0 ? marketCaps : ["large"],
         syariah: stockType === "Syariah Only",
+        tickers: selectedTickers,
       },
       fundamentalIndicators: fundamentalIndicators.map((ind) => ({
         type: fundamentalTypeMap[ind.name] || ind.name.toUpperCase().replace(/\s+/g, "_"),
@@ -498,7 +510,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
       {/* {isTutorialActive && hasVisited === false && (
         <div className="absolute inset-0 bg-black/5 z-40 pointer-events-none" />
       )} */}
-      
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         <div className="border-b px-4 py-2 flex items-center justify-between">
           <TabsList>
@@ -703,38 +715,91 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                       </div>
                     </div>
                   </div>
-                  
-                  <div>
+
+                  <div className="relative" ref={tickerDropdownRef}>
                     <Label className="text-xs text-muted-foreground mb-2 block">Ticker</Label>
-                    <Select 
-                      value={selectedTicker} 
-                      onValueChange={setSelectedTicker}
-                      onOpenChange={(open) => {
-                        if (open) fetchTickers()
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between h-9 px-3 font-normal bg-background border-input hover:bg-slate-50 hover:text-slate-900 font-mono"
+                      onClick={() => {
+                        setTickerDropdownOpen(!tickerDropdownOpen)
+                        if (!tickerDropdownOpen) fetchTickers()
                       }}
                     >
-                      <SelectTrigger className="w-full font-mono">
-                        <SelectValue placeholder="Select a ticker..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isLoadingTickers ? (
-                          <div className="flex items-center justify-center py-4">
-                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                            <span className="ml-2 text-sm text-muted-foreground">Loading tickers...</span>
-                          </div>
-                        ) : tickerOptions.length === 0 ? (
-                          <div className="py-4 text-center text-sm text-muted-foreground">
-                            No tickers available
-                          </div>
-                        ) : (
-                          tickerOptions.map((ticker) => (
-                            <SelectItem key={ticker.value} value={ticker.value} className="font-mono">
-                              {ticker.label}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                      <span className="text-sm text-foreground truncate">
+                        {selectedTickers.length === 0
+                          ? "Select tickers..."
+                          : selectedTickers.length === 1
+                            ? tickerOptions.find((t) => t.value === selectedTickers[0])?.label || selectedTickers[0]
+                            : `${selectedTickers.length} tickers selected`}
+                      </span>
+                      <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0" />
+                    </Button>
+                    {tickerDropdownOpen && (
+                      <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-md max-h-60 overflow-hidden flex flex-col">
+                        <div className="p-2 border-b">
+                          <Input
+                            placeholder="Search tickers..."
+                            className="h-8 text-xs font-mono"
+                            value={tickerSearch}
+                            onChange={(e) => setTickerSearch(e.target.value)}
+                            autoFocus
+                          />
+                        </div>
+                        <div className="overflow-y-auto max-h-[200px]">
+                          {isLoadingTickers ? (
+                            <div className="flex items-center justify-center py-4">
+                              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                              <span className="ml-2 text-sm text-muted-foreground">Loading...</span>
+                            </div>
+                          ) : tickerOptions.length === 0 ? (
+                            <div className="py-2 px-3 text-sm text-muted-foreground">No tickers found</div>
+                          ) : (
+                            tickerOptions
+                              .filter(t =>
+                                !tickerSearch ||
+                                t.label.toLowerCase().includes(tickerSearch.toLowerCase()) ||
+                                t.value.toLowerCase().includes(tickerSearch.toLowerCase())
+                              )
+                              .map((ticker) => (
+                                <div
+                                  key={ticker.value}
+                                  className="flex items-center px-3 py-2 hover:bg-slate-100 hover:text-slate-900 cursor-pointer text-foreground"
+                                  onClick={() => toggleTicker(ticker.value)}
+                                >
+                                  <div
+                                    className={`w-4 h-4 border rounded mr-2 flex items-center justify-center ${selectedTickers.includes(ticker.value) ? "bg-primary border-primary" : "border-input"
+                                      }`}
+                                  >
+                                    {selectedTickers.includes(ticker.value) && (
+                                      <div className="w-2 h-2 bg-primary-foreground rounded-sm" />
+                                    )}
+                                  </div>
+                                  <span className="text-sm font-mono truncate">{ticker.label}</span>
+                                </div>
+                              ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {selectedTickers.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {selectedTickers.map((t) => {
+                          const label = tickerOptions.find(opt => opt.value === t)?.label.split(" - ")[0] || t;
+                          return (
+                            <Badge
+                              key={t}
+                              variant="secondary"
+                              className="text-xs px-2 py-1 cursor-pointer hover:bg-destructive/20 font-mono"
+                              onClick={() => toggleTicker(t)}
+                            >
+                              {label}
+                              <X className="h-3 w-3 ml-1" />
+                            </Badge>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -763,9 +828,8 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                               onClick={() => toggleSector(sector)}
                             >
                               <div
-                                className={`w-4 h-4 border rounded mr-2 flex items-center justify-center ${
-                                  sectors.includes(sector) ? "bg-primary border-primary" : "border-input"
-                                }`}
+                                className={`w-4 h-4 border rounded mr-2 flex items-center justify-center ${sectors.includes(sector) ? "bg-primary border-primary" : "border-input"
+                                  }`}
                               >
                                 {sectors.includes(sector) && (
                                   <div className="w-2 h-2 bg-primary-foreground rounded-sm" />
@@ -1073,22 +1137,22 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs text-muted-foreground">Stop Loss (%)</Label>
-                      <Input 
-                        type="number" 
+                      <Input
+                        type="number"
                         value={stopLoss}
                         onChange={(e) => setStopLoss(Number(e.target.value))}
-                        placeholder="5" 
-                        className="font-mono border-slate-200" 
+                        placeholder="5"
+                        className="font-mono border-slate-200"
                       />
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Take Profit (%)</Label>
-                      <Input 
-                        type="number" 
+                      <Input
+                        type="number"
                         value={takeProfit}
                         onChange={(e) => setTakeProfit(Number(e.target.value))}
-                        placeholder="15" 
-                        className="font-mono border-slate-200" 
+                        placeholder="15"
+                        className="font-mono border-slate-200"
                       />
                     </div>
                   </div>
@@ -1134,20 +1198,20 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs text-muted-foreground">Start Date</Label>
-                      <Input 
-                        type="date" 
+                      <Input
+                        type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="border-slate-200" 
+                        className="border-slate-200"
                       />
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">End Date</Label>
-                      <Input 
-                        type="date" 
+                      <Input
+                        type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="border-slate-200" 
+                        className="border-slate-200"
                       />
                     </div>
                   </div>
@@ -1242,7 +1306,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
       </Dialog>
 
       <AddIndicatorModal open={showModal} onOpenChange={setShowModal} type={modalType} onAddIndicator={addIndicator} />
-    </div>
+    </div >
   )
 }
 

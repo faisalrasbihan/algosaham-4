@@ -56,126 +56,126 @@ function StrategyCard({ strategy }: { strategy: Strategy }) {
     <div className="py-4">
       <Card className="w-[340px] md:w-[380px] min-h-[400px] snap-start hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group shrink-0">
         <CardContent className="p-6 h-full flex flex-col">
-        <div className="space-y-4 flex-1 flex flex-col">
-          {/* Header */}
-          <div className="space-y-2">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="text-lg font-bold text-foreground group-hover:text-ochre transition-colors">
-                {strategy.name}
-              </h3>
-            </div>
-            <div>
-              <p className={`text-sm text-muted-foreground leading-relaxed ${!isExpanded ? "line-clamp-2" : ""}`}>
-                {strategy.description || "No description available"}
-              </p>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsExpanded(!isExpanded)
-                }}
-                className="text-xs text-ochre hover:text-ochre/80 font-medium mt-1 flex items-center gap-1"
-              >
-                {isExpanded ? (
-                  <>
-                    Show less <ChevronUp className="w-3 h-3" />
-                  </>
-                ) : (
-                  <>
-                    Show more <ChevronDown className="w-3 h-3" />
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Return highlight */}
-          <div className="border-t border-b border-border py-4">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Total Return
-                </span>
+          <div className="space-y-4 flex-1 flex flex-col">
+            {/* Header */}
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="text-lg font-bold text-foreground group-hover:text-ochre transition-colors">
+                  {strategy.name}
+                </h3>
               </div>
-              <div className="text-4xl font-mono font-bold text-green-600">+{strategy.totalReturn}%</div>
+              <div>
+                <p className={`text-sm text-muted-foreground leading-relaxed ${!isExpanded ? "line-clamp-2" : ""}`}>
+                  {strategy.description || "No description available"}
+                </p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsExpanded(!isExpanded)
+                  }}
+                  className="text-xs text-ochre hover:text-ochre/80 font-medium mt-1 flex items-center gap-1"
+                >
+                  {isExpanded ? (
+                    <>
+                      Show less <ChevronUp className="w-3 h-3" />
+                    </>
+                  ) : (
+                    <>
+                      Show more <ChevronDown className="w-3 h-3" />
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Metrics */}
-          <div className="space-y-3 font-mono flex-1">
-            <div className="grid grid-cols-2 gap-3">
+            {/* Return highlight */}
+            <div className="border-t border-b border-border py-4">
               <div className="text-center">
-                <div className="text-xs text-muted-foreground mb-1">Max. Drawdown</div>
-                <div className="flex items-center justify-center gap-1">
-                  <span
-                    className={`text-sm font-semibold ${Math.abs(strategy.maxDrawdown) <= 10 ? "text-green-600" : "text-yellow-600"}`}
-                  >
-                    {strategy.maxDrawdown}%
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Total Return
                   </span>
-                  <div className="relative inline-block group/tooltip">
-                    <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      Maximum peak-to-trough decline
+                </div>
+                <div className="text-4xl font-mono font-bold text-green-600">+{strategy.totalReturn}%</div>
+              </div>
+            </div>
+
+            {/* Metrics */}
+            <div className="space-y-3 font-mono flex-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground mb-1">Max. Drawdown</div>
+                  <div className="flex items-center justify-center gap-1">
+                    <span
+                      className={`text-sm font-semibold ${Math.abs(strategy.maxDrawdown) <= 10 ? "text-green-600" : "text-yellow-600"}`}
+                    >
+                      {strategy.maxDrawdown}%
+                    </span>
+                    <div className="relative inline-block group/tooltip">
+                      <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                        Maximum peak-to-trough decline
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground mb-1">Success Rate</div>
+                  <div className="flex items-center justify-center gap-1">
+                    <span
+                      className={`text-sm font-semibold ${strategy.winRate >= 70 ? "text-green-600" : "text-yellow-600"}`}
+                    >
+                      {strategy.winRate.toFixed(0)}%
+                    </span>
+                    <div className="relative inline-block group/tooltip">
+                      <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                        Percentage of profitable trades
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="text-center">
-                <div className="text-xs text-muted-foreground mb-1">Success Rate</div>
-                <div className="flex items-center justify-center gap-1">
-                  <span
-                    className={`text-sm font-semibold ${strategy.winRate >= 70 ? "text-green-600" : "text-yellow-600"}`}
-                  >
-                    {strategy.winRate.toFixed(0)}%
-                  </span>
-                  <div className="relative inline-block group/tooltip">
-                    <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      Percentage of profitable trades
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Quality</div>
+                  <div className="flex items-center justify-center gap-1">
+                    <span
+                      className={`text-xs font-semibold ${strategy.sharpeRatio >= 2 ? "text-green-600" : "text-yellow-600"}`}
+                    >
+                      {strategy.sharpeRatio >= 2 ? "Excellent" : "Good"}
+                    </span>
+                    <div className="relative inline-block group/tooltip">
+                      <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                        Sharpe Ratio: {strategy.sharpeRatio.toFixed(2)}
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Trades</div>
+                  <span className="text-xs text-foreground font-semibold">{strategy.totalTrades}</span>
+                </div>
+
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Stocks</div>
+                  <span className="text-xs text-foreground font-semibold">{strategy.stocksHeld}</span>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Quality</div>
-                <div className="flex items-center justify-center gap-1">
-                  <span
-                    className={`text-xs font-semibold ${strategy.sharpeRatio >= 2 ? "text-green-600" : "text-yellow-600"}`}
-                  >
-                    {strategy.sharpeRatio >= 2 ? "Excellent" : "Good"}
-                  </span>
-                  <div className="relative inline-block group/tooltip">
-                    <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      Sharpe Ratio: {strategy.sharpeRatio.toFixed(2)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Trades</div>
-                <span className="text-xs text-foreground font-semibold">{strategy.totalTrades}</span>
-              </div>
-
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Stocks</div>
-                <span className="text-xs text-foreground font-semibold">{strategy.stocksHeld}</span>
-              </div>
-            </div>
+            {/* CTA button */}
+            <Button className="w-full bg-ochre hover:bg-ochre/90 text-white mt-auto">
+              <Heart className="w-4 h-4 mr-2" />
+              Subscribe to Strategy
+            </Button>
           </div>
-
-          {/* CTA button */}
-          <Button className="w-full bg-ochre hover:bg-ochre/90 text-white mt-auto">
-            <Heart className="w-4 h-4 mr-2" />
-            Subscribe to Strategy
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -190,18 +190,18 @@ export function PopularStrategiesShowcase() {
       try {
         setIsLoading(true)
         setError(null)
-        
+
         const response = await fetch('/api/strategies/popular')
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch strategies: ${response.statusText}`)
         }
-        
+
         const result = await response.json()
-        
+
         if (result.success && result.data) {
           // Map database strategies to component format
-          const mappedStrategies = result.data.map((dbStrategy: DBStrategy, index: number) => 
+          const mappedStrategies = result.data.map((dbStrategy: DBStrategy, index: number) =>
             mapDBStrategyToStrategy(dbStrategy, index)
           )
           setStrategies(mappedStrategies)
@@ -225,7 +225,7 @@ export function PopularStrategiesShowcase() {
       <div className="px-6 mb-8">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-3 text-balance">
-            Strategi trading terbaik, tanpa mikir panjang.
+            Strategi trading terbaik, tanpa pikir panjang.
           </h2>
           <p className="text-base text-muted-foreground text-pretty leading-relaxed">
             Dibuat dari analisis data historis berbasis ML dan sudah dicoba komunitas trader. Kamu tinggal ikuti atau modifikasi biar makin cuan.
@@ -244,8 +244,8 @@ export function PopularStrategiesShowcase() {
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-12">
             <p className="text-red-600 mb-4">{error}</p>
-            <Button 
-              onClick={() => window.location.reload()} 
+            <Button
+              onClick={() => window.location.reload()}
               variant="outline"
             >
               Try Again

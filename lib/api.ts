@@ -5,6 +5,7 @@ export interface BacktestRequest {
   filters: {
     marketCap: string[]
     syariah: boolean
+    tickers?: string[]
   }
   fundamentalIndicators: Array<{
     type: string
@@ -101,10 +102,10 @@ export class ApiService {
       headers: options.headers,
       body: options.body ? 'Body present' : 'No body'
     })
-    
+
     const url = endpoint
     console.log('🌐 [API SERVICE] Full URL:', url)
-    
+
     const defaultOptions: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -117,7 +118,7 @@ export class ApiService {
     try {
       console.log('📡 [API SERVICE] Sending fetch request...')
       const response = await fetch(url, finalOptions)
-      
+
       console.log('📡 [API SERVICE] Response received:', {
         status: response.status,
         statusText: response.statusText,
@@ -135,7 +136,7 @@ export class ApiService {
       const result = await response.json()
       console.log('📊 [API SERVICE] Parsed response keys:', Object.keys(result))
       console.log('📈 [API SERVICE] Response sample:', JSON.stringify(result, null, 2).substring(0, 300) + '...')
-      
+
       return result
     } catch (error) {
       console.error('💥 [API SERVICE] Fetch error:', error)
@@ -157,7 +158,7 @@ export class ApiService {
       technicalIndicators: config.technicalIndicators?.length || 0,
       backtestConfig: config.backtestConfig
     })
-    
+
     try {
       console.log('🔄 [API SERVICE] Calling Next.js API route (which proxies to Railway)...')
       // Call Next.js API route instead of Railway directly to avoid CORS issues
@@ -168,14 +169,14 @@ export class ApiService {
         },
         body: JSON.stringify({ config }),
       })
-      
+
       if (!response.ok) {
         const errorText = await response.text()
         throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`)
       }
-      
+
       const result = await response.json()
-      
+
       console.log('✅ [API SERVICE] Backtest completed successfully')
       console.log('📊 [API SERVICE] Result summary:', {
         hasSummary: result.summary !== undefined,
@@ -184,7 +185,7 @@ export class ApiService {
         hasTrades: result.trades ? result.trades.length : 0,
         hasPerformanceData: result.performanceData ? result.performanceData.length : 0
       })
-      
+
       return result
     } catch (error) {
       console.error('💥 [API SERVICE] Backtest API error:', error)
