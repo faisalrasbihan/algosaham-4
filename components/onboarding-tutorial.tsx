@@ -16,11 +16,11 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
   const driverObj = useRef<any>(null)
   const [hasVisited, setHasVisited] = useState<boolean | null>(null)
   const hasInitialized = useRef(false)
-  
+
   // Store callbacks in refs to avoid re-triggering effects
   const onCompleteRef = useRef(onComplete)
   const onStartRef = useRef(onStart)
-  
+
   // Update refs when callbacks change
   useEffect(() => {
     onCompleteRef.current = onComplete
@@ -38,7 +38,7 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
   useEffect(() => {
     // Only initialize driver.js once
     if (hasInitialized.current) return
-    
+
     // Wait until we know if user has visited
     if (hasVisited === null) return
 
@@ -48,17 +48,17 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
     driverObj.current = driver({
       showProgress: true,
       showButtons: ['next', 'previous', 'close'],
-      progressText: 'Step {{current}} of {{total}}',
-      nextBtnText: 'Next →',
-      prevBtnText: '← Previous',
-      doneBtnText: 'Finish',
+      progressText: 'Langkah {{current}} dari {{total}}',
+      nextBtnText: 'Lanjut →',
+      prevBtnText: '← Kembali',
+      doneBtnText: 'Selesai',
       allowClose: true,
       steps: [
         {
           element: '[data-tutorial="stock-filters"]',
           popover: {
-            title: '🎯 Step 1: Choose Stock Filters',
-            description: 'Start by selecting your stock filters. Choose market cap (Small, Mid, Large), stock type (All Stocks or Syariah Only), and sectors to narrow down your stock selection. This helps focus on stocks that match your investment criteria.',
+            title: '🎯 Langkah 1: Pilih Filter Saham',
+            description: 'Pertama, atur dulu filter saham yang kamu mau. Pilih ukuran perusahaannya mau Small, Mid, atau Large, tentuin jenis sahamnya mau semua saham atau khusus syariah, lalu pilih sektor yang pengen kamu fokusin. Dengan filter ini, kamu jadi lebih gampang nemuin saham yang sesuai sama kriteria kamu.',
             side: 'right',
             align: 'start'
           }
@@ -66,8 +66,8 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
         {
           element: '[data-tutorial="fundamental-indicators"]',
           popover: {
-            title: '📊 Step 2: Add Fundamental Indicators',
-            description: 'Add fundamental indicators like PE Ratio, PBV, and ROE to filter stocks based on financial metrics. These indicators help identify undervalued or fundamentally strong stocks. Click the "+" button to add more indicators.',
+            title: '📊 Langkah 2: Tambahkan Indikator Fundamental',
+            description: 'Selanjutnya, tambahkan indikator fundamental buat nyaring saham dari sisi keuangannya. Kamu bisa pakai indikator seperti PE Ratio, PBV, atau ROE buat lihat apakah sahamnya masih murah atau secara fundamental masih kuat. Klik tombol “+” kalau mau nambah indikator lain.',
             side: 'right',
             align: 'start'
           }
@@ -75,8 +75,8 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
         {
           element: '[data-tutorial="technical-indicators"]',
           popover: {
-            title: '📈 Step 3: Add Technical Indicators',
-            description: 'Add technical indicators like RSI, SMA, or MACD to identify trading signals and market trends. These help determine the best entry and exit points for your trades.',
+            title: '📈 Langkah 3: Tambahkan Indikator Teknikal',
+            description: 'Sekarang saatnya nambahin indikator teknikal buat baca pergerakan harga dan tren market. Kamu bisa pakai RSI, SMA, atau MACD buat bantu nentuin timing masuk dan keluar yang lebih pas.',
             side: 'right',
             align: 'start'
           }
@@ -84,8 +84,8 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
         {
           element: '[data-tutorial="risk-management"]',
           popover: {
-            title: '🛡️ Step 4: Configure Risk Management (Optional)',
-            description: 'Set stop loss percentage, take profit percentage, and maximum holding period to manage your risk. You can skip this section if you want to use the default settings (5% stop loss, 10% take profit, 10 days max holding).',
+            title: '🛡️ Langkah 4: Atur Manajemen Risiko (Opsional)',
+            description: 'Di sini kamu bisa ngatur risiko trading sesuai gaya kamu. Tentukan stop loss, target take profit, dan maksimal lama posisi ditahan. Kalau mau cepat, bagian ini bisa dilewati dan langsung pakai setelan default yaitu stop loss 5 persen, take profit 10 persen, dan maksimal holding 10 hari.',
             side: 'right',
             align: 'start'
           }
@@ -93,8 +93,8 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
         {
           element: '[data-tutorial="backtest-period"]',
           popover: {
-            title: '📅 Step 5: Set Backtest Period (Optional)',
-            description: 'Configure the backtest period, initial capital, and date range. Default settings are already provided (1B initial capital, 3-month period). You can adjust these based on your testing needs.',
+            title: '📅 Langkah 5: Atur Periode Pengujian (Opsional)',
+            description: 'Di tahap ini, kamu bisa ngatur periode pengujian strategi sesuai kebutuhan. Tentukan modal awal dan rentang waktunya. Kalau nggak mau ribet, langsung pakai setelan default yang sudah tersedia yaitu modal awal 1 miliar dan periode 3 bulan.',
             side: 'right',
             align: 'start'
           }
@@ -102,8 +102,8 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
         {
           element: '[data-tutorial="run-backtest"]',
           popover: {
-            title: '🚀 Step 6: Run Your Backtest',
-            description: 'Click the "Run Backtest" button to execute your strategy and see the results in the right panel. The system will analyze your strategy against historical data and show performance metrics, trade history, and charts.',
+            title: '🚀 Langkah 6: Jalankan Pengujian Strategi',
+            description: 'Klik tombol “Run Backtest” buat mulai ngejalanin strategi kamu. Hasilnya bakal langsung muncul di panel kanan, lengkap dengan performa strategi, riwayat transaksi, dan grafik pergerakan.',
             side: 'top',
             align: 'center'
           }
@@ -129,9 +129,9 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
         // Auto-expand collapsed sections when they are highlighted
         if (!element) return
         const section = element.getAttribute('data-tutorial')
-        if (section === 'stock-filters' || section === 'fundamental-indicators' || 
-            section === 'technical-indicators' || section === 'risk-management' || 
-            section === 'backtest-period') {
+        if (section === 'stock-filters' || section === 'fundamental-indicators' ||
+          section === 'technical-indicators' || section === 'risk-management' ||
+          section === 'backtest-period') {
           const card = element.closest('[data-tutorial]')
           if (card) {
             const header = card.querySelector('[data-tutorial]')
@@ -170,7 +170,7 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
       const target = e.target as HTMLElement
       // Check if the click is on the Run Backtest button or its children
       const runBacktestButton = target.closest('[data-tutorial="run-backtest"]')
-      
+
       if (runBacktestButton && driverObj.current) {
         // Check if tutorial overlay exists (indicates tutorial is active)
         const tutorialOverlay = document.querySelector('.driver-overlay')

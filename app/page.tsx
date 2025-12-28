@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
 import { TickerTape } from "@/components/ticker-tape"
 import { HeroSection } from "@/components/hero-section"
 import { PopularStrategiesShowcase } from "@/components/popular-strategies-showcase"
@@ -11,7 +12,7 @@ import { CTASection } from "@/components/cta-section"
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       <TickerTape />
       <div className="flex-1">
@@ -24,6 +25,7 @@ export default function Home() {
         <FAQSection />
         <CTASection />
       </div>
+      <Footer />
     </div>
   )
 }
