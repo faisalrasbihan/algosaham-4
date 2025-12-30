@@ -5,6 +5,7 @@ export interface BacktestRequest {
   filters: {
     marketCap: string[]
     syariah: boolean
+    minDailyValue?: number
     tickers?: string[]
   }
   fundamentalIndicators: Array<{

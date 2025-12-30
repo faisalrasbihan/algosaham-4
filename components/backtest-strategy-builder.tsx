@@ -79,6 +79,7 @@ interface BacktestStrategyBuilderProps {
 export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuilderProps) {
   const [marketCaps, setMarketCaps] = useState<string[]>(["large", "mid"])
   const [stockType, setStockType] = useState("All Stocks")
+  const [minDailyValue, setMinDailyValue] = useState<number>(1000000000)
   const [sectors, setSectors] = useState<string[]>([])
   const [sectorDropdownOpen, setSectorDropdownOpen] = useState(false)
   const [selectedTickers, setSelectedTickers] = useState<string[]>([])
@@ -384,6 +385,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
       filters: {
         marketCap: marketCaps.length > 0 ? marketCaps : ["large"],
         syariah: stockType === "Syariah Only",
+        minDailyValue: minDailyValue,
         tickers: selectedTickers,
       },
       fundamentalIndicators: fundamentalIndicators.map((ind) => ({
@@ -766,6 +768,8 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                       </div>
                     </div>
                   </div>
+
+
 
                   <div className="relative" ref={tickerDropdownRef}>
                     <Label className="text-xs text-muted-foreground mb-2 block">Ticker</Label>
@@ -1208,6 +1212,21 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                     </div>
                   </div>
                   <div>
+                    <Label className="text-xs text-muted-foreground mb-2 block">Min Daily Value (IDR)</Label>
+                    <div className="relative mb-3">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">Rp</span>
+                      <Input
+                        type="text"
+                        value={minDailyValue.toLocaleString()}
+                        onChange={(e) => {
+                          const value = Number(e.target.value.replace(/,/g, ""))
+                          if (!isNaN(value)) setMinDailyValue(value)
+                        }}
+                        className="pl-8 h-9 font-mono text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
                     <Label className="text-xs text-muted-foreground">Max Holding Period</Label>
                     <Select value={maxHoldingPeriod} onValueChange={setMaxHoldingPeriod}>
                       <SelectTrigger>
@@ -1278,18 +1297,18 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                     </TabsList>
 
                     <TabsContent value="preset" className="mt-3 space-y-2">
-                      <div className="flex flex-wrap gap-2">
-                        {backtestPeriodOptions.map((period) => (
-                          <Badge
-                            key={period}
-                            variant={backtestPeriod === period ? "default" : "outline"}
-                            className={`cursor-pointer text-xs px-3 py-1.5 ${backtestPeriod === period ? "bg-[#d07225] hover:bg-[#a65b1d]" : "hover:bg-accent/20"}`}
-                            onClick={() => applyPreset(period)}
-                          >
-                            {period}
-                          </Badge>
-                        ))}
-                      </div>
+                      <Select value={backtestPeriod} onValueChange={applyPreset}>
+                        <SelectTrigger className="w-full h-9 font-mono text-xs">
+                          <SelectValue placeholder="Select period" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {backtestPeriodOptions.map((period) => (
+                            <SelectItem key={period} value={period} className="font-mono text-xs">
+                              {period}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </TabsContent>
 
                     <TabsContent value="custom" className="mt-3 space-y-3">
