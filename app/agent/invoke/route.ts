@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
                 { type: "DE_RATIO", max: 1 }
             ];
             config.filters.marketCap = ["large"];
-            config.riskManagement = { stopLossPercent: 5, takeProfitPercent: 10, maxHoldingDays: 60 };
+            config.backtestConfig.riskManagement = { stopLossPercent: 5, takeProfitPercent: 10, maxHoldingDays: 60 };
             responseText = "I've applied the **Conservative Strategy**. It focuses on large-cap stocks with low valuation (PE < 15) and healthy debt levels.";
             configReady = true;
 
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
                 { type: "RSI", period: 14, oversold: 40, overbought: 80 }
             ];
             config.filters.marketCap = ["mid", "small"];
-            config.riskManagement = { stopLossPercent: 7, takeProfitPercent: 20, maxHoldingDays: 14 };
+            config.backtestConfig.riskManagement = { stopLossPercent: 7, takeProfitPercent: 20, maxHoldingDays: 14 };
             responseText = "I've applied the **Aggressive Strategy**. It targets smaller caps with tighter moving average crossovers for fast moves.";
             configReady = true;
 
@@ -153,8 +153,8 @@ export async function POST(req: NextRequest) {
                 { type: "SMA_CROSSOVER", shortPeriod: 20, longPeriod: 50 },
                 { type: "ADX", period: 14 },
             ];
-            config.riskManagement.stopLossPercent = 10;
-            config.riskManagement.maxHoldingDays = 60;
+            config.backtestConfig.riskManagement.stopLossPercent = 10;
+            config.backtestConfig.riskManagement.maxHoldingDays = 60;
             responseText = "I've configured a **Trend Following Strategy**. It buys when the 20-day SMA crosses above the 50-day SMA, indicating a new uptrend.";
             configReady = true;
 
@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
         if (userInput.includes("stop loss")) {
             const match = userInput.match(/stop loss.*?(\d+)/);
             if (match) {
-                config.riskManagement.stopLossPercent = parseInt(match[1]);
+                config.backtestConfig.riskManagement.stopLossPercent = parseInt(match[1]);
                 responseText += `\n\nI've also updated the **Stop Loss** to ${match[1]}%.`;
             }
         }
