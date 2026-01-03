@@ -70,6 +70,7 @@ interface ChatMessage {
   strategyCard?: StrategyCard
   thinkingTime?: number
   workTime?: number
+  backtestConfig?: BacktestRequest
 }
 
 interface BacktestStrategyBuilderProps {
@@ -119,6 +120,21 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   })
   const [isTutorialActive, setIsTutorialActive] = useState(false)
   const [hasVisited, setHasVisited] = useState<boolean | null>(null)
+
+  // Session ID state
+  const [sessionId, setSessionId] = useState<string>("")
+
+  // Initialize session ID
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      let id = localStorage.getItem("backtester_session_id")
+      if (!id) {
+        id = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        localStorage.setItem("backtester_session_id", id)
+      }
+      setSessionId(id)
+    }
+  }, [])
 
   // Backtest config states
   const [stopLoss, setStopLoss] = useState<number>(7)
@@ -429,7 +445,89 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
       .join(", ")
   }
 
-  const handleSendMessage = () => {
+  // Helper to map API technical indicator type to UI name
+  const mapApiTypeToUiName = (type: string): string => {
+    const map: Record<string, string> = {
+      "SMA_CROSSOVER": "SMA Crossover",
+      "SMA_TREND": "SMA Trend",
+      "RSI": "RSI",
+      "MACD": "MACD",
+      "BOLLINGER_BANDS": "Bollinger Bands",
+      "ATR": "ATR",
+      "VOLATILITY_BREAKOUT": "Volatility Breakout",
+      "VOLUME_SMA": "Volume SMA",
+      "OBV": "OBV",
+      "VWAP": "VWAP",
+      "VOLUME_PRICE_TREND": "Volume Price Trend",
+    }
+    return map[type] || type
+  }
+
+  // Helper to map API fundamental type to UI name
+  const mapApiFundamentalTypeToUiName = (type: string): string => {
+    const map: Record<string, string> = {
+      "PE_RATIO": "PE Ratio",
+      "PBV": "PBV",
+      "ROE": "ROE",
+      "DE_RATIO": "DE Ratio",
+      "ROA": "ROA",
+      "NPM": "NPM",
+      "EPS": "EPS"
+    }
+    return map[type] || type
+  }
+
+  const applyStrategyFromConfig = (config: BacktestRequest) => {
+    if (config.filters) {
+      if (config.filters.marketCap) setMarketCaps(config.filters.marketCap)
+      if (config.filters.syariah !== undefined) setStockType(config.filters.syariah ? "Syariah Only" : "All Stocks")
+      if (config.filters.tickers) setSelectedTickers(config.filters.tickers)
+      if (config.filters.minDailyValue) setMinDailyValue(config.filters.minDailyValue)
+    }
+
+    if (config.fundamentalIndicators) {
+      const newFundamentalIndicators: Indicator[] = config.fundamentalIndicators.map((ind, idx) => ({
+        id: `fund_auto_${Date.now()}_${idx}`,
+        name: mapApiFundamentalTypeToUiName(ind.type),
+        type: "fundamental",
+        params: { min: ind.min, max: ind.max }
+      }))
+      setFundamentalIndicators(newFundamentalIndicators)
+    }
+
+    if (config.technicalIndicators) {
+      const newTechnicalIndicators: Indicator[] = config.technicalIndicators.map((ind, idx) => {
+        const { type, ...params } = ind
+        return {
+          id: `tech_auto_${Date.now()}_${idx}`,
+          name: mapApiTypeToUiName(type),
+          type: "technical",
+          params: params
+        }
+      })
+      setTechnicalIndicators(newTechnicalIndicators)
+    }
+
+    if (config.backtestConfig) {
+      setInitialCapital(config.backtestConfig.initialCapital)
+      setStartDate(config.backtestConfig.startDate)
+      setEndDate(config.backtestConfig.endDate)
+      if (config.backtestConfig.riskManagement) {
+        setStopLoss(config.backtestConfig.riskManagement.stopLossPercent)
+        setTakeProfit(config.backtestConfig.riskManagement.takeProfitPercent)
+        setMaxHoldingPeriod(config.backtestConfig.riskManagement.maxHoldingDays.toString())
+      }
+    }
+
+    setActiveTab("strategy")
+    scrollToBottom()
+  }
+
+  const handleApplyStrategy = (config: BacktestRequest) => {
+    applyStrategyFromConfig(config)
+  }
+
+  const handleSendMessage = async () => {
     if (!chatInput.trim() || isAgentThinking) return
 
     const userMessage: ChatMessage = {
@@ -440,92 +538,127 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
     }
 
     setChatMessages((prev) => [...prev, userMessage])
-    const userInput = chatInput.toLowerCase()
+    const currentInput = chatInput
     setChatInput("")
     setIsAgentThinking(true)
 
-    const isStrategyRequest =
-      userInput.includes("strategy") ||
-      userInput.includes("build") ||
-      userInput.includes("create") ||
-      userInput.includes("make")
+    // Add immediate thinking feedback
+    const thinkingMessageId = (Date.now() + 1).toString()
+    const thinkingMessage: ChatMessage = {
+      id: thinkingMessageId,
+      role: "assistant",
+      content: "",
+      timestamp: new Date(),
+      isThinking: true,
+      thinkingSteps: [
+        { id: "1", icon: "thinking", text: "Analyzing your request...", status: "pending" },
+      ],
+      thinkingTime: 0,
+    }
+    setChatMessages((prev) => [...prev, thinkingMessage])
 
-    if (isStrategyRequest) {
-      const thinkingMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "",
-        timestamp: new Date(),
-        isThinking: true,
-        thinkingSteps: [
-          { id: "1", icon: "thinking", text: "Analyzing your request...", status: "pending" },
-          { id: "2", icon: "search", text: "Searching market patterns", status: "pending" },
-          { id: "3", icon: "file", text: "Building strategy parameters", status: "pending" },
-          { id: "4", icon: "check", text: "Validating configuration", status: "pending" },
-        ],
-        thinkingTime: 0,
-      }
+    try {
+      const startTime = Date.now()
 
-      setChatMessages((prev) => [...prev, thinkingMessage])
-
-      let stepIndex = 0
+      // Update thinking steps while waiting
       const stepInterval = setInterval(() => {
         setChatMessages((prev) => {
-          const updated = [...prev]
-          const thinkingMsg = updated.find((m) => m.isThinking)
-          if (thinkingMsg && thinkingMsg.thinkingSteps) {
-            if (stepIndex < thinkingMsg.thinkingSteps.length) {
-              thinkingMsg.thinkingSteps[stepIndex].status = "done"
-              thinkingMsg.thinkingTime = (stepIndex + 1) * 2
-              stepIndex++
+          return prev.map(msg => {
+            if (msg.id === thinkingMessageId && msg.isThinking) {
+              const time = Math.floor((Date.now() - startTime) / 1000)
+              return { ...msg, thinkingTime: time }
             }
-          }
-          return updated
+            return msg
+          })
         })
+      }, 1000)
 
-        if (stepIndex >= 4) {
-          clearInterval(stepInterval)
-          setTimeout(() => {
-            setChatMessages((prev) => {
-              const updated = prev.filter((m) => !m.isThinking)
-              return [
-                ...updated,
-                {
-                  id: (Date.now() + 2).toString(),
-                  role: "assistant",
-                  content: "I've created a momentum-based strategy for you. Here's what I built:",
-                  timestamp: new Date(),
-                  strategyCard: {
-                    name: "Momentum Breakout Strategy",
-                    description: "A trend-following strategy using RSI and SMA crossovers for entry signals",
-                    indicators: ["RSI (14) > 50", "SMA (20) crosses above SMA (50)", "Volume > 1.5x average"],
-                    version: "v1",
-                  },
-                  thinkingTime: 8,
-                  workTime: 12,
-                },
-              ]
+      let currentSessionId = sessionId;
+      if (!currentSessionId && typeof window !== 'undefined') {
+        currentSessionId = localStorage.getItem("backtester_session_id") || "default_session"
+      }
+
+      const response = await fetch("/agent/invoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input_text: currentInput,
+          session_id: currentSessionId,
+        }),
+      })
+
+      clearInterval(stepInterval)
+
+      if (!response.ok) {
+        throw new Error("Failed to get response from agent")
+      }
+
+      const data = await response.json()
+      const endTime = Date.now()
+      const totalTime = (endTime - startTime) / 1000
+
+      // Remove thinking message and add actual response
+      setChatMessages((prev) => {
+        const withoutThinking = prev.filter((m) => m.id !== thinkingMessageId)
+
+        let strategyCard: StrategyCard | undefined
+
+        if (data.config_ready && data.backtest_config) {
+          // Construct strategy card from config
+          const config = data.backtest_config as BacktestRequest
+
+          // Generate indicator descriptions
+          const indicatorDescriptions = [
+            ...config.fundamentalIndicators.map((i: any) => `${mapApiFundamentalTypeToUiName(i.type)} (${i.min ?? ''} - ${i.max ?? ''})`),
+            ...config.technicalIndicators.map((i: any) => {
+              const { type, ...params } = i
+              const paramStr = Object.entries(params)
+                .map(([k, v]) => `${k}:${v}`)
+                .join(', ')
+              return `${mapApiTypeToUiName(type)} ${paramStr ? `(${paramStr})` : ''}`
             })
-            setIsAgentThinking(false)
-          }, 500)
+          ]
+
+          strategyCard = {
+            name: "Agent Generated Strategy",
+            description: "Strategy configuration generated based on your requirements.",
+            indicators: indicatorDescriptions.slice(0, 3),
+            version: "v1",
+          }
         }
-      }, 800)
-    } else {
-      setTimeout(() => {
-        setChatMessages((prev) => [
-          ...prev,
+
+        const newMessage: ChatMessage = {
+          id: (Date.now() + 2).toString(),
+          role: "assistant",
+          content: data.response,
+          timestamp: new Date(),
+          thinkingTime: totalTime,
+          strategyCard: strategyCard,
+          backtestConfig: data.backtest_config
+        }
+
+        return [...withoutThinking, newMessage]
+      })
+
+    } catch (error) {
+      console.error("Agent error:", error)
+      setChatMessages((prev) => {
+        const withoutThinking = prev.filter((m) => m.id !== thinkingMessageId)
+        return [
+          ...withoutThinking,
           {
-            id: (Date.now() + 1).toString(),
+            id: Date.now().toString(),
             role: "assistant",
-            content:
-              "I understand. Could you tell me more about what kind of trading strategy you're looking for? For example, are you interested in momentum, mean reversion, or breakout strategies?",
+            content: "I apologize, but I encountered an error processing your request. Please try again.",
             timestamp: new Date(),
           },
-        ])
-        setIsAgentThinking(false)
-      }, 1000)
+        ]
+      })
+    } finally {
+      setIsAgentThinking(false)
     }
   }
+
 
   const renderThinkingIcon = (icon: string, status: string) => {
     if (status === "pending") {
@@ -545,9 +678,31 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
     }
   }
 
-  const handleApplyStrategy = () => {
-    setActiveTab("strategy")
+  // Helper to render bold text from **text** pattern
+  const renderMessageContent = (content: string) => {
+    if (!content) return null
+
+    // Split by ** pattern
+    const parts = content.split(/(\*\*.*?\*\*)/g)
+
+    return (
+      <span className="whitespace-pre-wrap">
+        {parts.map((part, i) => {
+          if (part.startsWith("**") && part.endsWith("**")) {
+            return (
+              <strong key={i} className="font-semibold text-foreground">
+                {part.slice(2, -2)}
+              </strong>
+            )
+          }
+          // Handle newlines as breaks or simple text
+          return part
+        })}
+      </span>
+    )
   }
+
+
 
   const handleTutorialStart = () => {
     setIsTutorialActive(true)
@@ -623,7 +778,9 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                         )}
                       </div>
                     )}
-                    <p className="text-sm leading-relaxed text-foreground">{message.content}</p>
+                    <div className="text-sm leading-relaxed text-foreground">
+                      {renderMessageContent(message.content)}
+                    </div>
                     {message.strategyCard && (
                       <div className="border rounded-lg overflow-hidden bg-slate-50">
                         <div className="px-3 py-2 border-b bg-white flex items-center justify-between">
@@ -652,7 +809,8 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                           <Button
                             size="sm"
                             className="w-full h-7 text-xs bg-[#d07225] hover:bg-[#a65b1d] text-white"
-                            onClick={handleApplyStrategy}
+                            // @ts-ignore - backtestConfig is dynamically added
+                            onClick={() => message.backtestConfig && handleApplyStrategy(message.backtestConfig)}
                           >
                             Apply to Strategy Builder
                           </Button>
