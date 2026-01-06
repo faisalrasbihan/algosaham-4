@@ -1,3 +1,9 @@
+---
+description: Detailed documentation for Backtesting and Stock Screening engines, including indicator parameters.
+globs: lib/backtest/**/*, app/api/run_backtest/**/*, components/backtest-strategy-builder.tsx
+alwaysApply: false
+---
+
 # Backtester & Screening API Documentation
 
 ## Overview

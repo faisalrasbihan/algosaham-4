@@ -1,3 +1,9 @@
+---
+description: Documentation for the AI Agent natural language interface, tools, and conversation flow.
+globs: app/agent/**/*, components/chat/**/*
+alwaysApply: false
+---
+
 # Agent Backtester API Documentation
 
 ## Overview
@@ -10,7 +16,8 @@ The Agent Backtester provides a **natural language interface** for building trad
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   Frontend      │────▶│   Agent Chat    │────▶│  Config Ready   │
 │   (Chat UI)     │     │   /agent/invoke │     │  config_ready:  │
-└─────────────────┘     └─────────────────┘     │  true           │
+│                 │     │                 │     │  true           │
+└─────────────────┘     └─────────────────┘     │                 │
                                                  └────────┬────────┘
                                                           │
                                                           ▼

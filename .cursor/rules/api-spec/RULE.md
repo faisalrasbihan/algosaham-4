@@ -1,3 +1,9 @@
+---
+description: Official API specification for the Backtester and Agent endpoints (v2.0).
+globs: app/api/**/*, lib/api/**/*
+alwaysApply: false
+---
+
 # Backtester API Specification v2.0
 
 ## Overview
@@ -12,7 +18,8 @@ The Backtester API provides two main capabilities:
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   Frontend      │────▶│   Agent Chat    │────▶│  Config Ready   │
 │   (Chat UI)     │     │   /agent/invoke │     │  config_ready:  │
-└─────────────────┘     └─────────────────┘     │  true           │
+│                 │     │                 │     │  true           │
+└─────────────────┘     └─────────────────┘     │                 │
                                                  └────────┬────────┘
                                                           │
                                                           ▼

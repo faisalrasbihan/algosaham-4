@@ -11,7 +11,7 @@ interface PerformanceChartProps {
     portfolioValue: number
     portfolioNormalized: number
     ihsgValue: number
-    lq45Value: number 
+    lq45Value: number
     drawdown: number
   }>
   selectedBenchmark?: BenchmarkType
@@ -47,23 +47,23 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
   const benchmarkLabelRef = useRef<string>("IHSG")
 
   // Check if benchmark data is available
-  const hasIhsgData = data?.some(item => 
-    item.ihsgValue !== undefined && 
-    item.ihsgValue !== null && 
-    !isNaN(item.ihsgValue) && 
+  const hasIhsgData = data?.some(item =>
+    item.ihsgValue !== undefined &&
+    item.ihsgValue !== null &&
+    !isNaN(item.ihsgValue) &&
     item.ihsgValue > 0
   ) || false
 
-  const hasLq45Data = data?.some(item => 
-    item.lq45Value !== undefined && 
-    item.lq45Value !== null && 
-    !isNaN(item.lq45Value) && 
+  const hasLq45Data = data?.some(item =>
+    item.lq45Value !== undefined &&
+    item.lq45Value !== null &&
+    !isNaN(item.lq45Value) &&
     item.lq45Value > 0
   ) || false
 
   const hasBenchmarkData = selectedBenchmark === "ihsg" ? hasIhsgData : hasLq45Data
   const benchmarkLabel = selectedBenchmark === "ihsg" ? "IHSG" : "LQ45"
-  
+
   // Keep ref in sync with state for tooltip access
   benchmarkLabelRef.current = benchmarkLabel
 
@@ -109,10 +109,10 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
 
     chartRef.current = chart
 
-    // Add strategy baseline series with 100% as the baseline
-    // Above 100% = profit (green), Below 100% = loss (red)
+    // Add strategy baseline series with 0% as the baseline
+    // Above 0% = profit (green), Below 0% = loss (red)
     const strategySeries = chart.addSeries(BaselineSeries, {
-      baseValue: { type: 'price', price: 100 },
+      baseValue: { type: 'price', price: 0 },
       topLineColor: 'rgba(38, 166, 154, 1)',      // Green line for profit
       topFillColor1: 'rgba(38, 166, 154, 0.28)',  // Green fill top
       topFillColor2: 'rgba(38, 166, 154, 0.05)', // Green fill bottom (fade)
@@ -180,17 +180,19 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
         toolTip.style.display = 'block'
         const seriesData = param.seriesData.get(strategySeries)
         const benchmarkData = param.seriesData.get(benchmarkSeries)
-        
+
         if (seriesData) {
           const value = (seriesData as { value: number }).value
           const initialCapital = 100000000
-          const portfolioValue = (value / 100) * initialCapital
-          const returnPercent = value - 100
+          // Value is already percentage return, so calculate portfolio value from that
+          // portfolio = initial * (1 + return/100)
+          const portfolioValue = initialCapital * (1 + value / 100)
+          const returnPercent = value
           const isProfit = returnPercent >= 0
 
           // Get benchmark value if available
           const benchmarkValue = benchmarkData ? (benchmarkData as { value: number }).value : null
-          const benchmarkReturn = benchmarkValue ? benchmarkValue - 100 : null
+          const benchmarkReturn = benchmarkValue // Value is already percentage return
           const isBenchmarkProfit = benchmarkReturn !== null && benchmarkReturn >= 0
 
           // Calculate alpha (strategy outperformance vs benchmark)
@@ -198,7 +200,7 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
           const isAlphaPositive = alpha !== null && alpha >= 0
 
           const dateStr = formatDate(param.time as number)
-          
+
           toolTip.innerHTML = `
             <div style="font-weight: 600; margin-bottom: 8px; color: #64748b; font-size: 11px;">${dateStr}</div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
@@ -258,7 +260,7 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
     }
 
     window.addEventListener('resize', handleResize)
-    
+
     // Use ResizeObserver for more reliable resize handling
     const resizeObserver = new ResizeObserver((entries) => {
       if (entries[0] && chartRef.current) {
@@ -267,7 +269,7 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
         chartRef.current.timeScale().fitContent()
       }
     })
-    
+
     if (chartContainerRef.current) {
       resizeObserver.observe(chartContainerRef.current)
     }
@@ -296,9 +298,10 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
     // Use portfolioNormalized from API if available (already normalized to 100 baseline)
     const strategyData = data.map((item) => {
       // Prefer portfolioNormalized from API, fallback to manual calculation
-      const normalizedValue = item.portfolioNormalized !== undefined 
-        ? item.portfolioNormalized 
-        : (item.portfolioValue / 100000000) * 100
+      // Subtract 100 to make it 0-based percentage return
+      const normalizedValue = item.portfolioNormalized !== undefined
+        ? item.portfolioNormalized - 100
+        : (item.portfolioValue / 100000000) * 100 - 100
       return {
         time: new Date(item.date).getTime() / 1000 as any, // Convert to Unix timestamp
         value: normalizedValue,
@@ -319,23 +322,23 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
     console.log('📉 [PERFORMANCE CHART] Selected benchmark:', selectedBenchmark)
     console.log('📉 [PERFORMANCE CHART] Has IHSG data:', hasIhsgData)
     console.log('📉 [PERFORMANCE CHART] Has LQ45 data:', hasLq45Data)
-    console.log('📉 [PERFORMANCE CHART] Sample values:', data.slice(0, 5).map(d => ({ 
-      date: d.date, 
+    console.log('📉 [PERFORMANCE CHART] Sample values:', data.slice(0, 5).map(d => ({
+      date: d.date,
       portfolioNormalized: d.portfolioNormalized,
-      ihsgValue: d.ihsgValue, 
-      lq45Value: d.lq45Value 
+      ihsgValue: d.ihsgValue,
+      lq45Value: d.lq45Value
     })))
-    
+
     // Set data to series
     strategySeriesRef.current.setData(strategyData)
-    
+
     // Use selected benchmark (IHSG or LQ45)
     if (benchmarkSeriesRef.current && hasBenchmarkData) {
       // Update the series title to match selected benchmark
       benchmarkSeriesRef.current.applyOptions({
         title: `${benchmarkLabel} Index`,
       })
-      
+
       const benchmarkData = data
         .filter(item => {
           const value = selectedBenchmark === "ihsg" ? item.ihsgValue : item.lq45Value
@@ -345,14 +348,15 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
           const value = selectedBenchmark === "ihsg" ? item.ihsgValue : item.lq45Value
           return {
             time: new Date(item.date).getTime() / 1000 as any,
-            value: value, // Already normalized by API
+            // Subtract 100 to make it 0-based percentage return
+            value: value - 100,
           }
         })
-      
+
       // 🔍 LOG: Print processed benchmark data
       console.log(`📉 [PERFORMANCE CHART] ${benchmarkLabel} data points:`, benchmarkData.length)
       console.log(`📉 [PERFORMANCE CHART] Processed ${benchmarkLabel} data:`, JSON.stringify(benchmarkData.slice(0, 5), null, 2))
-      
+
       if (benchmarkData.length > 0) {
         benchmarkSeriesRef.current.setData(benchmarkData)
       }
@@ -366,7 +370,7 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
         chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth })
       }
     }
-    
+
     console.log('✅ [PERFORMANCE CHART] ===== CHART DATA LOAD COMPLETE =====')
   }, [data, selectedBenchmark, hasBenchmarkData, benchmarkLabel, hasIhsgData, hasLq45Data])
 

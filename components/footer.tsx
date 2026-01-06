@@ -86,9 +86,10 @@ export function Footer() {
                                     Privacy Policy
                                 </Link>
                             </li>
+
                             <li>
-                                <Link href="/terms" className="text-muted-foreground hover:text-primary transition-colors">
-                                    Terms of Service
+                                <Link href="/syarat-ketentuan" className="text-muted-foreground hover:text-primary transition-colors">
+                                    Syarat & Ketentuan
                                 </Link>
                             </li>
                             <li>
