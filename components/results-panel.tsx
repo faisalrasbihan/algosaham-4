@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PerformanceChart, BenchmarkType } from "@/components/performance-chart"
 import { TradeHistoryTable } from "@/components/trade-history-table"
 import { MonthlyPerformanceHeatmap } from "@/components/monthly-performance-heatmap"
+import { StockRecommendations } from "@/components/stock-recommendations"
 import { useBacktest } from "@/lib/hooks/useBacktest"
 import { Loader2 } from "lucide-react"
 
@@ -131,37 +132,45 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
   }
 
   return (
-    <div className="p-6 space-y-6 py-3.5 px-3.5">
+    <div className="p-4 space-y-4">
       {/* Performance Chart */}
-      <Card className="rounded-md">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-foreground font-mono font-bold text-base">Performance Chart</CardTitle>
-          {/* Benchmark Toggle */}
-          <div className="inline-flex items-center bg-slate-100 rounded-lg p-0.5 text-xs font-mono">
-            <button
-              onClick={() => setSelectedBenchmark("ihsg")}
-              className={`px-3 py-1.5 rounded-md transition-all ${selectedBenchmark === "ihsg"
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Performance Chart */}
+        <Card className="rounded-md lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-foreground font-mono font-bold text-base">Performance Chart</CardTitle>
+            {/* Benchmark Toggle */}
+            <div className="inline-flex items-center bg-slate-100 rounded-lg p-0.5 text-xs font-mono">
+              <button
+                onClick={() => setSelectedBenchmark("ihsg")}
+                className={`px-3 py-1.5 rounded-md transition-all ${selectedBenchmark === "ihsg"
                   ? "bg-white text-slate-900 shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
-                }`}
-            >
-              IHSG
-            </button>
-            <button
-              onClick={() => setSelectedBenchmark("lq45")}
-              className={`px-3 py-1.5 rounded-md transition-all ${selectedBenchmark === "lq45"
+                  }`}
+              >
+                IHSG
+              </button>
+              <button
+                onClick={() => setSelectedBenchmark("lq45")}
+                className={`px-3 py-1.5 rounded-md transition-all ${selectedBenchmark === "lq45"
                   ? "bg-white text-slate-900 shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
-                }`}
-            >
-              LQ45
-            </button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <PerformanceChart data={currentResults?.dailyPortfolio} selectedBenchmark={selectedBenchmark} />
-        </CardContent>
-      </Card>
+                  }`}
+              >
+                LQ45
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <PerformanceChart data={currentResults?.dailyPortfolio} selectedBenchmark={selectedBenchmark} />
+          </CardContent>
+        </Card>
+
+        {/* Stock Recommendations */}
+        <div className="lg:col-span-1">
+          <StockRecommendations />
+        </div>
+      </div>
 
       {/* Performance Stats */}
       <Card className="rounded-md">

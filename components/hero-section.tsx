@@ -38,10 +38,7 @@ export function HeroSection() {
                 Cari, uji, dan pakai strategi trading siap pakai di algosaham.ai. Bikin keputusan lebih yakin, bukan karena FOMO.
               </p> */}
               <p className="text-base lg:text-lg text-muted-foreground text-pretty leading-relaxed font-mono">
-                Di sini, kamu bisa nemuin strategi trading yang udah diuji dengan data pasar Indonesia yang real. Tinggal pilih strateginya, cek performanya, terus optimalkan sesuai gaya trading kamu.
-              </p>
-              <p className="text-base lg:text-lg text-muted-foreground text-pretty leading-relaxed font-mono">
-                Gampang, jelas, dan anti pusing.
+                Di sini, kamu bisa nemuin strategi trading yang udah diuji dengan data pasar Indonesia yang real. Pilih strateginya, cek performanya, terus optimalkan sesuai gaya trading kamu. Gampang, jelas, dan anti ribet.
               </p>
             </div>
 
