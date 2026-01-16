@@ -85,6 +85,15 @@ export const metadata = {
   alternates: {
     canonical: "https://algosaham.ai",
   },
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png' },
+    ],
+  },
 }
 
 export default function RootLayout({

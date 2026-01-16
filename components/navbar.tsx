@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import Image from "next/image";
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 
@@ -42,8 +43,15 @@ export function Navbar() {
 
   return (
     <nav className="h-16 bg-card/50 backdrop-blur-sm border-b border-border px-6 flex items-center justify-between relative z-50">
-      <Link href="/" className="text-xl font-medium font-ibm-plex-mono">
-        <span className="text-orange-500">{">"}</span>
+      <Link href="/" className="text-xl font-medium font-ibm-plex-mono flex items-center gap-2">
+        <div className="relative w-8 h-8">
+          <Image
+            src="/icons/logo.svg"
+            alt="Algosaham Logo"
+            fill
+            className="object-contain"
+          />
+        </div>
         <span className="text-black">algosaham.ai</span>
       </Link>
 
