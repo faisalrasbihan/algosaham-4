@@ -4,38 +4,59 @@
 :root {
   /* Updated to use the new color palette with ochre as main brand color */
   --background: #fafafa;
-  --foreground: #363537; /* jet.DEFAULT */
+  --foreground: #363537;
+  /* jet.DEFAULT */
   --card: #ffffff;
-  --card-foreground: #363537; /* jet.DEFAULT */
+  --card-foreground: #363537;
+  /* jet.DEFAULT */
   --popover: #ffffff;
-  --popover-foreground: #363537; /* jet.DEFAULT */
-  --primary: #d07225; /* ochre.DEFAULT - main brand color */
+  --popover-foreground: #363537;
+  /* jet.DEFAULT */
+  --primary: #d07225;
+  /* ochre.DEFAULT - main brand color */
   --primary-foreground: #ffffff;
-  --secondary: #f3f5f6; /* french_gray.900 */
-  --secondary-foreground: #363537; /* jet.DEFAULT */
-  --muted: #e8eaed; /* french_gray.800 */
-  --muted-foreground: #46505d; /* french_gray.200 */
-  --accent: #8cbcb9; /* cambridge_blue.DEFAULT */
+  --secondary: #f3f5f6;
+  /* french_gray.900 */
+  --secondary-foreground: #363537;
+  /* jet.DEFAULT */
+  --muted: #e8eaed;
+  /* french_gray.800 */
+  --muted-foreground: #46505d;
+  /* french_gray.200 */
+  --accent: #8cbcb9;
+  /* cambridge_blue.DEFAULT */
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #d0d5dc; /* french_gray.600 */
+  --border: #d0d5dc;
+  /* french_gray.600 */
   --input: #ffffff;
-  --ring: #d07225; /* ochre.DEFAULT */
-  --chart-1: #8cbcb9; /* cambridge_blue.DEFAULT */
-  --chart-2: #8d6a9f; /* pomp_and_power.DEFAULT */
-  --chart-3: #d07225; /* ochre.DEFAULT */
-  --chart-4: #c5cbd3; /* french_gray.DEFAULT */
-  --chart-5: #363537; /* jet.DEFAULT */
+  --ring: #d07225;
+  /* ochre.DEFAULT */
+  --chart-1: #8cbcb9;
+  /* cambridge_blue.DEFAULT */
+  --chart-2: #8d6a9f;
+  /* pomp_and_power.DEFAULT */
+  --chart-3: #d07225;
+  /* ochre.DEFAULT */
+  --chart-4: #c5cbd3;
+  /* french_gray.DEFAULT */
+  --chart-5: #363537;
+  /* jet.DEFAULT */
   --radius: 0.5rem;
   --sidebar: #ffffff;
-  --sidebar-foreground: #363537; /* jet.DEFAULT */
-  --sidebar-primary: #d07225; /* ochre.DEFAULT */
+  --sidebar-foreground: #363537;
+  /* jet.DEFAULT */
+  --sidebar-primary: #d07225;
+  /* ochre.DEFAULT */
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #8cbcb9; /* cambridge_blue.DEFAULT */
+  --sidebar-accent: #8cbcb9;
+  /* cambridge_blue.DEFAULT */
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #d0d5dc; /* french_gray.600 */
-  --sidebar-ring: #d07225; /* ochre.DEFAULT */
+  --sidebar-border: #d0d5dc;
+  /* french_gray.600 */
+  --sidebar-ring: #d07225;
+  /* ochre.DEFAULT */
 }
 
 /* Added custom color classes for the new palette */
@@ -141,6 +162,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground font-sans;
   }
@@ -151,6 +173,7 @@
   0% {
     transform: translateX(0%);
   }
+
   100% {
     transform: translateX(-33.33%);
   }
@@ -181,10 +204,10 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
-    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.1) 1px, transparent 1px),
-    radial-gradient(circle at 80% 80%, rgba(0,0,0,0.1) 1px, transparent 1px),
-    radial-gradient(circle at 40% 60%, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+    radial-gradient(circle at 80% 80%, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+    radial-gradient(circle at 40% 60%, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   background-size: 3px 3px, 4px 4px, 2px 2px;
   opacity: 0.6;
   pointer-events: none;
@@ -196,10 +219,13 @@
 
 /* Hide scrollbar but keep scrolling functionality */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
+  display: none;
+  /* Chrome, Safari and Opera */
 }

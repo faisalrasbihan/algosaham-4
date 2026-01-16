@@ -1,24 +1,12 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { TrendingUp, Heart, Info, ArrowRight, ChevronDown, ChevronUp, Loader2 } from "lucide-react"
+import { ArrowRight, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { CardCarousel } from "@/components/card-carousel"
 import { StrategyCardSkeleton } from "@/components/strategy-card-skeleton"
-
-interface Strategy {
-  id: number
-  name: string
-  description: string | null
-  totalReturn: number
-  maxDrawdown: number
-  sharpeRatio: number
-  winRate: number
-  totalTrades: number
-  stocksHeld: number
-  subscribers: number
-}
+import { MarketplaceStrategyCard } from "./cards/marketplace-strategy-card"
+import { Strategy } from "./cards/types"
 
 interface DBStrategy {
   id: number
@@ -35,149 +23,26 @@ interface DBStrategy {
 // Helper function to convert DB strategy to component strategy
 function mapDBStrategyToStrategy(dbStrategy: DBStrategy, index: number): Strategy {
   return {
-    id: dbStrategy.id,
+    id: dbStrategy.id.toString(),
     name: dbStrategy.name,
-    description: dbStrategy.description,
+    description: dbStrategy.description || undefined,
     totalReturn: parseFloat(dbStrategy.ytdReturn || dbStrategy.totalReturns || "0"),
+    yoyReturn: 0, // Default or fetch if available
+    momReturn: 0,
+    weeklyReturn: 0,
     maxDrawdown: parseFloat(dbStrategy.maxDrawdown || "0"),
     sharpeRatio: parseFloat(dbStrategy.sharpeRatio || "0"),
+    sortinoRatio: 0,
+    calmarRatio: 0,
+    profitFactor: 0,
     winRate: parseFloat(dbStrategy.winRate || "0"),
     // These fields don't exist in DB, use reasonable defaults
     totalTrades: Math.floor((dbStrategy.totalStocks || 0) * (15 + index * 5)), // Estimate based on stocks held
+    avgTradeDuration: 5,
     stocksHeld: dbStrategy.totalStocks || 0,
+    createdDate: new Date().toISOString(), // Mock date
     subscribers: Math.floor(500 + Math.random() * 1000), // Random for now
   }
-}
-
-function StrategyCard({ strategy }: { strategy: Strategy }) {
-  const [isExpanded, setIsExpanded] = useState(false)
-
-  return (
-    <div className="py-4">
-      <Card className="w-[340px] md:w-[380px] min-h-[400px] snap-start hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group shrink-0">
-        <CardContent className="p-6 h-full flex flex-col">
-          <div className="space-y-4 flex-1 flex flex-col">
-            {/* Header */}
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-lg font-bold text-foreground group-hover:text-ochre transition-colors">
-                  {strategy.name}
-                </h3>
-              </div>
-              <div>
-                <p className={`text-sm text-muted-foreground leading-relaxed ${!isExpanded ? "line-clamp-2" : ""}`}>
-                  {strategy.description || "No description available"}
-                </p>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setIsExpanded(!isExpanded)
-                  }}
-                  className="text-xs text-ochre hover:text-ochre/80 font-medium mt-1 flex items-center gap-1"
-                >
-                  {isExpanded ? (
-                    <>
-                      Show less <ChevronUp className="w-3 h-3" />
-                    </>
-                  ) : (
-                    <>
-                      Show more <ChevronDown className="w-3 h-3" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Return highlight */}
-            <div className="border-t border-b border-border py-4">
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Total Return
-                  </span>
-                </div>
-                <div className="text-4xl font-mono font-bold text-green-600">+{strategy.totalReturn}%</div>
-              </div>
-            </div>
-
-            {/* Metrics */}
-            <div className="space-y-3 font-mono flex-1">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="text-center">
-                  <div className="text-xs text-muted-foreground mb-1">Max. Drawdown</div>
-                  <div className="flex items-center justify-center gap-1">
-                    <span
-                      className={`text-sm font-semibold ${Math.abs(strategy.maxDrawdown) <= 10 ? "text-green-600" : "text-yellow-600"}`}
-                    >
-                      {strategy.maxDrawdown}%
-                    </span>
-                    <div className="relative inline-block group/tooltip">
-                      <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                        Maximum peak-to-trough decline
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-center">
-                  <div className="text-xs text-muted-foreground mb-1">Success Rate</div>
-                  <div className="flex items-center justify-center gap-1">
-                    <span
-                      className={`text-sm font-semibold ${strategy.winRate >= 70 ? "text-green-600" : "text-yellow-600"}`}
-                    >
-                      {strategy.winRate.toFixed(0)}%
-                    </span>
-                    <div className="relative inline-block group/tooltip">
-                      <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                        Percentage of profitable trades
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">Quality</div>
-                  <div className="flex items-center justify-center gap-1">
-                    <span
-                      className={`text-xs font-semibold ${strategy.sharpeRatio >= 2 ? "text-green-600" : "text-yellow-600"}`}
-                    >
-                      {strategy.sharpeRatio >= 2 ? "Excellent" : "Good"}
-                    </span>
-                    <div className="relative inline-block group/tooltip">
-                      <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                        Sharpe Ratio: {strategy.sharpeRatio.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">Trades</div>
-                  <span className="text-xs text-foreground font-semibold">{strategy.totalTrades}</span>
-                </div>
-
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">Stocks</div>
-                  <span className="text-xs text-foreground font-semibold">{strategy.stocksHeld}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* CTA button */}
-            <Button className="w-full bg-ochre hover:bg-ochre/90 text-white mt-auto">
-              <Heart className="w-4 h-4 mr-2" />
-              Subscribe to Strategy
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
 }
 
 export function PopularStrategiesShowcase() {
@@ -258,7 +123,7 @@ export function PopularStrategiesShowcase() {
         ) : (
           <CardCarousel className="snap-x snap-mandatory" noPadding>
             {strategies.map((strategy) => (
-              <StrategyCard key={strategy.id} strategy={strategy} />
+              <MarketplaceStrategyCard key={strategy.id} strategy={strategy} className="w-[300px] md:w-[340px]" />
             ))}
           </CardCarousel>
         )}
@@ -274,3 +139,4 @@ export function PopularStrategiesShowcase() {
     </section>
   )
 }
+

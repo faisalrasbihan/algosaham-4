@@ -57,11 +57,11 @@ export function Navbar() {
         <Link href="/strategies" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Strategi
         </Link>
-        <SignedIn>
+        {/* <SignedIn>
           <Link href="/portfolio" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
             Portfolio
           </Link>
-        </SignedIn>
+        </SignedIn> */}
         <Link href="/harga" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Harga
         </Link>
@@ -122,6 +122,9 @@ export function Navbar() {
               </div>
             )}
           </div>
+          <Link href="/portfolio" className="text-sm font-medium hover:text-primary font-medium transition-colors mx-6 px-4 py-2 rounded-lg bg-secondary/50">
+            Portfolio
+          </Link>
           <UserButton />
         </SignedIn>
       </div>
