@@ -14,6 +14,7 @@ interface StockRecommendation {
   name: string
   days: number
   return: number
+  maxDrawdown: number
   entryPrice: number
   currentPrice: number
   signal: "buy" | "sell"
@@ -26,6 +27,7 @@ export function StockRecommendations() {
       name: "Bank Central Asia",
       days: 15,
       return: 12.5,
+      maxDrawdown: -2.1,
       entryPrice: 8750,
       currentPrice: 9844,
       signal: "buy",
@@ -35,6 +37,7 @@ export function StockRecommendations() {
       name: "Astra International",
       days: 8,
       return: 8.3,
+      maxDrawdown: -1.5,
       entryPrice: 5200,
       currentPrice: 5632,
       signal: "buy",
@@ -44,6 +47,7 @@ export function StockRecommendations() {
       name: "Telkom Indonesia",
       days: 5,
       return: -3.2,
+      maxDrawdown: -4.5,
       entryPrice: 3850,
       currentPrice: 3727,
       signal: "buy",
@@ -53,6 +57,7 @@ export function StockRecommendations() {
       name: "Unilever Indonesia",
       days: 12,
       return: 6.2,
+      maxDrawdown: -3.8,
       entryPrice: 3890,
       currentPrice: 4131,
       signal: "buy",
@@ -65,6 +70,7 @@ export function StockRecommendations() {
       name: "Bank Rakyat Indonesia",
       days: 45,
       return: 18.9,
+      maxDrawdown: -4.2,
       entryPrice: 4200,
       currentPrice: 4994,
       signal: "buy",
@@ -74,6 +80,7 @@ export function StockRecommendations() {
       name: "Bank Mandiri",
       days: 32,
       return: 14.3,
+      maxDrawdown: -3.1,
       entryPrice: 5500,
       currentPrice: 6287,
       signal: "buy",
@@ -83,6 +90,7 @@ export function StockRecommendations() {
       name: "Aneka Tambang",
       days: 28,
       return: -5.8,
+      maxDrawdown: -12.4,
       entryPrice: 1850,
       currentPrice: 1743,
       signal: "buy",
@@ -92,6 +100,7 @@ export function StockRecommendations() {
       name: "Bank Central Asia",
       days: 15,
       return: 12.5,
+      maxDrawdown: -2.1,
       entryPrice: 8750,
       currentPrice: 9844,
       signal: "buy",
@@ -101,6 +110,7 @@ export function StockRecommendations() {
       name: "Indofood Sukses",
       days: 22,
       return: 9.1,
+      maxDrawdown: -5.5,
       entryPrice: 6800,
       currentPrice: 7419,
       signal: "buy",
@@ -110,6 +120,7 @@ export function StockRecommendations() {
       name: "Indofood CBP",
       days: 18,
       return: 7.4,
+      maxDrawdown: -2.9,
       entryPrice: 10500,
       currentPrice: 11277,
       signal: "buy",
@@ -154,7 +165,7 @@ export function StockRecommendations() {
                       <div className="font-mono font-semibold text-sm text-foreground">{stock.ticker}</div>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="p-3 max-w-[200px]">
+                  <TooltipContent side="right" className="p-3 max-w-[300px]">
                     <div className="space-y-2">
                       <div>
                         <div className="font-bold text-sm text-foreground">{stock.ticker}</div>
@@ -166,8 +177,12 @@ export function StockRecommendations() {
                           <span className="font-medium uppercase text-foreground">{stock.signal}</span>
                         </div>
                         <div className="flex justify-between mt-1">
-                          <span>Entry Date:</span>
-                          <span className="font-medium text-foreground">{stock.days} days ago</span>
+                          <span>Days Held:</span>
+                          <span className="font-medium text-foreground">{stock.days}d</span>
+                        </div>
+                        <div className="flex justify-between mt-1">
+                          <span>Max Drawdown:</span>
+                          <span className="text-red-500 font-medium">{stock.maxDrawdown}%</span>
                         </div>
                         <div className="flex justify-between mt-1">
                           <span>Return:</span>
