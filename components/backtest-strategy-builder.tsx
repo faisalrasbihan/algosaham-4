@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import {
@@ -97,6 +97,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   const [modalType, setModalType] = useState<"fundamental" | "technical">("fundamental")
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [strategyName, setStrategyName] = useState("")
+  const [strategyDescription, setStrategyDescription] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [editingIndicators, setEditingIndicators] = useState<Record<string, boolean>>({})
   const [activeTab, setActiveTab] = useState<string>("strategy")
@@ -345,13 +346,40 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   }
 
   const handleSaveStrategy = async (runBacktest = false) => {
+    if (!strategyName.trim()) return
+
     setIsSaving(true)
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsSaving(false)
-    setShowSaveModal(false)
-    setStrategyName("")
-    if (runBacktest) {
-      handleRunBacktest()
+    try {
+      const config = buildBacktestConfig()
+      const response = await fetch("/api/strategies/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: strategyName,
+          description: strategyDescription,
+          config,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to save strategy")
+      }
+
+      const result = await response.json()
+      if (result.success) {
+        setShowSaveModal(false)
+        setStrategyName("")
+        setStrategyDescription("")
+        if (runBacktest) {
+          handleRunBacktest()
+        }
+      } else {
+        throw new Error(result.error || "Failed to save strategy")
+      }
+    } catch (error) {
+      console.error("Save strategy error:", error)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -1539,6 +1567,9 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-mono">Save Strategy</DialogTitle>
+            <DialogDescription className="font-mono text-xs text-muted-foreground">
+              Save your strategy settings to access them later.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
@@ -1551,6 +1582,19 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                 onChange={(e) => setStrategyName(e.target.value)}
                 placeholder="Enter strategy name..."
                 className="mt-1 font-mono"
+                disabled={isSaving}
+              />
+            </div>
+            <div>
+              <Label htmlFor="strategy-description" className="text-sm font-medium">
+                Description
+              </Label>
+              <textarea
+                id="strategy-description"
+                value={strategyDescription}
+                onChange={(e) => setStrategyDescription(e.target.value)}
+                placeholder="Enter strategy description..."
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1 font-mono"
                 disabled={isSaving}
               />
             </div>

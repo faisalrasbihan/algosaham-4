@@ -30,8 +30,67 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function AboutSection() {
+  const steps = [
+    {
+      title: "Tentukan saham yang ingin dianalisis",
+      description: "Mulai dengan memilih saham berdasarkan kriteria yang kamu mau.",
+      detail: "Kamu bisa menyaring saham berdasarkan ukuran perusahaan, jenis saham, dan sektor agar hasilnya lebih relevan dengan gaya investasimu.",
+      icon: Search,
+    },
+    {
+      title: "Tambahkan indikator fundamental",
+      description: "Selanjutnya, tambahkan indikator fundamental seperti PE Ratio, PBV, atau ROE.",
+      detail: "Bagian ini membantu kamu menilai kondisi keuangan perusahaan dan menyaring saham yang secara fundamental masih menarik.",
+      icon: TrendingUp,
+    },
+    {
+      title: "Atur indikator teknikal",
+      description: "Tambahkan indikator teknikal seperti RSI, SMA, atau MACD untuk membaca pergerakan harga dan tren market.",
+      detail: "Indikator ini membantu kamu menentukan timing masuk dan keluar yang lebih tepat.",
+      icon: Settings,
+    },
+    {
+      title: "Atur manajemen risiko (opsional)",
+      description: "Kamu bisa mengatur batas risiko dengan menentukan stop loss, take profit, dan lama posisi ditahan.",
+      detail: "Kalau mau cepat, kamu juga bisa langsung pakai setelan default yang sudah disediakan.",
+      icon: Shield,
+    },
+    {
+      title: "Tentukan periode pengujian (opsional)",
+      description: "Atur modal awal dan periode waktu untuk menguji strategi kamu.",
+      detail: "Pengaturan default sudah tersedia, tapi bisa kamu sesuaikan kalau ingin hasil yang lebih spesifik.",
+      icon: Clock,
+    },
+    {
+      title: "Jalankan strategi dan lihat hasilnya",
+      description: "Klik tombol Run untuk menjalankan strategi kamu.",
+      detail: "Hasil analisis akan langsung muncul, mulai dari performa strategi, riwayat transaksi, sampai grafik yang mudah dipahami.",
+      icon: Play,
+    },
+  ];
+
+  const existingStrategies = [
+    {
+      title: "Strategi Berbasis AI",
+      description: "Strategi yang dibangun dari analisis data historis pasar Indonesia menggunakan machine learning untuk mencari pola dan peluang terbaik.",
+      icon: Brain,
+    },
+    {
+      title: "Strategi dari Trader Lain",
+      description: "Kumpulan strategi yang dikembangkan dan diuji oleh komunitas trader. Kamu bisa melihat performanya, mempelajari logikanya, lalu subscribe atau modifikasi sesuai kebutuhanmu.",
+      icon: Users,
+    },
+  ];
+
+  const tips = [
+    "Mulai dari strategi sederhana dulu",
+    "Uji beberapa variasi strategi untuk dibandingkan",
+    "Fokus ke konsistensi, bukan hasil instan",
+    "Gunakan hasil pengujian sebagai bahan evaluasi, bukan jaminan cuan",
+  ];
   const platformFeatures = [
     {
       icon: Brain,
@@ -214,127 +273,90 @@ export function AboutSection() {
           </div>
         </div>
 
-        {/* How to Use Platform */}
+        {/* Cara Menggunakan algosaham.ai - Enhanced Section */}
         <div className="mb-20">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-mono">Pilih Cara yang Paling Cocok untuk Kamu</h2>
-            <p className="text-lg text-muted-foreground font-mono max-w-3xl mx-auto">Mulai dari strategi siap pakai hingga membuat strategi sendiri — semuanya bisa kamu lakukan dengan mudah.</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-mono">
+              Cara Menggunakan <span className="text-ochre">algosaham.ai</span>
+            </h2>
+            <p className="text-lg text-muted-foreground font-mono max-w-3xl mx-auto">
+              Bikin strategi trading jadi lebih rapi dan terukur. Ikuti langkah-langkah berikut untuk mulai menggunakan platform ini.
+            </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-8 lg:items-stretch">
-            {/* Metode 1: Eksplor Strategi yang Telah Diuji */}
-            <div className="p-8 rounded-2xl border border-border bg-card hover:border-ochre/50 transition-all duration-300 flex flex-col">
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 rounded-full bg-ochre/10 flex items-center justify-center mx-auto mb-4">
-                  <Compass className="w-8 h-8 text-ochre" />
-                </div>
-                <h3 className="text-2xl font-bold text-foreground mb-2 font-mono">Metode 1: Eksplor Strategi yang Telah Diuji</h3>
-                <p className="text-muted-foreground font-mono">Langsung gunakan strategi yang sudah melewati proses simulasi dan pengujian data historis.</p>
-              </div>
-
-              <div className="space-y-6 flex-grow">
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-ochre/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-sm font-bold text-ochre">01</span>
+          <div className="mb-16">
+            <h3 className="text-2xl font-bold text-foreground mb-8 font-mono text-center">
+              Bikin dan Uji Strategi Sendiri
+            </h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {steps.map((step, index) => (
+                <Card key={index} className="border-border bg-card hover:border-ochre/50 transition-all duration-300 hover:shadow-lg relative overflow-hidden group h-full">
+                  <div className="absolute top-0 right-0 p-4 opacity-10 font-bold text-6xl text-ochre group-hover:opacity-20 transition-opacity">
+                    {index + 1}
                   </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-foreground mb-2">Eksplor Strategi Siap Pakai</h4>
-                    <p className="text-muted-foreground font-mono text-sm">Temukan berbagai strategi yang telah diuji dan dikembangkan menggunakan data historis.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-ochre/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-sm font-bold text-ochre">02</span>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-foreground mb-2">Lihat & Pelajari Hasilnya</h4>
-                    <p className="text-muted-foreground font-mono text-sm">Analisis grafik performa, tingkat keberhasilan, dan riwayat transaksi dari setiap strategi yang tersedia.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-ochre/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-sm font-bold text-ochre">03</span>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-foreground mb-2">Jalankan dengan Keyakinan</h4>
-                    <p className="text-muted-foreground font-mono text-sm">Gunakan strategi yang paling sesuai dengan tujuanmu dan nikmati hasil yang sudah terbukti efektif.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8 text-center">
-                <Link href="/strategies">
-                  <Button size="lg" className="bg-ochre hover:bg-ochre/90 text-white text-lg px-8 h-12 w-full font-mono">
-                    <Search className="w-5 h-5 mr-2" />
-                    Jelajahi Strategi Terbaik
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-                </Link>
-              </div>
+                  <CardHeader>
+                    <div className="w-12 h-12 rounded-lg bg-ochre/10 flex items-center justify-center mb-4">
+                      <step.icon className="w-6 h-6 text-ochre" />
+                    </div>
+                    <CardTitle className="text-xl mb-2">{step.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-foreground font-medium mb-2">{step.description}</p>
+                    <p className="text-muted-foreground text-sm font-mono leading-relaxed">{step.detail}</p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+            <div className="mt-10 text-center">
+              <Link href="/backtest">
+                <Button size="lg" className="bg-ochre hover:bg-ochre/90 text-white text-lg px-8 py-6">
+                  <Play className="w-5 h-5 mr-2" />
+                  Mulai Bikin Strategi
+                </Button>
+              </Link>
+            </div>
+          </div>
 
-            {/* Metode 2: Simulasikan Strategimu Sendiri */}
-            <div className="p-8 rounded-2xl border border-border bg-card hover:border-ochre/50 transition-all duration-300 flex flex-col">
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 rounded-full bg-ochre/10 flex items-center justify-center mx-auto mb-4">
-                  <Wrench className="w-8 h-8 text-ochre" />
+          <div className="mb-16">
+            <h3 className="text-2xl font-bold text-foreground mb-6 font-mono text-center">
+              Langsung Pakai Strategi yang Sudah Ada
+            </h3>
+            <p className="text-lg text-muted-foreground text-center max-w-3xl mx-auto mb-10 font-mono">
+              Kalau kamu belum mau bikin strategi sendiri, kamu tetap bisa mulai dengan strategi yang sudah tersedia di algosaham.ai.
+            </p>
+            <div className="grid md:grid-cols-2 gap-8">
+              {existingStrategies.map((item, index) => (
+                <div key={index} className="p-8 rounded-2xl border border-border bg-card hover:border-ochre/50 transition-all duration-300 flex flex-col items-start">
+                  <div className="w-14 h-14 rounded-full bg-ochre/10 flex items-center justify-center mb-6">
+                    <item.icon className="w-7 h-7 text-ochre" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-foreground mb-4">{item.title}</h3>
+                  <p className="text-muted-foreground font-mono leading-relaxed">{item.description}</p>
                 </div>
-                <h3 className="text-2xl font-bold text-foreground mb-2 font-mono">Metode 2: Simulasikan Strategimu Sendiri</h3>
-                <p className="text-muted-foreground font-mono">Ingin hasil yang lebih personal? Buat dan uji strategimu sesuai gaya trading dan target pribadimu.</p>
-              </div>
+              ))}
+            </div>
+            <div className="mt-10 text-center">
+              <Link href="/strategies">
+                <Button size="lg" variant="outline" className="text-lg px-8 py-6 bg-transparent border-2">
+                  <Search className="w-5 h-5 mr-2" />
+                  Cari Strategi
+                </Button>
+              </Link>
+            </div>
+          </div>
 
-              <div className="space-y-6 flex-grow">
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-ochre/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-sm font-bold text-ochre">01</span>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-foreground mb-2">Buat Strategimu Sendiri</h4>
-                    <p className="text-muted-foreground font-mono text-sm">Rancang aturan tradingmu dengan mudah melalui visual strategy builder yang interaktif.</p>
-                  </div>
+          {/* Tips Section */}
+          <div className="max-w-4xl mx-auto p-8 md:p-12 rounded-3xl border border-border bg-gradient-to-br from-ochre/5 via-primary/5 to-ochre/5">
+            <h3 className="text-2xl font-bold text-foreground mb-8 text-center font-mono">
+              Tips Biar Makin Maksimal
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              {tips.map((tip, index) => (
+                <div key={index} className="flex items-start gap-3 bg-card/50 p-4 rounded-xl border border-border/50">
+                  <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-foreground font-medium font-mono">{tip}</span>
                 </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-ochre/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-sm font-bold text-ochre">02</span>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-foreground mb-2">Uji dengan Data Nyata</h4>
-                    <p className="text-muted-foreground font-mono text-sm">Cek performa strategimu menggunakan data historis untuk memastikan efektivitasnya.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-ochre/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-sm font-bold text-ochre">03</span>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-foreground mb-2">Lihat & Pelajari Hasilnya</h4>
-                    <p className="text-muted-foreground font-mono text-sm">Analisis hasil uji melalui grafik, metrik performa, dan riwayat transaksi untuk menyempurnakan strategimu.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-ochre/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-sm font-bold text-ochre">04</span>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-foreground mb-2">Jalankan dengan Keyakinan</h4>
-                    <p className="text-muted-foreground font-mono text-sm">Gunakan strategi yang sudah teruji dan siap membawa hasil nyata di pasar sesungguhnya.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8 text-center">
-                <Link href="/backtest">
-                  <Button size="lg" className="bg-ochre hover:bg-ochre/90 text-white text-lg px-8 h-12 w-full font-mono">
-                    <Play className="w-5 h-5 mr-2" />
-                    Simulasi Sekarang
-                  </Button>
-                </Link>
-              </div>
+              ))}
             </div>
           </div>
         </div>

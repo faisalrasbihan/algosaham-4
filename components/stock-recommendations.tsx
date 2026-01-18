@@ -136,16 +136,13 @@ export function StockRecommendations() {
               Stock
             </th>
             <th className="text-right py-2 px-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Days
-            </th>
-            <th className="text-right py-2 px-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Entry
             </th>
             <th className="text-right py-2 px-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Live
             </th>
             <th className="text-right py-2 px-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              %
+              P/L%
             </th>
           </tr>
         </thead>
@@ -165,7 +162,7 @@ export function StockRecommendations() {
                       <div className="font-mono font-semibold text-sm text-foreground">{stock.ticker}</div>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="p-3 max-w-[300px]">
+                  <TooltipContent side="right" className="p-4 min-w-[240px]">
                     <div className="space-y-2">
                       <div>
                         <div className="font-bold text-sm text-foreground">{stock.ticker}</div>
@@ -194,9 +191,6 @@ export function StockRecommendations() {
                     </div>
                   </TooltipContent>
                 </Tooltip>
-              </td>
-              <td className="py-3 px-1 text-right">
-                <span className="font-mono text-sm text-foreground">{stock.days}d</span>
               </td>
               <td className="py-3 px-1 text-right">
                 <span className="font-mono text-sm text-muted-foreground">{stock.entryPrice.toLocaleString()}</span>

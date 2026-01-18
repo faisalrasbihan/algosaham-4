@@ -2,6 +2,12 @@
 
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { PerformanceChart, BenchmarkType } from "@/components/performance-chart"
 import { TradeHistoryTable } from "@/components/trade-history-table"
 import { MonthlyPerformanceHeatmap } from "@/components/monthly-performance-heatmap"
@@ -41,32 +47,38 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
     {
       label: "Total Return",
       value: `${(currentResults.summary?.totalReturn || 0).toFixed(1)}%`,
-      positive: (currentResults.summary?.totalReturn || 0) >= 0
+      positive: (currentResults.summary?.totalReturn || 0) >= 0,
+      tooltip: "Persentase keuntungan atau kerugian total portofolio selama periode backtest."
     },
     {
       label: "Annual Return",
       value: `${(currentResults.summary?.annualizedReturn || 0).toFixed(1)}%`,
-      positive: (currentResults.summary?.annualizedReturn || 0) >= 0
+      positive: (currentResults.summary?.annualizedReturn || 0) >= 0,
+      tooltip: "Laju Pertumbuhan Majemuk Tahunan (CAGR), mewakili rata-rata pertumbuhan tahunan portofolio."
     },
     {
       label: "Max Drawdown",
       value: `${(currentResults.summary?.maxDrawdown || 0).toFixed(1)}%`,
-      positive: (currentResults.summary?.maxDrawdown || 0) >= 0
+      positive: (currentResults.summary?.maxDrawdown || 0) >= 0,
+      tooltip: "Kerugian maksimum yang diamati dari puncak tertinggi ke titik terendah portofolio, mengindikasikan risiko penurunan."
     },
     {
       label: "Win Rate",
       value: `${(currentResults.summary?.winRate || 0).toFixed(1)}%`,
-      positive: (currentResults.summary?.winRate || 0) >= 50
+      positive: (currentResults.summary?.winRate || 0) >= 50,
+      tooltip: "Persentase perdagangan yang menguntungkan dari semua perdagangan yang ditutup."
     },
     {
       label: "Total Trades",
       value: `${currentResults.summary?.totalTrades || 0}`,
-      neutral: true
+      neutral: true,
+      tooltip: "Total jumlah pasangan perdagangan jual beli yang dieksekusi selama periode backtest."
     },
     {
       label: "Avg Hold Days",
       value: `${(currentResults.summary?.averageHoldingDays || 0).toFixed(1)}`,
-      neutral: true
+      neutral: true,
+      tooltip: "Rata-rata jumlah hari posisi saham ditahan dalam portofolio."
     },
     {
       label: "Best Stock",
@@ -74,7 +86,8 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
       subValue: currentResults.summary?.bestTrade?.return != null
         ? `+${currentResults.summary.bestTrade.return.toFixed(1)}%`
         : null,
-      subPositive: true
+      subPositive: true,
+      tooltip: "Perdagangan individu yang menghasilkan persentase keuntungan tertinggi."
     },
     {
       label: "Worst Stock",
@@ -82,7 +95,8 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
       subValue: currentResults.summary?.worstTrade?.return != null
         ? `${currentResults.summary.worstTrade.return.toFixed(1)}%`
         : null,
-      subPositive: false
+      subPositive: false,
+      tooltip: "Perdagangan individu yang menghasilkan persentase kerugian terbesar."
     },
   ] : []
 
@@ -179,36 +193,44 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {performanceStats.map((stat, index) => (
-              <div
-                key={index}
-                className="text-center p-4 bg-secondary/50 rounded-lg border border-border/50 hover:bg-secondary/70 transition-colors"
-              >
-                <div className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">
-                  {stat.label}
-                </div>
-                {stat.subValue ? (
-                  <div className="flex items-baseline justify-center gap-2">
-                    <span className="font-mono text-xl font-bold text-foreground">
-                      {stat.value}
-                    </span>
-                    <span
-                      className={`font-mono text-sm font-semibold ${stat.subPositive ? "text-green-600" : "text-red-500"
-                        }`}
+            <TooltipProvider>
+              {performanceStats.map((stat, index) => (
+                <Tooltip key={index}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="text-center p-4 bg-secondary/50 rounded-lg border border-border/50 hover:bg-secondary/70 transition-colors cursor-help"
                     >
-                      {stat.subValue}
-                    </span>
-                  </div>
-                ) : (
-                  <div
-                    className={`font-mono text-xl font-bold ${stat.positive ? "text-green-700" : stat.positive === false ? "text-red-600" : "text-foreground"
-                      }`}
-                  >
-                    {stat.value}
-                  </div>
-                )}
-              </div>
-            ))}
+                      <div className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">
+                        {stat.label}
+                      </div>
+                      {stat.subValue ? (
+                        <div className="flex items-baseline justify-center gap-2">
+                          <span className="font-mono text-xl font-bold text-foreground">
+                            {stat.value}
+                          </span>
+                          <span
+                            className={`font-mono text-sm font-semibold ${stat.subPositive ? "text-green-600" : "text-red-500"
+                              }`}
+                          >
+                            {stat.subValue}
+                          </span>
+                        </div>
+                      ) : (
+                        <div
+                          className={`font-mono text-xl font-bold ${stat.positive ? "text-green-700" : stat.positive === false ? "text-red-600" : "text-foreground"
+                            }`}
+                        >
+                          {stat.value}
+                        </div>
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs text-sm">{stat.tooltip}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </TooltipProvider>
           </div>
         </CardContent>
       </Card>

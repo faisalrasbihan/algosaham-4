@@ -28,7 +28,7 @@ export async function GET() {
         dailyReturn: strategies.dailyReturn,
       })
       .from(strategies)
-      .where(eq(strategies.creatorId, 0))
+      .where(eq(strategies.creatorId, "0"))
       .orderBy(desc(strategies.ytdReturn));
 
     // Return the strategies as JSON
@@ -39,7 +39,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error fetching popular strategies:", error);
-    
+
     return NextResponse.json(
       {
         success: false,

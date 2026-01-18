@@ -3,7 +3,7 @@ import { relations } from "drizzle-orm";
 
 // Stocks table - independent
 export const stocks = pgTable("stocks", {
-  id: bigserial("id", { mode: "number" }).primaryKey(),
+  id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
   stockSymbol: text("stock_symbol").notNull().unique(),
   companyName: text("company_name").notNull(),
   sector: text("sector"),
@@ -14,10 +14,11 @@ export const stocks = pgTable("stocks", {
 
 // Strategies table - independent
 export const strategies = pgTable("strategies", {
-  id: bigserial("id", { mode: "number" }).primaryKey(),
-  creatorId: bigint("creator_id", { mode: "number" }).notNull().default(0),
+  id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
+  creatorId: text("creator_id").notNull().default("0"),
   name: text("name").notNull(),
   description: text("description"),
+  configuration: jsonb("configuration"),
   startingTime: timestamp("starting_time", { withTimezone: true }),
   totalReturns: numeric("total_returns"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
@@ -41,7 +42,7 @@ export const strategies = pgTable("strategies", {
 
 // Fundamentals table - depends on stocks
 export const fundamentals = pgTable("fundamentals", {
-  id: bigserial("id", { mode: "number" }).primaryKey(),
+  id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
   stockId: bigint("stock_id", { mode: "number" }).references(() => stocks.id),
   date: date("date").notNull(),
   assets: numeric("assets"),
@@ -62,7 +63,7 @@ export const fundamentals = pgTable("fundamentals", {
 
 // Indicators table - depends on strategies
 export const indicators = pgTable("indicators", {
-  id: bigserial("id", { mode: "number" }).primaryKey(),
+  id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
   strategyId: bigint("strategy_id", { mode: "number" }).references(() => strategies.id),
   name: text("name").notNull(),
   parameters: jsonb("parameters"),
@@ -70,7 +71,7 @@ export const indicators = pgTable("indicators", {
 
 // Subscriptions table - depends on strategies
 export const subscriptions = pgTable("subscriptions", {
-  id: bigserial("id", { mode: "number" }).primaryKey(),
+  id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
   userId: bigint("user_id", { mode: "number" }).notNull(),
   strategyId: bigint("strategy_id", { mode: "number" }).notNull().references(() => strategies.id),
   subscribedAt: timestamp("subscribed_at", { withTimezone: true }).defaultNow().notNull(),
@@ -84,7 +85,7 @@ export const subscriptions = pgTable("subscriptions", {
 
 // Notifications table - depends on strategies
 export const notifications = pgTable("notifications", {
-  id: bigserial("id", { mode: "number" }).primaryKey(),
+  id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
   userId: bigint("user_id", { mode: "number" }),
   strategyId: bigint("strategy_id", { mode: "number" }).references(() => strategies.id),
   message: text("message").notNull(),
@@ -93,7 +94,7 @@ export const notifications = pgTable("notifications", {
 
 // Trades table - depends on strategies and stocks
 export const trades = pgTable("trades", {
-  id: bigserial("id", { mode: "number" }).primaryKey(),
+  id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
   strategyId: bigint("strategy_id", { mode: "number" }).references(() => strategies.id),
   stockId: bigint("stock_id", { mode: "number" }).references(() => stocks.id),
   tradingDate: date("trading_date").notNull(),
