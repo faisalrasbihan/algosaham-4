@@ -37,6 +37,8 @@ import {
 } from "lucide-react"
 import { AddIndicatorModal } from "@/components/add-indicator-modal"
 import { OnboardingTutorial } from "@/components/onboarding-tutorial"
+import { SignInButton, useUser } from "@clerk/nextjs"
+import { LogIn } from "lucide-react"
 import type { BacktestRequest } from "@/lib/api"
 
 interface Indicator {
@@ -78,6 +80,7 @@ interface BacktestStrategyBuilderProps {
 }
 
 export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuilderProps) {
+  const { isSignedIn, isLoaded } = useUser()
   const [marketCaps, setMarketCaps] = useState<string[]>(["large", "mid"])
   const [stockType, setStockType] = useState("All Stocks")
   const [minDailyValue, setMinDailyValue] = useState<number>(1000000000)
@@ -96,9 +99,14 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   const [showModal, setShowModal] = useState(false)
   const [modalType, setModalType] = useState<"fundamental" | "technical">("fundamental")
   const [showSaveModal, setShowSaveModal] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [savedStrategyName, setSavedStrategyName] = useState("")
   const [strategyName, setStrategyName] = useState("")
   const [strategyDescription, setStrategyDescription] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+  const [pendingRunBacktest, setPendingRunBacktest] = useState(false)
+  const [saveWithBacktest, setSaveWithBacktest] = useState(false)
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const [editingIndicators, setEditingIndicators] = useState<Record<string, boolean>>({})
   const [activeTab, setActiveTab] = useState<string>("strategy")
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -349,6 +357,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
     if (!strategyName.trim()) return
 
     setIsSaving(true)
+    setPendingRunBacktest(runBacktest)
     try {
       const config = buildBacktestConfig()
       const response = await fetch("/api/strategies/save", {
@@ -367,9 +376,11 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
 
       const result = await response.json()
       if (result.success) {
+        setSavedStrategyName(strategyName)
         setShowSaveModal(false)
         setStrategyName("")
         setStrategyDescription("")
+        setShowSuccessModal(true)
         if (runBacktest) {
           handleRunBacktest()
         }
@@ -478,8 +489,10 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
     const map: Record<string, string> = {
       "SMA_CROSSOVER": "SMA Crossover",
       "SMA_TREND": "SMA Trend",
+      "EMA_CROSSOVER": "EMA Crossover",
       "RSI": "RSI",
       "MACD": "MACD",
+      "STOCHASTIC": "Stochastic",
       "BOLLINGER_BANDS": "Bollinger Bands",
       "ATR": "ATR",
       "VOLATILITY_BREAKOUT": "Volatility Breakout",
@@ -487,6 +500,45 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
       "OBV": "OBV",
       "VWAP": "VWAP",
       "VOLUME_PRICE_TREND": "Volume Price Trend",
+      "ACCUMULATION_BASE": "Accumulation Base",
+      "BASE_BREAKOUT": "Base Breakout",
+      "VOLUME_DRY_UP": "Volume Dry Up",
+      "CLIMAX_VOLUME": "Climax Volume",
+      "ACCUMULATION_DISTRIBUTION": "Accumulation Distribution",
+      "ADX": "ADX",
+      "PARABOLIC_SAR": "Parabolic SAR",
+      "SUPERTREND": "Supertrend",
+      "PIVOT_POINTS": "Pivot Points",
+      "DONCHIAN_CHANNEL": "Donchian Channel",
+      "KELTNER_CHANNEL": "Keltner Channel",
+      "DOJI": "Doji",
+      "HAMMER": "Hammer",
+      "INVERTED_HAMMER": "Inverted Hammer",
+      "BULLISH_MARUBOZU": "Bullish Marubozu",
+      "BULLISH_ENGULFING": "Bullish Engulfing",
+      "BULLISH_HARAMI": "Bullish Harami",
+      "PIERCING_LINE": "Piercing Line",
+      "TWEEZER_BOTTOM": "Tweezer Bottom",
+      "MORNING_STAR": "Morning Star",
+      "THREE_WHITE_SOLDIERS": "Three White Soldiers",
+      "THREE_INSIDE_UP": "Three Inside Up",
+      "RISING_THREE_METHODS": "Rising Three Methods",
+      "FALLING_WEDGE": "Falling Wedge",
+      "DOUBLE_BOTTOM": "Double Bottom",
+      "BULL_FLAG": "Bull Flag",
+      "ASCENDING_TRIANGLE": "Ascending Triangle",
+      "CUP_AND_HANDLE": "Cup and Handle",
+      "INVERSE_HEAD_SHOULDERS": "Inverse Head Shoulders",
+      "ROUNDING_BOTTOM": "Rounding Bottom",
+      "BULL_FLAG_IMMINENT": "Bull Flag Imminent",
+      "FALLING_WEDGE_IMMINENT": "Falling Wedge Imminent",
+      "DOUBLE_BOTTOM_IMMINENT": "Double Bottom Imminent",
+      "ASCENDING_TRIANGLE_IMMINENT": "Ascending Triangle Imminent",
+      "FOREIGN_FLOW": "Foreign Flow",
+      "FOREIGN_REVERSAL": "Foreign Reversal",
+      "ARA_RECOVERY": "ARA Recovery",
+      "ARB_RECOVERY": "ARB Recovery",
+      "ARA_BREAKOUT": "ARA Breakout",
     }
     return map[type] || type
   }
@@ -961,7 +1013,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                     <Label className="text-xs text-muted-foreground mb-2 block">Ticker</Label>
                     <Button
                       variant="outline"
-                      className="w-full justify-between h-9 px-3 font-normal bg-background border-input hover:bg-slate-50 hover:text-slate-900 font-mono"
+                      className="w-full justify-between h-9 px-3 font-normal bg-white border-slate-300 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-400 font-mono"
                       onClick={() => {
                         setTickerDropdownOpen(!tickerDropdownOpen)
                         if (!tickerDropdownOpen) fetchTickers()
@@ -1048,7 +1100,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                     <div className="relative" ref={sectorDropdownRef}>
                       <Button
                         variant="outline"
-                        className="w-full justify-between h-9 px-3 font-normal bg-background border-input hover:bg-slate-50 hover:text-slate-900 font-mono"
+                        className="w-full justify-between h-9 px-3 font-normal bg-white border-slate-300 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-400 font-mono"
                         onClick={() => setSectorDropdownOpen(!sectorDropdownOpen)}
                       >
                         <span className="text-sm text-foreground">
@@ -1205,7 +1257,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full bg-transparent font-mono hover:text-foreground"
+                    className="w-full bg-transparent font-mono hover:text-foreground border-slate-300 hover:border-[#d07225]"
                     style={
                       {
                         "--hover-bg": "#d072251a",
@@ -1221,7 +1273,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = "transparent"
                       e.currentTarget.style.color = ""
-                      e.currentTarget.style.borderColor = ""
+                      e.currentTarget.style.borderColor = "#cbd5e1"
                     }}
                     onClick={() => {
                       setModalType("fundamental")
@@ -1329,7 +1381,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full bg-transparent font-mono hover:text-foreground"
+                    className="w-full bg-transparent font-mono hover:text-foreground border-slate-300 hover:border-[#d07225]"
                     style={
                       {
                         "--hover-bg": "#d072251a",
@@ -1345,7 +1397,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = "transparent"
                       e.currentTarget.style.color = ""
-                      e.currentTarget.style.borderColor = ""
+                      e.currentTarget.style.borderColor = "#cbd5e1"
                     }}
                     onClick={() => {
                       setModalType("technical")
@@ -1383,7 +1435,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                         value={stopLoss}
                         onChange={(e) => setStopLoss(Number(e.target.value))}
                         placeholder="5"
-                        className="font-mono border-slate-200"
+                        className="font-mono border-slate-300 bg-white"
                       />
                     </div>
                     <div>
@@ -1393,7 +1445,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                         value={takeProfit}
                         onChange={(e) => setTakeProfit(Number(e.target.value))}
                         placeholder="15"
-                        className="font-mono border-slate-200"
+                        className="font-mono border-slate-300 bg-white"
                       />
                     </div>
                   </div>
@@ -1408,14 +1460,14 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                           const value = Number(e.target.value.replace(/,/g, ""))
                           if (!isNaN(value)) setMinDailyValue(value)
                         }}
-                        className="pl-8 h-9 font-mono text-sm"
+                        className="pl-8 h-9 font-mono text-sm border-slate-300 bg-white"
                       />
                     </div>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Max Holding Period</Label>
                     <Select value={maxHoldingPeriod} onValueChange={setMaxHoldingPeriod}>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white border-slate-300">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1460,7 +1512,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                       <Input
                         type="text"
                         placeholder="100,000,000"
-                        className="pl-8 font-mono border-slate-200"
+                        className="pl-8 font-mono border-slate-300 bg-white"
                         value={initialCapital.toLocaleString()}
                         onChange={(e) => {
                           const value = e.target.value.replace(/,/g, "")
@@ -1484,7 +1536,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
 
                     <TabsContent value="preset" className="mt-3 space-y-2">
                       <Select value={backtestPeriod} onValueChange={applyPreset}>
-                        <SelectTrigger className="w-full h-9 font-mono text-xs">
+                        <SelectTrigger className="w-full h-9 font-mono text-xs bg-white border-slate-300">
                           <SelectValue placeholder="Select period" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1508,7 +1560,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                               setStartDate(e.target.value)
                               setBacktestPeriod("") // Clear preset when custom date is modified
                             }}
-                            className="border-slate-200 h-9"
+                            className="border-slate-300 h-9 bg-white"
                           />
                         </div>
                         <div>
@@ -1520,7 +1572,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                               setEndDate(e.target.value)
                               setBacktestPeriod("") // Clear preset when custom date is modified
                             }}
-                            className="border-slate-200 h-9"
+                            className="border-slate-300 h-9 bg-white"
                           />
                         </div>
                       </div>
@@ -1548,11 +1600,27 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end">
-                  <DropdownMenuItem onClick={() => setShowSaveModal(true)} className="font-mono">
+                  <DropdownMenuItem onClick={() => {
+                    if (isLoaded && !isSignedIn) {
+                      setSaveWithBacktest(true)
+                      setShowLoginPrompt(true)
+                    } else {
+                      setSaveWithBacktest(true)
+                      setShowSaveModal(true)
+                    }
+                  }} className="font-mono">
                     <Play className="h-4 w-4 mr-2" />
                     Run & Save
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowSaveModal(true)} className="font-mono">
+                  <DropdownMenuItem onClick={() => {
+                    if (isLoaded && !isSignedIn) {
+                      setSaveWithBacktest(false)
+                      setShowLoginPrompt(true)
+                    } else {
+                      setSaveWithBacktest(false)
+                      setShowSaveModal(true)
+                    }
+                  }} className="font-mono">
                     <Save className="h-4 w-4 mr-2" />
                     Save Strategy
                   </DropdownMenuItem>
@@ -1566,9 +1634,11 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
       <Dialog open={showSaveModal} onOpenChange={setShowSaveModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-mono">Save Strategy</DialogTitle>
+            <DialogTitle className="font-mono">{saveWithBacktest ? "Run & Save Strategy" : "Save Strategy"}</DialogTitle>
             <DialogDescription className="font-mono text-xs text-muted-foreground">
-              Save your strategy settings to access them later.
+              {saveWithBacktest
+                ? "Save your strategy and run the backtest immediately."
+                : "Save your strategy settings to access them later."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1604,13 +1674,80 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
               Cancel
             </Button>
             <Button
-              onClick={() => handleSaveStrategy(false)}
+              onClick={() => handleSaveStrategy(saveWithBacktest)}
               disabled={!strategyName.trim() || isSaving}
               className="font-mono"
             >
-              {isSaving ? "Saving..." : "Save Strategy"}
+              {isSaving ? "Saving..." : saveWithBacktest ? "Run & Save" : "Save Strategy"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="items-center text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <DialogTitle className="font-mono text-xl">Strategy Saved!</DialogTitle>
+            <DialogDescription className="font-mono text-sm text-muted-foreground text-center pt-2">
+              Your strategy <span className="font-semibold text-foreground">"{savedStrategyName}"</span> has been saved successfully.
+              {pendingRunBacktest && " The backtest is now running."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-4">
+            <Button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full font-mono bg-[#d07225] hover:bg-[#a65b1d]"
+            >
+              Continue
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSuccessModal(false)
+                window.location.href = "/strategies"
+              }}
+              className="w-full font-mono"
+            >
+              View My Strategies
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Login Prompt Dialog */}
+      <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="items-center text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#d07225]/10">
+              <LogIn className="h-8 w-8 text-[#d07225]" />
+            </div>
+            <DialogTitle className="font-mono text-xl">Sign In Required</DialogTitle>
+            <DialogDescription className="font-mono text-sm text-muted-foreground text-center pt-2">
+              You need to sign in to save your strategy. Would you like to sign in now?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-4">
+            <SignInButton mode="modal">
+              <Button
+                onClick={() => setShowLoginPrompt(false)}
+                className="w-full font-mono bg-[#d07225] hover:bg-[#a65b1d]"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                Sign In
+              </Button>
+            </SignInButton>
+            <Button
+              variant="outline"
+              onClick={() => setShowLoginPrompt(false)}
+              className="w-full font-mono"
+            >
+              Cancel
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

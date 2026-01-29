@@ -182,7 +182,7 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
 
         {/* Stock Recommendations */}
         <div className="lg:col-span-1">
-          <StockRecommendations />
+          <StockRecommendations signals={currentResults?.signals} trades={currentResults?.trades} />
         </div>
       </div>
 

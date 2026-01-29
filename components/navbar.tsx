@@ -130,7 +130,7 @@ export function Navbar() {
               </div>
             )}
           </div>
-          <Link href="/portfolio" className="text-sm font-medium hover:text-primary font-medium transition-colors mx-6 px-4 py-2 rounded-lg bg-secondary/50">
+          <Link href="/portfolio" className="text-sm font-medium hover:text-primary transition-colors mx-6">
             Portfolio
           </Link>
           <UserButton />
