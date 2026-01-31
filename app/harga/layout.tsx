@@ -39,6 +39,24 @@ export default function HargaLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  // Determine if we're in production or sandbox mode
+  // Use MIDTRANS_IS_PRODUCTION flag explicitly
+  const isProduction = process.env.MIDTRANS_IS_PRODUCTION === 'true' || process.env.NODE_ENV === 'production';
+  const snapScriptUrl = isProduction
+    ? 'https://app.midtrans.com/snap/snap.js'
+    : 'https://app.sandbox.midtrans.com/snap/snap.js';
+  const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '';
+
+  return (
+    <>
+      {/* Midtrans Snap.js for payment popup */}
+      <script
+        src={snapScriptUrl}
+        data-client-key={clientKey}
+        async
+      />
+      {children}
+    </>
+  );
 }
 

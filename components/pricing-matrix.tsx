@@ -1,9 +1,13 @@
 "use client"
 
-import { useState } from "react"
-import { Check, X, Info } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Check, X, Info, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useUser, SignInButton } from "@clerk/nextjs"
+import { toast } from "sonner"
+import { useSearchParams } from "next/navigation"
+import { PaymentMethodDialog } from "@/components/payment-method-dialog"
 
 type FeatureValue = string | boolean | number
 
@@ -85,8 +89,51 @@ const pricingData: FeatureCategory[] = [
   },
 ]
 
+// Plan types for payment dialog
+type PaidPlanType = 'suhu' | 'bandar'
+
 export function PricingMatrix() {
   const [isYearly, setIsYearly] = useState(false)
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+  const { isSignedIn, user } = useUser()
+  const searchParams = useSearchParams()
+
+  // Payment dialog state
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<{
+    type: PaidPlanType
+    name: string
+    amount: number
+  } | null>(null)
+
+  // Handle URL params for GoPay callback
+  useEffect(() => {
+    const gopayStatus = searchParams.get('gopay')
+    const paymentStatus = searchParams.get('status')
+
+    if (gopayStatus === 'success') {
+      toast.success('Akun GoPay berhasil dihubungkan!')
+      // Clear URL params
+      window.history.replaceState({}, '', '/harga')
+    } else if (gopayStatus === 'error') {
+      toast.error('Gagal menghubungkan akun GoPay. Silakan coba lagi.')
+      window.history.replaceState({}, '', '/harga')
+    } else if (gopayStatus === 'pending') {
+      toast.info('Proses penghubungan GoPay masih pending.')
+      window.history.replaceState({}, '', '/harga')
+    }
+
+    if (paymentStatus === 'success') {
+      toast.success('Pembayaran berhasil! Terima kasih.')
+      window.history.replaceState({}, '', '/harga')
+    } else if (paymentStatus === 'error') {
+      toast.error('Pembayaran gagal. Silakan coba lagi.')
+      window.history.replaceState({}, '', '/harga')
+    } else if (paymentStatus === 'pending') {
+      toast.info('Pembayaran sedang diproses.')
+      window.history.replaceState({}, '', '/harga')
+    }
+  }, [searchParams])
 
   const plans = [
     {
@@ -144,6 +191,37 @@ export function PricingMatrix() {
 
   const getFeatureValue = (planKey: "ritel" | "suhu" | "bandar", feature: Feature): FeatureValue => {
     return feature[planKey]
+  }
+
+  const handleSubscribe = (planKey: string) => {
+    // Free plan - no payment needed
+    if (planKey === "ritel") {
+      toast.success("Anda sudah menggunakan paket Ritel gratis!")
+      return
+    }
+
+    // Check if user is signed in
+    if (!isSignedIn) {
+      toast.error("Silakan login terlebih dahulu untuk berlangganan")
+      return
+    }
+
+    // Find the plan
+    const plan = plans.find(p => p.key === planKey)
+    if (!plan) return
+
+    // Open payment method dialog
+    setSelectedPlan({
+      type: planKey as PaidPlanType,
+      name: plan.name,
+      amount: isYearly ? plan.yearlyPrice * 12 : plan.monthlyPrice,
+    })
+    setPaymentDialogOpen(true)
+  }
+
+  const handlePaymentSuccess = () => {
+    // Refresh the page to show updated subscription status
+    window.location.reload()
   }
 
   return (
@@ -218,14 +296,38 @@ export function PricingMatrix() {
                     </span>
                   </div>
 
-                  <Button
-                    className={`w-full ${plan.highlighted
-                      ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                      : "bg-secondary hover:bg-secondary/80 text-foreground"
-                      }`}
-                  >
-                    {plan.monthlyPrice === 0 ? "Mulai Gratis" : "Pilih Paket"}
-                  </Button>
+                  {isSignedIn ? (
+                    <Button
+                      onClick={() => handleSubscribe(plan.key)}
+                      disabled={loadingPlan !== null}
+                      className={`w-full ${plan.highlighted
+                        ? "bg-primary hover:bg-primary/90 text-primary-foreground"
+                        : "bg-secondary hover:bg-secondary/80 text-foreground"
+                        }`}
+                    >
+                      {loadingPlan === plan.key ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Memproses...
+                        </>
+                      ) : plan.monthlyPrice === 0 ? (
+                        "Mulai Gratis"
+                      ) : (
+                        "Pilih Paket"
+                      )}
+                    </Button>
+                  ) : (
+                    <SignInButton mode="modal">
+                      <Button
+                        className={`w-full ${plan.highlighted
+                          ? "bg-primary hover:bg-primary/90 text-primary-foreground"
+                          : "bg-secondary hover:bg-secondary/80 text-foreground"
+                          }`}
+                      >
+                        {plan.monthlyPrice === 0 ? "Mulai Gratis" : "Login untuk Berlangganan"}
+                      </Button>
+                    </SignInButton>
+                  )}
                 </div>
 
                 {/* Features List inside card */}
@@ -279,7 +381,22 @@ export function PricingMatrix() {
           </div>
         </div>
       </section>
+
+      {/* Payment Method Dialog */}
+      {selectedPlan && (
+        <PaymentMethodDialog
+          isOpen={paymentDialogOpen}
+          onClose={() => {
+            setPaymentDialogOpen(false)
+            setSelectedPlan(null)
+          }}
+          planType={selectedPlan.type}
+          planName={selectedPlan.name}
+          billingInterval={isYearly ? 'yearly' : 'monthly'}
+          amount={selectedPlan.amount}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
     </TooltipProvider>
   )
 }
-
