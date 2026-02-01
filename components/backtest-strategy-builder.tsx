@@ -1009,72 +1009,77 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
 
 
 
-                  <div className="relative" ref={tickerDropdownRef}>
+                  <div ref={tickerDropdownRef}>
                     <Label className="text-xs text-muted-foreground mb-2 block">Ticker</Label>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-between h-9 px-3 font-normal bg-white border-slate-300 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-400 font-mono"
-                      onClick={() => {
-                        setTickerDropdownOpen(!tickerDropdownOpen)
-                        if (!tickerDropdownOpen) fetchTickers()
-                      }}
-                    >
-                      <span className="text-sm text-foreground truncate">
-                        {selectedTickers.length === 0
-                          ? "Select tickers..."
-                          : selectedTickers.length === 1
-                            ? tickerOptions.find((t) => t.value === selectedTickers[0])?.label || selectedTickers[0]
-                            : `${selectedTickers.length} tickers selected`}
-                      </span>
-                      <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0" />
-                    </Button>
-                    {tickerDropdownOpen && (
-                      <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-md max-h-60 overflow-hidden flex flex-col">
-                        <div className="p-2 border-b">
-                          <Input
-                            placeholder="Search tickers..."
-                            className="h-8 text-xs font-mono"
-                            value={tickerSearch}
-                            onChange={(e) => setTickerSearch(e.target.value)}
-                            autoFocus
-                          />
-                        </div>
-                        <div className="overflow-y-auto max-h-[200px]">
-                          {isLoadingTickers ? (
-                            <div className="flex items-center justify-center py-4">
-                              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                              <span className="ml-2 text-sm text-muted-foreground">Loading...</span>
-                            </div>
-                          ) : tickerOptions.length === 0 ? (
-                            <div className="py-2 px-3 text-sm text-muted-foreground">No tickers found</div>
-                          ) : (
-                            tickerOptions
-                              .filter(t =>
-                                !tickerSearch ||
-                                t.label.toLowerCase().includes(tickerSearch.toLowerCase()) ||
-                                t.value.toLowerCase().includes(tickerSearch.toLowerCase())
-                              )
-                              .map((ticker) => (
-                                <div
-                                  key={ticker.value}
-                                  className="flex items-center px-3 py-2 hover:bg-slate-100 hover:text-slate-900 cursor-pointer text-foreground"
-                                  onClick={() => toggleTicker(ticker.value)}
-                                >
+                    <div className="relative">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between h-9 px-3 font-normal bg-white border-slate-300 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-400 font-mono"
+                        onClick={() => {
+                          setTickerDropdownOpen(!tickerDropdownOpen)
+                          if (!tickerDropdownOpen) fetchTickers()
+                        }}
+                      >
+                        <span className="text-sm text-foreground truncate">
+                          {selectedTickers.length === 0
+                            ? "Select tickers..."
+                            : selectedTickers.length === 1
+                              ? tickerOptions.find((t) => t.value === selectedTickers[0])?.label || selectedTickers[0]
+                              : `${selectedTickers.length} tickers selected`}
+                        </span>
+                        <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0" />
+                      </Button>
+                      {tickerDropdownOpen && (
+                        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-md max-h-60 overflow-hidden flex flex-col">
+                          <div className="p-2 border-b">
+                            <Input
+                              placeholder="Search tickers..."
+                              className="h-8 text-xs font-mono"
+                              value={tickerSearch}
+                              onChange={(e) => setTickerSearch(e.target.value)}
+                              autoFocus
+                            />
+                          </div>
+                          <div className="overflow-y-auto max-h-[200px]">
+                            {isLoadingTickers ? (
+                              <div className="flex items-center justify-center py-4">
+                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                <span className="ml-2 text-sm text-muted-foreground">Loading...</span>
+                              </div>
+                            ) : tickerOptions.length === 0 ? (
+                              <div className="py-2 px-3 text-sm text-muted-foreground">No tickers found</div>
+                            ) : (
+                              tickerOptions
+                                .filter(t =>
+                                  !tickerSearch ||
+                                  t.label.toLowerCase().includes(tickerSearch.toLowerCase()) ||
+                                  t.value.toLowerCase().includes(tickerSearch.toLowerCase())
+                                )
+                                .map((ticker, index) => (
                                   <div
-                                    className={`w-4 h-4 border rounded mr-2 flex items-center justify-center ${selectedTickers.includes(ticker.value) ? "bg-primary border-primary" : "border-input"
+                                    key={ticker.value}
+                                    className={`flex items-center px-3 py-2.5 mx-2 my-1 rounded-md border cursor-pointer transition-all duration-150 ${selectedTickers.includes(ticker.value)
+                                      ? "bg-primary/10 border-primary/30 hover:bg-primary/20"
+                                      : "bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300"
                                       }`}
+                                    onClick={() => toggleTicker(ticker.value)}
                                   >
-                                    {selectedTickers.includes(ticker.value) && (
-                                      <div className="w-2 h-2 bg-primary-foreground rounded-sm" />
-                                    )}
+                                    <div
+                                      className={`w-4 h-4 border rounded mr-3 flex items-center justify-center flex-shrink-0 ${selectedTickers.includes(ticker.value) ? "bg-primary border-primary" : "border-slate-300 bg-white"
+                                        }`}
+                                    >
+                                      {selectedTickers.includes(ticker.value) && (
+                                        <div className="w-2 h-2 bg-primary-foreground rounded-sm" />
+                                      )}
+                                    </div>
+                                    <span className="text-sm font-mono truncate text-foreground">{ticker.label}</span>
                                   </div>
-                                  <span className="text-sm font-mono truncate">{ticker.label}</span>
-                                </div>
-                              ))
-                          )}
+                                ))
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                     {selectedTickers.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {selectedTickers.map((t) => {
@@ -1095,9 +1100,9 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                     )}
                   </div>
 
-                  <div>
+                  <div ref={sectorDropdownRef}>
                     <Label className="text-xs text-muted-foreground mb-2 block">Sectors</Label>
-                    <div className="relative" ref={sectorDropdownRef}>
+                    <div className="relative">
                       <Button
                         variant="outline"
                         className="w-full justify-between h-9 px-3 font-normal bg-white border-slate-300 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-400 font-mono"
@@ -1117,18 +1122,21 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                           {sectorOptions.map((sector) => (
                             <div
                               key={sector}
-                              className="flex items-center px-3 py-2 hover:bg-slate-100 hover:text-slate-900 cursor-pointer text-foreground"
+                              className={`flex items-center px-3 py-2.5 mx-2 my-1 rounded-md border cursor-pointer transition-all duration-150 ${sectors.includes(sector)
+                                ? "bg-primary/10 border-primary/30 hover:bg-primary/20"
+                                : "bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300"
+                                }`}
                               onClick={() => toggleSector(sector)}
                             >
                               <div
-                                className={`w-4 h-4 border rounded mr-2 flex items-center justify-center ${sectors.includes(sector) ? "bg-primary border-primary" : "border-input"
+                                className={`w-4 h-4 border rounded mr-3 flex items-center justify-center flex-shrink-0 ${sectors.includes(sector) ? "bg-primary border-primary" : "border-slate-300 bg-white"
                                   }`}
                               >
                                 {sectors.includes(sector) && (
                                   <div className="w-2 h-2 bg-primary-foreground rounded-sm" />
                                 )}
                               </div>
-                              <span className="text-sm">{sector}</span>
+                              <span className="text-sm text-foreground">{sector}</span>
                             </div>
                           ))}
                         </div>
@@ -1708,7 +1716,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
               variant="outline"
               onClick={() => {
                 setShowSuccessModal(false)
-                window.location.href = "/strategies"
+                window.location.href = "/portfolio"
               }}
               className="w-full font-mono"
             >

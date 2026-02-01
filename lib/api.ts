@@ -61,6 +61,35 @@ export interface BacktestResult {
       return: number
     }
   }
+  recentSignals?: {
+    scannedDays: number
+    signals: Array<{
+      date: string
+      ticker: string
+      companyName: string
+      close?: number
+      price?: number
+      reasons: string | string[]
+      indicators?: Record<string, number>
+      daysAgo?: number
+      signal?: string
+      sector?: string
+      marketCap?: string
+    }>
+    summary?: {
+      totalSignals: number
+      uniqueStocks: number
+      byDay?: Record<string, number>
+    }
+  }
+  signals?: Array<{
+    date: string
+    ticker: string
+    companyName: string
+    close: number
+    reasons: string
+    indicators?: Record<string, number>
+  }>
   trades?: Array<{
     date: string
     ticker: string
@@ -191,9 +220,25 @@ export class ApiService {
         hasSummary: result.summary !== undefined,
         hasTotalReturn: result.summary?.totalReturn !== undefined,
         hasAnnualReturn: result.summary?.annualizedReturn !== undefined,
+        hasRecentSignals: result.recentSignals !== undefined,
+        recentSignalsCount: result.recentSignals?.signals ? result.recentSignals.signals.length : 0,
+        hasSignals: result.signals !== undefined,
+        signalsCount: result.signals ? result.signals.length : 0,
         hasTrades: result.trades ? result.trades.length : 0,
         hasPerformanceData: result.performanceData ? result.performanceData.length : 0
       })
+
+      // Log signals if present
+      if (result.recentSignals?.signals && result.recentSignals.signals.length > 0) {
+        console.log('🎯 [API SERVICE] Recent Signals found:', result.recentSignals.signals.length)
+        console.log('🎯 [API SERVICE] First recent signal:', result.recentSignals.signals[0])
+        console.log('🎯 [API SERVICE] Recent signals summary:', result.recentSignals.summary)
+      } else if (result.signals && result.signals.length > 0) {
+        console.log('🎯 [API SERVICE] Signals found:', result.signals.length)
+        console.log('🎯 [API SERVICE] First signal:', result.signals[0])
+      } else {
+        console.log('⚠️ [API SERVICE] No signals or recentSignals in response')
+      }
 
       return result
     } catch (error) {

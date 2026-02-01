@@ -39,7 +39,14 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
     hasCurrentResults: !!currentResults,
     currentResultsKeys: currentResults ? Object.keys(currentResults) : [],
     totalReturn: currentResults?.totalReturn,
-    tradesCount: currentResults?.trades?.length || 0
+    tradesCount: currentResults?.trades?.length || 0,
+    recentSignalsCount: currentResults?.recentSignals?.signals?.length || 0,
+    signalsCount: currentResults?.signals?.length || 0,
+    hasRecentSignals: !!currentResults?.recentSignals,
+    hasRecentSignalsArray: !!currentResults?.recentSignals?.signals,
+    hasSignals: !!currentResults?.signals,
+    recentSignals: currentResults?.recentSignals,
+    signals: currentResults?.signals
   })
 
   // Only show data if we have real results
@@ -181,8 +188,11 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
         </Card>
 
         {/* Stock Recommendations */}
-        <div className="lg:col-span-1">
-          <StockRecommendations signals={currentResults?.signals} trades={currentResults?.trades} />
+        <div className="lg:col-span-1 h-[500px]">
+          <StockRecommendations
+            signals={currentResults?.recentSignals?.signals || currentResults?.signals}
+            trades={currentResults?.trades}
+          />
         </div>
       </div>
 

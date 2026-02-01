@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Check, X, Info, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -92,7 +92,7 @@ const pricingData: FeatureCategory[] = [
 // Plan types for payment dialog
 type PaidPlanType = 'suhu' | 'bandar'
 
-export function PricingMatrix() {
+function PricingMatrixInner() {
   const [isYearly, setIsYearly] = useState(false)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
   const { isSignedIn, user } = useUser()
@@ -398,5 +398,32 @@ export function PricingMatrix() {
         />
       )}
     </TooltipProvider>
+  )
+}
+
+// Wrapper component with Suspense boundary for useSearchParams
+export function PricingMatrix() {
+  return (
+    <Suspense fallback={
+      <section className="py-16 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="h-10 w-3/4 mx-auto bg-muted animate-pulse rounded" />
+            <div className="h-6 w-1/2 mx-auto bg-muted animate-pulse rounded mt-4" />
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-6">
+                <div className="h-8 w-1/2 bg-muted animate-pulse rounded mb-4" />
+                <div className="h-12 w-3/4 bg-muted animate-pulse rounded mb-4" />
+                <div className="h-10 w-full bg-muted animate-pulse rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    }>
+      <PricingMatrixInner />
+    </Suspense>
   )
 }

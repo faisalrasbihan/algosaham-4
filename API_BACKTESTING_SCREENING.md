@@ -464,30 +464,6 @@ Based on Indonesian Auto-Reject price limits:
       "return": -7.2
     }
   },
-  "signals": [
-    {
-      "date": "2024-03-15",
-      "ticker": "BBCA",
-      "companyName": "Bank Central Asia",
-      "close": 9850,
-      "reasons": "RSI(14) oversold (28.5); Volume spike 2.1x",
-      "indicators": {
-        "RSI_14": 28.5,
-        "VOLUME_SMA_20_ratio": 2.1
-      }
-    },
-    {
-      "date": "2024-03-18",
-      "ticker": "BBRI",
-      "companyName": "Bank Rakyat Indonesia",
-      "close": 5425,
-      "reasons": "MACD bullish crossover; ADX strong trend (32)",
-      "indicators": {
-        "MACD_histogram": 15.2,
-        "ADX_14": 32.5
-      }
-    }
-  ],
   "trades": [
     {
       "date": "2024-03-15",
@@ -509,7 +485,7 @@ Based on Indonesian Auto-Reject price limits:
       "price": 10500,
       "value": 5250000,
       "portfolioValue": 100325000,
-      "reason": "Take profit hit",
+      "reason": "TAKE_PROFIT",
       "profitLoss": 325000,
       "profitLossPercent": 6.6,
       "holdingDays": 13
@@ -534,7 +510,52 @@ Based on Indonesian Auto-Reject price limits:
       "probability": 0.72,
       "tradesCount": 8
     }
-  ]
+  ],
+  "recentSignals": {
+    "scannedDays": 5,
+    "signals": [
+      {
+        "ticker": "BBCA",
+        "companyName": "Bank Central Asia",
+        "date": "2024-03-28",
+        "daysAgo": 0,
+        "signal": "BUY",
+        "reasons": ["RSI(14) oversold", "SMA(20,50) golden cross"],
+        "price": 9850,
+        "sector": "Finance",
+        "marketCap": "large"
+      }
+    ],
+    "summary": {
+      "totalSignals": 12,
+      "uniqueStocks": 8,
+      "byDay": {
+        "2024-03-28": 4,
+        "2024-03-27": 3,
+        "2024-03-26": 5
+      }
+    }
+  },
+  "currentPortfolio": {
+    "cash": 50000000.0,
+    "totalValue": 112500000.0,
+    "openPositionsValue": 62500000.0,
+    "openPositionsCount": 3,
+    "positions": [
+      {
+        "ticker": "BBRI",
+        "companyName": "Bank Rakyat Indonesia",
+        "quantity": 5000,
+        "entryDate": "2024-03-20",
+        "entryPrice": 5400,
+        "currentPrice": 5650,
+        "marketValue": 28250000.0,
+        "unrealizedPnL": 1250000.0,
+        "unrealizedPnLPercent": 4.63,
+        "holdingDays": 8
+      }
+    ]
+  }
 }
 ```
 
@@ -543,7 +564,7 @@ Based on Indonesian Auto-Reject price limits:
 | Field | Description |
 |-------|-------------|
 | `initialCapital` | Starting capital in IDR |
-| `finalValue` | Ending portfolio value in IDR |
+| `finalValue` | Ending portfolio value in IDR (cash + open positions at market) |
 | `totalReturn` | Total return percentage |
 | `annualizedReturn` | Return annualized to 252 trading days |
 | `benchmarkReturn` | IHSG return over same period (for comparison) |
@@ -556,33 +577,22 @@ Based on Indonesian Auto-Reject price limits:
 | `maxDrawdown` | Largest peak-to-trough decline (%) |
 | `sharpeRatio` | Risk-adjusted return (higher = better) |
 | `averageHoldingDays` | Average days positions were held |
-| `bestTrade` | Best performing trade |
-| `worstTrade` | Worst performing trade |
-
-#### Signals Fields
-
-| Field | Description |
-|-------|-------------|
-| `date` | Date signal was generated |
-| `ticker` | Stock ticker symbol |
-| `companyName` | Company name |
-| `close` | Closing price when signal triggered |
-| `reasons` | Human-readable signal reasons |
-| `indicators` | Raw indicator values at signal time |
+| `bestTrade` | Best performing trade: `{ "ticker": string, "return": number }` |
+| `worstTrade` | Worst performing trade: `{ "ticker": string, "return": number }` |
 
 #### Trade Fields
 
 | Field | Description |
 |-------|-------------|
-| `date` | Trade execution date |
+| `date` | Trade execution date (YYYY-MM-DD) |
 | `ticker` | Stock ticker symbol |
 | `companyName` | Company name |
-| `action` | `BUY` or `SELL` |
-| `quantity` | Number of shares |
-| `price` | Execution price |
-| `value` | Total trade value (quantity × price) |
+| `action` | `"BUY"` or `"SELL"` |
+| `quantity` | Number of shares (always multiple of 100 — IDX lot size) |
+| `price` | Execution price per share |
+| `value` | Total trade value including fees (BUY: cost; SELL: net proceeds) |
 | `portfolioValue` | Portfolio value after trade |
-| `reason` | Signal or exit reason |
+| `reason` | Signal reason (BUY) or exit reason: `"STOP_LOSS"`, `"TAKE_PROFIT"`, `"MAX_HOLDING_DAYS"` (SELL) |
 | `profitLoss` | P&L in IDR (SELL only) |
 | `profitLossPercent` | P&L percentage (SELL only) |
 | `holdingDays` | Days position was held (SELL only) |
@@ -591,23 +601,66 @@ Based on Indonesian Auto-Reject price limits:
 
 | Field | Description |
 |-------|-------------|
-| `date` | Date |
-| `portfolioValue` | Total portfolio value in IDR |
+| `date` | Date (YYYY-MM-DD) |
+| `portfolioValue` | Total portfolio value in IDR (cash + mark-to-market positions) |
 | `portfolioNormalized` | Portfolio value normalized to 100 at start |
-| `ihsgValue` | IHSG index normalized to 100 at start |
-| `lq45Value` | LQ45 index normalized to 100 at start |
+| `ihsgValue` | IHSG index normalized to 100 at start (`null` if unavailable) |
+| `lq45Value` | LQ45 index normalized to 100 at start (`null` if unavailable) |
 | `drawdown` | Current drawdown from peak (%) |
 
 #### Monthly Performance Fields
 
 | Field | Description |
 |-------|-------------|
-| `month` | Month label (e.g., "Mar 24") |
+| `month` | Month label (e.g., `"Mar 24"`) |
 | `winRate` | Win rate for trades closed that month (%) |
 | `returns` | Portfolio return for the month (%) |
 | `benchmarkReturns` | IHSG return for the month (%) |
-| `probability` | Combined score of win rate + returns |
+| `probability` | Combined score: `winRate * 0.6 + returnComponent * 0.4` |
 | `tradesCount` | Number of trades closed that month |
+
+#### Recent Signals Fields
+
+Buy signals from the last 5 trading days of the backtest period.
+
+| Field | Description |
+|-------|-------------|
+| `scannedDays` | Number of recent trading days scanned (5) |
+| `signals[]` | Array of signal objects (sorted by `daysAgo` then `ticker`) |
+| `signals[].ticker` | Stock ticker symbol |
+| `signals[].companyName` | Company name |
+| `signals[].date` | Date signal was generated (YYYY-MM-DD) |
+| `signals[].daysAgo` | 0 = most recent trading day, 1 = day before, etc. |
+| `signals[].signal` | Always `"BUY"` |
+| `signals[].reasons` | Array of signal reason strings (e.g., `["RSI(14) oversold", "SMA golden cross"]`) |
+| `signals[].price` | Closing price when signal triggered |
+| `signals[].sector` | Stock sector |
+| `signals[].marketCap` | Market cap group: `"small"`, `"mid"`, or `"large"` |
+| `summary.totalSignals` | Total buy signals in scanned period |
+| `summary.uniqueStocks` | Number of distinct tickers with signals |
+| `summary.byDay` | Object mapping date string to signal count per day |
+
+#### Current Portfolio Fields
+
+Snapshot of open (unsold) positions at the end of the backtest period.
+
+| Field | Description |
+|-------|-------------|
+| `cash` | Remaining cash balance in IDR |
+| `totalValue` | Cash + all open positions at market value (matches `summary.finalValue`) |
+| `openPositionsValue` | Sum of all position market values |
+| `openPositionsCount` | Number of open positions |
+| `positions[]` | Array of position objects (sorted by `marketValue` descending) |
+| `positions[].ticker` | Stock ticker symbol |
+| `positions[].companyName` | Company name |
+| `positions[].quantity` | Number of shares held |
+| `positions[].entryDate` | Date position was opened (YYYY-MM-DD) |
+| `positions[].entryPrice` | Buy price per share |
+| `positions[].currentPrice` | Last trading day's closing price |
+| `positions[].marketValue` | Current value: `quantity × currentPrice` |
+| `positions[].unrealizedPnL` | Unrealized P&L: `(currentPrice - entryPrice) × quantity` |
+| `positions[].unrealizedPnLPercent` | Unrealized P&L: `(currentPrice / entryPrice - 1) × 100` |
+| `positions[].holdingDays` | Days since entry date |
 
 ---
 

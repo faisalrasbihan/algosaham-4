@@ -15,9 +15,14 @@ interface ApiSignal {
   date: string
   ticker: string
   companyName: string
-  close: number
-  reasons: string
+  close?: number
+  price?: number
+  reasons: string | string[]
   indicators?: Record<string, number>
+  daysAgo?: number
+  signal?: string
+  sector?: string
+  marketCap?: string
 }
 
 // API Trade format from backtest
@@ -54,19 +59,40 @@ interface StockRecommendationsProps {
 }
 
 export function StockRecommendations({ signals = [], trades = [] }: StockRecommendationsProps) {
+  console.log('🎯 [STOCK RECOMMENDATIONS] Component rendered with:', {
+    signalsCount: signals.length,
+    tradesCount: trades.length,
+    signals: signals,
+    trades: trades
+  })
+
   // Map API signals to component format
   const signalStocks: StockRecommendation[] = useMemo(() => {
-    return signals.map(signal => ({
-      ticker: signal.ticker,
-      name: signal.companyName,
-      days: 0, // Signal just triggered
-      return: 0, // Not yet in position
-      maxDrawdown: 0,
-      entryPrice: signal.close,
-      currentPrice: signal.close,
-      signal: "buy" as const,
-      reasons: signal.reasons,
-    }))
+    console.log('🎯 [STOCK RECOMMENDATIONS] Processing signals:', signals)
+    if (!signals || !Array.isArray(signals) || signals.length === 0) {
+      return []
+    }
+    return signals.map(signal => {
+      // Handle reasons as string or array
+      const reasonsText = Array.isArray(signal.reasons)
+        ? signal.reasons.join('; ')
+        : signal.reasons
+
+      // Handle price field (can be 'close' or 'price')
+      const priceValue = signal.close || signal.price || 0
+
+      return {
+        ticker: signal.ticker,
+        name: signal.companyName,
+        days: 0, // Signal just triggered
+        return: 0, // Not yet in position
+        maxDrawdown: 0,
+        entryPrice: priceValue,
+        currentPrice: priceValue,
+        signal: "buy" as const,
+        reasons: reasonsText,
+      }
+    })
   }, [signals])
 
   // Map API trades to portfolio holdings (only open positions)
@@ -248,7 +274,7 @@ export function StockRecommendations({ signals = [], trades = [] }: StockRecomme
               </TabsTrigger>
             </TabsList>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto overflow-x-hidden pt-0 scrollbar-hide">
+          <CardContent className="flex-1 overflow-y-auto overflow-x-hidden pt-0 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-slate-400">
             <TabsContent value="signal" className="mt-0">
               {renderStockTable(signalStocks)}
             </TabsContent>
