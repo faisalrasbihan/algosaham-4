@@ -36,6 +36,7 @@ import {
   Clock,
 } from "lucide-react"
 import { AddIndicatorModal } from "@/components/add-indicator-modal"
+import { FundamentalIndicatorDropdown } from "@/components/fundamental-indicator-dropdown"
 import { OnboardingTutorial } from "@/components/onboarding-tutorial"
 import { SignInButton, useUser } from "@clerk/nextjs"
 import { LogIn } from "lucide-react"
@@ -1262,35 +1263,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                       )}
                     </div>
                   ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full bg-transparent font-mono hover:text-foreground border-slate-300 hover:border-[#d07225]"
-                    style={
-                      {
-                        "--hover-bg": "#d072251a",
-                        "--hover-text": "#d07225",
-                        "--hover-border": "#d07225",
-                      } as React.CSSProperties
-                    }
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "#d0722510"
-                      e.currentTarget.style.color = "#d07225"
-                      e.currentTarget.style.borderColor = "#d07225"
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent"
-                      e.currentTarget.style.color = ""
-                      e.currentTarget.style.borderColor = "#cbd5e1"
-                    }}
-                    onClick={() => {
-                      setModalType("fundamental")
-                      setShowModal(true)
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Fundamental Indicator
-                  </Button>
+                  <FundamentalIndicatorDropdown onAddIndicator={addIndicator} />
                 </CardContent>
               )}
             </Card>

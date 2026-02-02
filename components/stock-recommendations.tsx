@@ -51,6 +51,10 @@ interface StockRecommendation {
   currentPrice: number
   signal: "buy" | "sell"
   reasons?: string
+  reasonsList?: string[] // Array of reasons for bullet points
+  date?: string
+  sector?: string
+  marketCap?: string
 }
 
 interface StockRecommendationsProps {
@@ -84,13 +88,17 @@ export function StockRecommendations({ signals = [], trades = [] }: StockRecomme
       return {
         ticker: signal.ticker,
         name: signal.companyName,
-        days: 0, // Signal just triggered
+        days: signal.daysAgo || 0,
         return: 0, // Not yet in position
         maxDrawdown: 0,
         entryPrice: priceValue,
         currentPrice: priceValue,
-        signal: "buy" as const,
+        signal: (signal.signal?.toLowerCase() === 'sell' ? 'sell' : 'buy') as "buy" | "sell",
         reasons: reasonsText,
+        reasonsList: Array.isArray(signal.reasons) ? signal.reasons : (signal.reasons ? [signal.reasons] : []),
+        date: signal.date,
+        sector: signal.sector,
+        marketCap: signal.marketCap,
       }
     })
   }, [signals])
@@ -194,32 +202,69 @@ export function StockRecommendations({ signals = [], trades = [] }: StockRecomme
                           <div className="font-bold text-sm text-foreground">{stock.ticker}</div>
                           <div className="text-xs text-muted-foreground">{stock.name}</div>
                         </div>
-                        {stock.reasons && (
+
+                        {/* Signal Action */}
+                        <div className="pt-2 border-t border-border/50">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-muted-foreground">Action:</span>
+                            <span className={`font-bold uppercase text-sm ${stock.signal === 'buy' ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                              {stock.signal}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Signal Reasons as Bullet Points */}
+                        {stock.reasonsList && stock.reasonsList.length > 0 && (
                           <div className="pt-2 border-t border-border/50">
-                            <div className="text-xs text-muted-foreground mb-1">Signal Reasons:</div>
-                            <div className="text-xs text-foreground">{stock.reasons}</div>
+                            <div className="text-xs text-muted-foreground mb-1.5">Signal Reasons:</div>
+                            <ul className="text-xs text-foreground space-y-1 ml-3">
+                              {stock.reasonsList.map((reason, idx) => (
+                                <li key={idx} className="list-disc">{reason}</li>
+                              ))}
+                            </ul>
                           </div>
                         )}
-                        <div className="pt-2 border-t border-border/50 text-xs text-muted-foreground">
-                          <div className="flex justify-between">
-                            <span>Action:</span>
-                            <span className="font-medium uppercase text-foreground">{stock.signal}</span>
-                          </div>
-                          {stock.days > 0 && (
-                            <div className="flex justify-between mt-1">
-                              <span>Days Held:</span>
-                              <span className="font-medium text-foreground">{stock.days}d</span>
+
+                        {/* Additional Info */}
+                        <div className="pt-2 border-t border-border/50 text-xs space-y-1">
+                          {stock.date && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Date:</span>
+                              <span className="font-medium text-foreground">{stock.date}</span>
                             </div>
                           )}
+                          {stock.days >= 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Days Ago:</span>
+                              <span className="font-medium text-foreground">{stock.days === 0 ? 'Today' : `${stock.days}d ago`}</span>
+                            </div>
+                          )}
+                          {stock.sector && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Sector:</span>
+                              <span className="font-medium text-foreground capitalize">{stock.sector}</span>
+                            </div>
+                          )}
+                          {stock.marketCap && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Market Cap:</span>
+                              <span className="font-medium text-foreground capitalize">{stock.marketCap}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Price:</span>
+                            <span className="font-medium text-foreground">{stock.entryPrice.toLocaleString()}</span>
+                          </div>
                           {stock.maxDrawdown !== 0 && (
-                            <div className="flex justify-between mt-1">
-                              <span>Max Drawdown:</span>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Max Drawdown:</span>
                               <span className="text-red-500 font-medium">{stock.maxDrawdown}%</span>
                             </div>
                           )}
                           {stock.return !== 0 && (
-                            <div className="flex justify-between mt-1">
-                              <span>Return:</span>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Return:</span>
                               <span className={stock.return > 0 ? "text-green-600 font-medium" : "text-red-500 font-medium"}>
                                 {stock.return > 0 ? "+" : ""}{stock.return}%
                               </span>

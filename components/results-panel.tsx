@@ -188,7 +188,7 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
         </Card>
 
         {/* Stock Recommendations */}
-        <div className="lg:col-span-1 h-[500px]">
+        <div className="lg:col-span-1 h-[550px]">
           <StockRecommendations
             signals={currentResults?.recentSignals?.signals || currentResults?.signals}
             trades={currentResults?.trades}
