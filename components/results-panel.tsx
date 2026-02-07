@@ -61,7 +61,7 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
       label: "Annual Return",
       value: `${(currentResults.summary?.annualizedReturn || 0).toFixed(1)}%`,
       positive: (currentResults.summary?.annualizedReturn || 0) >= 0,
-      tooltip: "Laju Pertumbuhan Majemuk Tahunan (CAGR), mewakili rata-rata pertumbuhan tahunan portofolio."
+      tooltip: "Compound Annual Growth Rate (CAGR), mewakili rata-rata pertumbuhan tahunan portofolio."
     },
     {
       label: "Max Drawdown",
@@ -94,7 +94,7 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
         ? `+${currentResults.summary.bestTrade.return.toFixed(1)}%`
         : null,
       subPositive: true,
-      tooltip: "Perdagangan individu yang menghasilkan persentase keuntungan tertinggi."
+      tooltip: "Saham yang menghasilkan persentase keuntungan tertinggi."
     },
     {
       label: "Worst Stock",
@@ -103,7 +103,7 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
         ? `${currentResults.summary.worstTrade.return.toFixed(1)}%`
         : null,
       subPositive: false,
-      tooltip: "Perdagangan individu yang menghasilkan persentase kerugian terbesar."
+      tooltip: "Saham yang menghasilkan persentase kerugian terbesar."
     },
   ] : []
 

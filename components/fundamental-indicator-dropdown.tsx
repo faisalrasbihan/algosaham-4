@@ -15,13 +15,13 @@ interface FundamentalIndicatorDropdownProps {
 }
 
 const fundamentalIndicators = [
-    { name: "PE Ratio", description: "Price to Earnings ratio - measures stock valuation", params: { min: 0, max: 50 } },
-    { name: "PBV", description: "Price to Book Value - compares market value to book value", params: { min: 0, max: 10 } },
-    { name: "ROE", description: "Return on Equity - measures profitability vs shareholder equity", params: { min: 0, max: 100 } },
-    { name: "DE Ratio", description: "Debt to Equity - measures financial leverage", params: { min: 0, max: 5 } },
-    { name: "ROA", description: "Return on Assets - measures profitability vs total assets", params: { min: 0, max: 50 } },
-    { name: "NPM", description: "Net Profit Margin - measures profit efficiency", params: { min: 0, max: 100 } },
-    { name: "EPS", description: "Earnings Per Share - profit allocated to each share", params: { min: 0, max: 1000 } },
+    { name: "PE Ratio", description: "Rasio Harga terhadap Laba - mengukur valuasi saham", params: { min: 0, max: 50 } },
+    { name: "PBV", description: "Rasio Harga terhadap Nilai Buku - membandingkan nilai pasar dengan nilai buku", params: { min: 0, max: 10 } },
+    { name: "ROE", description: "Pengembalian atas Ekuitas - mengukur profitabilitas terhadap ekuitas pemegang saham", params: { min: 0, max: 100 } },
+    { name: "DE Ratio", description: "Rasio Hutang terhadap Ekuitas - mengukur leverage keuangan", params: { min: 0, max: 5 } },
+    { name: "ROA", description: "Pengembalian atas Aset - mengukur profitabilitas terhadap total aset", params: { min: 0, max: 50 } },
+    { name: "NPM", description: "Margin Laba Bersih - mengukur efisiensi laba", params: { min: 0, max: 100 } },
+    { name: "EPS", description: "Laba Per Saham - laba yang dialokasikan untuk setiap saham", params: { min: 0, max: 1000 } },
 ]
 
 export function FundamentalIndicatorDropdown({ onAddIndicator }: FundamentalIndicatorDropdownProps) {
