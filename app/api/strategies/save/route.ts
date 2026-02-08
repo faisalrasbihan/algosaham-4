@@ -82,10 +82,11 @@ export async function POST(req: Request) {
         await ensureUserExists(userId);
 
         const body = await req.json();
-        const { name, description, config, backtestResults } = body as {
+        const { name, description, config, backtestResults, isPrivate } = body as {
             name: string;
             description: string;
             config: BacktestRequest;
+            isPrivate?: boolean;
             backtestResults?: {
                 summary?: {
                     totalReturn?: number;
@@ -103,6 +104,22 @@ export async function POST(req: Request) {
                 { success: false, error: "Name is required" },
                 { status: 400 }
             );
+        }
+
+        // Fetch user's subscription tier
+        const user = await db.query.users.findFirst({
+            where: eq(users.clerkId, userId),
+        });
+
+        const userTier = user?.subscriptionTier || 'free';
+
+        // Determine if strategy should be public
+        // Free tier: always public (isPublic = true)
+        // Bandar tier: can choose (isPublic = !isPrivate)
+        // Other tiers: always public (isPublic = true)
+        let isPublic = true;
+        if (userTier === 'bandar' && isPrivate) {
+            isPublic = false;
         }
 
         // Generate config hash for Redis linking
@@ -158,7 +175,7 @@ export async function POST(req: Request) {
             totalTrades,
             totalStocks,
             qualityScore,
-            isPublic: false,
+            isPublic,
             isActive: true,
         }).returning();
 

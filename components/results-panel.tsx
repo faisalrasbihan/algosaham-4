@@ -208,7 +208,7 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
                 <Tooltip key={index}>
                   <TooltipTrigger asChild>
                     <div
-                      className="text-center p-4 bg-secondary/50 rounded-lg border border-border/50 hover:bg-secondary/70 transition-colors cursor-help"
+                      className="text-center p-4 bg-secondary/50 rounded-lg border border-border/50 hover:bg-secondary/70 transition-colors"
                     >
                       <div className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">
                         {stat.label}

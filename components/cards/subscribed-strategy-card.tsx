@@ -84,7 +84,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedSt
                                         {strategy.maxDrawdown}%
                                     </span>
                                     <div className="relative inline-block group">
-                                        <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                                        <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                                             Maximum peak-to-trough decline
                                         </div>
@@ -101,7 +101,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedSt
                                         {strategy.winRate.toFixed(0)}%
                                     </span>
                                     <div className="relative inline-block group">
-                                        <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                                        <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                                             Percentage of profitable trades
                                         </div>
@@ -126,7 +126,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedSt
                                                     : "Poor"}
                                     </span>
                                     <div className="relative inline-block group">
-                                        <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                                        <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                                             Sharpe Ratio: {strategy.sharpeRatio.toFixed(2)}
                                         </div>
@@ -139,7 +139,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedSt
                                 <div className="flex items-center justify-center gap-1">
                                     <span className="text-xs text-foreground">{strategy.totalTrades}</span>
                                     <div className="relative inline-block group">
-                                        <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                                        <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                                             Total number of trades executed
                                         </div>
@@ -152,7 +152,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedSt
                                 <div className="flex items-center justify-center gap-1">
                                     <span className="text-xs text-foreground">{strategy.stocksHeld}</span>
                                     <div className="relative inline-block group">
-                                        <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                                        <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                                             Number of stocks in portfolio
                                         </div>

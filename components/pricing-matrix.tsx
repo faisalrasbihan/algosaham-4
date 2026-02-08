@@ -350,7 +350,7 @@ function PricingMatrixInner() {
                                 {feature.tooltip && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+                                      <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent side="top" className="max-w-xs">
                                       <p>{feature.tooltip}</p>

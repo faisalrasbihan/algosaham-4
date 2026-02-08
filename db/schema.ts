@@ -36,15 +36,18 @@ export const strategies = pgTable("strategies", {
   totalReturn: numeric("total_return"), // "0%"
   maxDrawdown: numeric("max_drawdown"), // "0%"
   successRate: numeric("success_rate"), // "0%" (win rate)
+  sharpeRatio: numeric("sharpe_ratio"), // Risk-adjusted return metric
 
   // Strategy stats (for card display)
   totalTrades: integer("total_trades").default(0), // "0"
   totalStocks: integer("total_stocks").default(0), // "0"
   qualityScore: text("quality_score"), // "Poor", "Good", "Excellent"
+  subscribers: integer("subscribers").default(0), // Number of users following this strategy
 
   // Visibility/status
   isPublic: boolean("is_public").default(false),
   isActive: boolean("is_active").default(true),
+  isShowcase: boolean("is_showcase").default(false), // Featured/showcase strategy
 
   // Timestamps
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(), // "Created: 2/1/2026"

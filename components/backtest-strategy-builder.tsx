@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Switch } from "@/components/ui/switch"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   X,
   Plus,
@@ -36,6 +38,7 @@ import {
   Clock,
   Copy,
   CheckCheck,
+  Info,
 } from "lucide-react"
 import { AddIndicatorModal } from "@/components/add-indicator-modal"
 import { FundamentalIndicatorDropdown } from "@/components/fundamental-indicator-dropdown"
@@ -115,6 +118,8 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
   const [editingIndicators, setEditingIndicators] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState<string>("strategy")
+  const [isPrivate, setIsPrivate] = useState(false)
+  const [userTier, setUserTier] = useState<string>("free")
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: "1",
@@ -273,6 +278,27 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
     }
   }, [chatMessages])
 
+  // Fetch user's subscription tier
+  useEffect(() => {
+    const fetchUserTier = async () => {
+      if (!isSignedIn) return
+
+      try {
+        const response = await fetch('/api/user/tier')
+        if (response.ok) {
+          const data = await response.json()
+          setUserTier(data.tier || 'free')
+        }
+      } catch (error) {
+        console.error('Failed to fetch user tier:', error)
+        setUserTier('free')
+      }
+    }
+
+    fetchUserTier()
+  }, [isSignedIn])
+
+
   const toggleMarketCap = (cap: string) => {
     setMarketCaps((prev) => (prev.includes(cap) ? prev.filter((c) => c !== cap) : [...prev, cap]))
   }
@@ -374,6 +400,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
           description: strategyDescription,
           config,
           backtestResults,
+          isPrivate,
         }),
       })
 
@@ -1692,6 +1719,41 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
                 disabled={isSaving}
               />
             </div>
+
+            {/* Private Strategy Toggle */}
+            <div className="flex items-center justify-between space-x-2 p-3 border rounded-md bg-muted/30">
+              <div className="flex items-center space-x-2 flex-1">
+                <Label htmlFor="private-toggle" className="text-sm font-medium cursor-pointer">
+                  Strategi Privat
+                </Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-xs">
+                        <strong>Strategi Publik:</strong> Dapat dilihat dan digunakan oleh semua pengguna di komunitas.
+                      </p>
+                      <p className="text-xs mt-2">
+                        <strong>Strategi Privat:</strong> Hanya Anda yang dapat melihat dan menggunakan strategi ini. Fitur ini eksklusif untuk pengguna tier Bandar.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Switch
+                id="private-toggle"
+                checked={isPrivate}
+                onCheckedChange={setIsPrivate}
+                disabled={userTier !== "bandar" || isSaving}
+              />
+            </div>
+            {userTier !== "bandar" && (
+              <p className="text-xs text-muted-foreground">
+                💡 Upgrade ke tier <strong>Bandar</strong> untuk membuat strategi privat
+              </p>
+            )}
           </div>
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setShowSaveModal(false)} disabled={isSaving}>

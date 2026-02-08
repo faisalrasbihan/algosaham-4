@@ -5,7 +5,7 @@ import { eq, desc } from "drizzle-orm";
 
 export async function GET() {
   try {
-    // Query strategies where creator_id = 0 (system strategies)
+    // Query strategies where isShowcase = true (featured strategies)
     // Order by totalReturn DESC to show best performers first
     const results = await db
       .select({
@@ -15,14 +15,14 @@ export async function GET() {
         totalReturn: strategies.totalReturn,
         maxDrawdown: strategies.maxDrawdown,
         successRate: strategies.successRate,
+        sharpeRatio: strategies.sharpeRatio,
         totalStocks: strategies.totalStocks,
         totalTrades: strategies.totalTrades,
-        qualityScore: strategies.qualityScore,
-        isPublic: strategies.isPublic,
+        subscribers: strategies.subscribers,
         createdAt: strategies.createdAt,
       })
       .from(strategies)
-      .where(eq(strategies.creatorId, "0"))
+      .where(eq(strategies.isShowcase, true))
       .orderBy(desc(strategies.totalReturn));
 
     // Return the strategies as JSON

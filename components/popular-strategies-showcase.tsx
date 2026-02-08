@@ -12,36 +12,39 @@ interface DBStrategy {
   id: number
   name: string
   description: string | null
-  totalReturns: string | null
-  ytdReturn: string | null
+  totalReturn: string | null
   maxDrawdown: string | null
+  successRate: string | null
   sharpeRatio: string | null
-  winRate: string | null
+  totalTrades: number | null
   totalStocks: number | null
+  createdAt: string | null
+  subscribers: number | null
 }
 
 // Helper function to convert DB strategy to component strategy
-function mapDBStrategyToStrategy(dbStrategy: DBStrategy, index: number): Strategy {
+function mapDBStrategyToStrategy(dbStrategy: DBStrategy): Strategy {
   return {
     id: dbStrategy.id.toString(),
     name: dbStrategy.name,
     description: dbStrategy.description || undefined,
-    totalReturn: parseFloat(dbStrategy.ytdReturn || dbStrategy.totalReturns || "0"),
-    yoyReturn: 0, // Default or fetch if available
+    totalReturn: parseFloat(dbStrategy.totalReturn || "0"),
+    maxDrawdown: parseFloat(dbStrategy.maxDrawdown || "0"),
+    winRate: parseFloat(dbStrategy.successRate || "0"),
+    sharpeRatio: parseFloat(dbStrategy.sharpeRatio || "0"),
+    totalTrades: dbStrategy.totalTrades || 0,
+    stocksHeld: dbStrategy.totalStocks || 0,
+    createdDate: dbStrategy.createdAt || new Date().toISOString(),
+    subscribers: dbStrategy.subscribers || 0,
+
+    // Unused fields - set to 0 to satisfy type requirements
+    yoyReturn: 0,
     momReturn: 0,
     weeklyReturn: 0,
-    maxDrawdown: parseFloat(dbStrategy.maxDrawdown || "0"),
-    sharpeRatio: parseFloat(dbStrategy.sharpeRatio || "0"),
     sortinoRatio: 0,
     calmarRatio: 0,
     profitFactor: 0,
-    winRate: parseFloat(dbStrategy.winRate || "0"),
-    // These fields don't exist in DB, use reasonable defaults
-    totalTrades: Math.floor((dbStrategy.totalStocks || 0) * (15 + index * 5)), // Estimate based on stocks held
-    avgTradeDuration: 5,
-    stocksHeld: dbStrategy.totalStocks || 0,
-    createdDate: new Date().toISOString(), // Mock date
-    subscribers: Math.floor(500 + Math.random() * 1000), // Random for now
+    avgTradeDuration: 0,
   }
 }
 
@@ -66,8 +69,8 @@ export function PopularStrategiesShowcase() {
 
         if (result.success && result.data) {
           // Map database strategies to component format
-          const mappedStrategies = result.data.map((dbStrategy: DBStrategy, index: number) =>
-            mapDBStrategyToStrategy(dbStrategy, index)
+          const mappedStrategies = result.data.map((dbStrategy: DBStrategy) =>
+            mapDBStrategyToStrategy(dbStrategy)
           )
           setStrategies(mappedStrategies)
         } else {
@@ -99,9 +102,9 @@ export function PopularStrategiesShowcase() {
       </div>
 
       {/* Strategy cards grid */}
-      <div className="mb-8 px-6">
+      <div className="mb-8">
         {isLoading ? (
-          <CardCarousel className="snap-x snap-mandatory" noPadding>
+          <CardCarousel className="snap-x snap-mandatory">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <StrategyCardSkeleton key={i} />
             ))}
@@ -121,7 +124,7 @@ export function PopularStrategiesShowcase() {
             <p className="text-muted-foreground">No strategies found</p>
           </div>
         ) : (
-          <CardCarousel className="snap-x snap-mandatory" noPadding>
+          <CardCarousel className="snap-x snap-mandatory">
             {strategies.map((strategy) => (
               <MarketplaceStrategyCard key={strategy.id} strategy={strategy} className="w-[300px] md:w-[340px]" />
             ))}

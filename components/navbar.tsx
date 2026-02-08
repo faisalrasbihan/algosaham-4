@@ -7,23 +7,12 @@ import Image from "next/image";
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 
-// Mock data - replace with actual API call
-const getSubscriptionData = () => {
-  // In a real app, this would fetch from your API
-  return {
-    isPro: true, // Set to true if user has PRO subscription
-    credits: {
-      used: 15,
-      total: 100,
-    },
-  };
-};
 
 export function Navbar() {
   const { isSignedIn, isLoaded } = useUser();
   const [showCredits, setShowCredits] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState({
-    isPro: true,
+    isPro: false, // Default to free tier
     credits: {
       used: 0,
       total: 0,
@@ -31,10 +20,31 @@ export function Navbar() {
   });
 
   useEffect(() => {
+    async function fetchUserTier() {
+      if (!isSignedIn) return;
+
+      try {
+        const response = await fetch('/api/user/tier');
+        if (response.ok) {
+          const data = await response.json();
+          const tier = data.tier || 'free';
+
+          setSubscriptionData({
+            isPro: tier === 'pro' || tier === 'bandar',
+            credits: {
+              used: 0, // TODO: Implement credit tracking
+              total: tier === 'pro' || tier === 'bandar' ? 1000 : 100,
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch user tier:', error);
+        // Keep default free tier on error
+      }
+    }
+
     if (isLoaded && isSignedIn) {
-      // Fetch subscription data when user is signed in
-      const data = getSubscriptionData();
-      setSubscriptionData(data);
+      fetchUserTier();
     }
   }, [isSignedIn, isLoaded]);
 

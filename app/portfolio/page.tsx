@@ -149,12 +149,12 @@ export default function Portfolio() {
             <div className="flex-1 overflow-y-auto mt-8 pb-8">
 
                 <div className="space-y-12">
-                    {/* Subscribed Strategies Section */}
+                    {/* Community Strategies Section */}
                     <section>
                         <div className="px-6">
                             <div className="mb-6">
-                                <h2 className="text-2xl font-bold text-foreground">Subscribed Strategies</h2>
-                                <p className="text-muted-foreground">Strategies you're following from other traders</p>
+                                <h2 className="text-2xl font-bold text-foreground">Community Strategies</h2>
+                                <p className="text-muted-foreground">Popular strategies from the community</p>
                             </div>
                             <div className="flex gap-5 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-6 -mx-6">
                                 {subscribedStrategies.map((strategy) => (
