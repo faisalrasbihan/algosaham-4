@@ -6,30 +6,24 @@ import { eq, desc } from "drizzle-orm";
 export async function GET() {
   try {
     // Query strategies where creator_id = 0 (system strategies)
-    // Order by ytd_return DESC to show best performers first
+    // Order by totalReturn DESC to show best performers first
     const results = await db
       .select({
         id: strategies.id,
         name: strategies.name,
         description: strategies.description,
-        totalReturns: strategies.totalReturns,
-        ytdReturn: strategies.ytdReturn,
+        totalReturn: strategies.totalReturn,
         maxDrawdown: strategies.maxDrawdown,
-        sharpeRatio: strategies.sharpeRatio,
-        winRate: strategies.winRate,
+        successRate: strategies.successRate,
         totalStocks: strategies.totalStocks,
-        alpha: strategies.alpha,
-        beta: strategies.beta,
-        volatility: strategies.volatility,
-        sortinoRatio: strategies.sortinoRatio,
-        calmarRatio: strategies.calmarRatio,
-        monthlyReturn: strategies.monthlyReturn,
-        weeklyReturn: strategies.weeklyReturn,
-        dailyReturn: strategies.dailyReturn,
+        totalTrades: strategies.totalTrades,
+        qualityScore: strategies.qualityScore,
+        isPublic: strategies.isPublic,
+        createdAt: strategies.createdAt,
       })
       .from(strategies)
       .where(eq(strategies.creatorId, "0"))
-      .orderBy(desc(strategies.ytdReturn));
+      .orderBy(desc(strategies.totalReturn));
 
     // Return the strategies as JSON
     return NextResponse.json({
@@ -50,4 +44,3 @@ export async function GET() {
     );
   }
 }
-

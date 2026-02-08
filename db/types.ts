@@ -1,32 +1,19 @@
 import { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import {
-  stocks,
+  users,
   strategies,
-  fundamentals,
-  indicators,
   subscriptions,
-  notifications,
-  trades,
-  notificationStocks,
+  payments,
 } from "./schema";
 
 // Select types (for reading from database)
-export type Stock = InferSelectModel<typeof stocks>;
+export type User = InferSelectModel<typeof users>;
 export type Strategy = InferSelectModel<typeof strategies>;
-export type Fundamental = InferSelectModel<typeof fundamentals>;
-export type Indicator = InferSelectModel<typeof indicators>;
 export type Subscription = InferSelectModel<typeof subscriptions>;
-export type Notification = InferSelectModel<typeof notifications>;
-export type Trade = InferSelectModel<typeof trades>;
-export type NotificationStock = InferSelectModel<typeof notificationStocks>;
+export type Payment = InferSelectModel<typeof payments>;
 
 // Insert types (for inserting into database)
-export type NewStock = InferInsertModel<typeof stocks>;
+export type NewUser = InferInsertModel<typeof users>;
 export type NewStrategy = InferInsertModel<typeof strategies>;
-export type NewFundamental = InferInsertModel<typeof fundamentals>;
-export type NewIndicator = InferInsertModel<typeof indicators>;
 export type NewSubscription = InferInsertModel<typeof subscriptions>;
-export type NewNotification = InferInsertModel<typeof notifications>;
-export type NewTrade = InferInsertModel<typeof trades>;
-export type NewNotificationStock = InferInsertModel<typeof notificationStocks>;
-
+export type NewPayment = InferInsertModel<typeof payments>;

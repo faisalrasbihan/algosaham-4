@@ -81,9 +81,10 @@ interface ChatMessage {
 
 interface BacktestStrategyBuilderProps {
   onRunBacktest: (config: BacktestRequest) => void
+  backtestResults?: any | null
 }
 
-export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuilderProps) {
+export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: BacktestStrategyBuilderProps) {
   const { isSignedIn, isLoaded } = useUser()
   const [marketCaps, setMarketCaps] = useState<string[]>(["large", "mid"])
   const [stockType, setStockType] = useState("All Stocks")
@@ -372,6 +373,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
           name: strategyName,
           description: strategyDescription,
           config,
+          backtestResults,
         }),
       })
 
@@ -386,6 +388,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
         setStrategyName("")
         setStrategyDescription("")
         setShowSuccessModal(true)
+
         if (runBacktest) {
           handleRunBacktest()
         }
@@ -394,6 +397,9 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
       }
     } catch (error) {
       console.error("Save strategy error:", error)
+      toast.error("Failed to save strategy", {
+        description: error instanceof Error ? error.message : "Unknown error"
+      })
     } finally {
       setIsSaving(false)
     }

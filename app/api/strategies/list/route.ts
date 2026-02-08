@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { db } from '@/db'
-import { strategies, indicators } from '@/db/schema'
+import { strategies } from '@/db/schema'
 import { eq, desc } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
@@ -19,24 +19,9 @@ export async function GET(request: NextRequest) {
             .where(eq(strategies.creatorId, userId))
             .orderBy(desc(strategies.createdAt))
 
-        // Fetch indicators for each strategy
-        const strategiesWithIndicators = await Promise.all(
-            userStrategies.map(async (strategy) => {
-                const strategyIndicators = await db
-                    .select()
-                    .from(indicators)
-                    .where(eq(indicators.strategyId, strategy.id))
-
-                return {
-                    ...strategy,
-                    indicators: strategyIndicators,
-                }
-            })
-        )
-
         return NextResponse.json({
             success: true,
-            strategies: strategiesWithIndicators,
+            strategies: userStrategies,
         })
     } catch (error) {
         console.error('Error fetching strategies:', error)

@@ -82,20 +82,17 @@ export function RegularStrategyCard({ strategy, onEdit, onDelete }: RegularStrat
                                 <div className="text-xs text-muted-foreground mb-0.5">Quality</div>
                                 <div className="flex items-center justify-center gap-1">
                                     <span
-                                        className={`text-xs font-semibold ${strategy.sharpeRatio >= 1.5 ? "text-green-600" : strategy.sharpeRatio >= 1 ? "text-yellow-600" : "text-red-600"}`}
+                                        className={`text-xs font-semibold ${strategy.qualityScore === 'Excellent' ? "text-green-600" :
+                                                strategy.qualityScore === 'Good' ? "text-yellow-600" :
+                                                    "text-red-600"
+                                            }`}
                                     >
-                                        {strategy.sharpeRatio >= 2
-                                            ? "Excellent"
-                                            : strategy.sharpeRatio >= 1.5
-                                                ? "Good"
-                                                : strategy.sharpeRatio >= 1
-                                                    ? "Fair"
-                                                    : "Poor"}
+                                        {strategy.qualityScore || 'Unknown'}
                                     </span>
                                     <div className="relative inline-block group">
                                         <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                                            Sharpe Ratio: {strategy.sharpeRatio.toFixed(2)}
+                                            Based on Sharpe Ratio
                                         </div>
                                     </div>
                                 </div>

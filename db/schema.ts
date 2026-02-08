@@ -1,179 +1,171 @@
-import { pgTable, bigserial, text, boolean, timestamp, numeric, integer, date, jsonb, bigint, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, timestamp, numeric, integer, bigint, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-// Stocks table - independent
-export const stocks = pgTable("stocks", {
-  id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
-  stockSymbol: text("stock_symbol").notNull().unique(),
-  companyName: text("company_name").notNull(),
-  sector: text("sector"),
-  isSyariah: boolean("is_syariah").default(false),
-  isIdx30: boolean("is_idx30").default(false),
-  isLq45: boolean("is_lq45").default(false),
+// ============================================
+// USERS - From Clerk
+// ============================================
+export const users = pgTable("users", {
+  clerkId: text("clerk_id").primaryKey(),
+  email: text("email").notNull(),
+  name: text("name"),
+  imageUrl: text("image_url"),
+
+  // Subscription info
+  subscriptionTier: text("subscription_tier").default("free"), // free, premium, pro
+  subscriptionStatus: text("subscription_status").default("active"), // active, canceled, expired, past_due
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
-// Strategies table - independent
+// ============================================
+// STRATEGIES - Card display data + Redis reference
+// ============================================
 export const strategies = pgTable("strategies", {
   id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
-  creatorId: text("creator_id").notNull().default("0"),
-  name: text("name").notNull(),
-  description: text("description"),
-  configuration: jsonb("configuration"),
-  startingTime: timestamp("starting_time", { withTimezone: true }),
-  totalReturns: numeric("total_returns"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  sharpeRatio: numeric("sharpe_ratio"),
-  maxDrawdown: numeric("max_drawdown"),
-  winRate: numeric("win_rate"),
-  totalStocks: integer("total_stocks"),
-  aum: numeric("aum"),
-  monthlyReturn: numeric("monthly_return"),
-  threeMonthReturn: numeric("three_month_return"),
-  sixMonthReturn: numeric("six_month_return"),
-  ytdReturn: numeric("ytd_return"),
-  weeklyReturn: numeric("weekly_return"),
-  dailyReturn: numeric("daily_return"),
-  volatility: numeric("volatility"),
-  sortinoRatio: numeric("sortino_ratio"),
-  calmarRatio: numeric("calmar_ratio"),
-  beta: numeric("beta"),
-  alpha: numeric("alpha"),
+  creatorId: text("creator_id").notNull().references(() => users.clerkId, { onDelete: "cascade" }),
+
+  // Basic info (shown on card)
+  name: text("name").notNull(), // "Best Strategy Cuan"
+  description: text("description"), // "asdasd"
+
+  // Redis key reference
+  configHash: text("config_hash").notNull().unique(), // Links to Redis: backtest:{hash}, summary:{hash}
+
+  // Performance metrics (for card display)
+  totalReturn: numeric("total_return"), // "0%"
+  maxDrawdown: numeric("max_drawdown"), // "0%"
+  successRate: numeric("success_rate"), // "0%" (win rate)
+
+  // Strategy stats (for card display)
+  totalTrades: integer("total_trades").default(0), // "0"
+  totalStocks: integer("total_stocks").default(0), // "0"
+  qualityScore: text("quality_score"), // "Poor", "Good", "Excellent"
+
+  // Visibility/status
+  isPublic: boolean("is_public").default(false),
+  isActive: boolean("is_active").default(true),
+
+  // Timestamps
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(), // "Created: 2/1/2026"
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
-// Fundamentals table - depends on stocks
-export const fundamentals = pgTable("fundamentals", {
-  id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
-  stockId: bigint("stock_id", { mode: "number" }).references(() => stocks.id),
-  date: date("date").notNull(),
-  assets: numeric("assets"),
-  liabilities: numeric("liabilities"),
-  equity: numeric("equity"),
-  sales: numeric("sales"),
-  ebt: numeric("ebt"),
-  profit: numeric("profit"),
-  profitAttributable: numeric("profit_attributable"),
-  bookValue: numeric("book_value"),
-  eps: numeric("eps"),
-  peRatio: numeric("pe_ratio"),
-  pbv: numeric("pbv"),
-  der: numeric("der"),
-  roa: numeric("roa"),
-  roe: numeric("roe"),
-});
-
-// Indicators table - depends on strategies
-export const indicators = pgTable("indicators", {
-  id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
-  strategyId: bigint("strategy_id", { mode: "number" }).references(() => strategies.id),
-  name: text("name").notNull(),
-  parameters: jsonb("parameters"),
-});
-
-// Subscriptions table - depends on strategies
+// ============================================
+// SUBSCRIPTIONS - User follows Strategy with performance tracking
+// ============================================
 export const subscriptions = pgTable("subscriptions", {
   id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
-  userId: bigint("user_id", { mode: "number" }).notNull(),
-  strategyId: bigint("strategy_id", { mode: "number" }).notNull().references(() => strategies.id),
+  userId: text("user_id").notNull().references(() => users.clerkId, { onDelete: "cascade" }),
+  strategyId: bigint("strategy_id", { mode: "number" }).notNull().references(() => strategies.id, { onDelete: "cascade" }),
+
+  // Snapshot at subscription time (baseline for tracking)
+  snapshotReturn: numeric("snapshot_return"), // Strategy's total return when user subscribed
+  snapshotValue: numeric("snapshot_value"), // Portfolio value when subscribed
+  snapshotDate: timestamp("snapshot_date", { withTimezone: true }), // When snapshot was taken
+
+  // Current performance (updated regularly from Redis)
+  currentReturn: numeric("current_return"), // Latest total return from strategy
+  currentValue: numeric("current_value"), // Latest portfolio value from strategy
+
+  // Timestamps
   subscribedAt: timestamp("subscribed_at", { withTimezone: true }).defaultNow().notNull(),
-  totalReturn: numeric("total_return"),
-  dailyReturn: numeric("daily_return"),
-  weeklyReturn: numeric("weekly_return"),
-  monthlyReturn: numeric("monthly_return"),
-  mtdReturn: numeric("mtd_return"),
-  ytdReturn: numeric("ytd_return"),
+  unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true }),
+  isActive: boolean("is_active").default(true),
+
+  // Last updated (for tracking when metrics were last calculated)
+  lastCalculatedAt: timestamp("last_calculated_at", { withTimezone: true }),
 });
 
-// Notifications table - depends on strategies
-export const notifications = pgTable("notifications", {
+// ============================================
+// PAYMENTS - Aligned with Midtrans webhook notification
+// ============================================
+export const payments = pgTable("payments", {
   id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
-  userId: bigint("user_id", { mode: "number" }),
-  strategyId: bigint("strategy_id", { mode: "number" }).references(() => strategies.id),
-  message: text("message").notNull(),
-  sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow(),
+  userId: text("user_id").notNull().references(() => users.clerkId, { onDelete: "cascade" }),
+
+  // Midtrans core fields
+  orderId: text("order_id").notNull().unique(), // Midtrans order_id
+  transactionId: text("transaction_id"), // Midtrans transaction_id
+  transactionStatus: text("transaction_status").notNull(), // capture, settlement, pending, deny, cancel, expire, refund
+  transactionTime: timestamp("transaction_time", { withTimezone: true }), // When transaction initiated
+  settlementTime: timestamp("settlement_time", { withTimezone: true }), // When transaction settled
+
+  // Amount details
+  grossAmount: numeric("gross_amount").notNull(), // Total amount
+  currency: text("currency").notNull().default("IDR"),
+
+  // Payment details
+  paymentType: text("payment_type").notNull(), // credit_card, gopay, bank_transfer, qris, etc
+
+  // For card payments
+  maskedCard: text("masked_card"), // First 6 and last 4 digits
+  cardType: text("card_type"), // credit, debit
+  bank: text("bank"), // bni, bca, mandiri, etc
+
+  // For VA payments
+  vaNumber: text("va_number"), // Virtual account number
+
+  // For e-wallet
+  paymentCode: text("payment_code"), // Payment code for cstore, etc
+
+  // Fraud detection
+  fraudStatus: text("fraud_status"), // accept, deny
+
+  // Status tracking
+  statusCode: text("status_code"), // HTTP status code from Midtrans
+  statusMessage: text("status_message"), // Status message
+
+  // Signature for verification
+  signatureKey: text("signature_key"), // SHA512 hash for verification
+
+  // What they paid for
+  subscriptionTier: text("subscription_tier"), // premium, pro
+  billingPeriod: text("billing_period"), // monthly, yearly
+
+  // Subscription period this payment covers
+  periodStart: timestamp("period_start", { withTimezone: true }),
+  periodEnd: timestamp("period_end", { withTimezone: true }),
+
+  // Additional metadata from Midtrans
+  metadata: jsonb("metadata"), // Store full webhook payload for reference
+
+  // Timestamps
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
-// Trades table - depends on strategies and stocks
-export const trades = pgTable("trades", {
-  id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
-  strategyId: bigint("strategy_id", { mode: "number" }).references(() => strategies.id),
-  stockId: bigint("stock_id", { mode: "number" }).references(() => stocks.id),
-  tradingDate: date("trading_date").notNull(),
-  position: text("position", { enum: ["BUY", "SELL"] }).notNull(),
-  price: numeric("price").notNull(),
-  lotSize: integer("lot_size").notNull(),
-  totalPosition: numeric("total_position").notNull(),
-});
-
-// Notification stocks junction table - depends on notifications and stocks
-export const notificationStocks = pgTable("notification_stocks", {
-  notificationId: bigint("notification_id", { mode: "number" }).notNull().references(() => notifications.id),
-  stockId: bigint("stock_id", { mode: "number" }).notNull().references(() => stocks.id),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.notificationId, table.stockId] }),
-}));
-
-// Relations for better query experience
-export const stocksRelations = relations(stocks, ({ many }) => ({
-  fundamentals: many(fundamentals),
-  trades: many(trades),
-  notificationStocks: many(notificationStocks),
-}));
-
-export const strategiesRelations = relations(strategies, ({ many }) => ({
-  indicators: many(indicators),
+// ============================================
+// RELATIONS
+// ============================================
+export const usersRelations = relations(users, ({ many }) => ({
+  strategies: many(strategies),
   subscriptions: many(subscriptions),
-  notifications: many(notifications),
-  trades: many(trades),
+  payments: many(payments),
 }));
 
-export const fundamentalsRelations = relations(fundamentals, ({ one }) => ({
-  stock: one(stocks, {
-    fields: [fundamentals.stockId],
-    references: [stocks.id],
+export const strategiesRelations = relations(strategies, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [strategies.creatorId],
+    references: [users.clerkId],
   }),
-}));
-
-export const indicatorsRelations = relations(indicators, ({ one }) => ({
-  strategy: one(strategies, {
-    fields: [indicators.strategyId],
-    references: [strategies.id],
-  }),
+  subscriptions: many(subscriptions),
 }));
 
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptions.userId],
+    references: [users.clerkId],
+  }),
   strategy: one(strategies, {
     fields: [subscriptions.strategyId],
     references: [strategies.id],
   }),
 }));
 
-export const notificationsRelations = relations(notifications, ({ one, many }) => ({
-  strategy: one(strategies, {
-    fields: [notifications.strategyId],
-    references: [strategies.id],
-  }),
-  notificationStocks: many(notificationStocks),
-}));
-
-export const tradesRelations = relations(trades, ({ one }) => ({
-  strategy: one(strategies, {
-    fields: [trades.strategyId],
-    references: [strategies.id],
-  }),
-  stock: one(stocks, {
-    fields: [trades.stockId],
-    references: [stocks.id],
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  user: one(users, {
+    fields: [payments.userId],
+    references: [users.clerkId],
   }),
 }));
-
-export const notificationStocksRelations = relations(notificationStocks, ({ one }) => ({
-  notification: one(notifications, {
-    fields: [notificationStocks.notificationId],
-    references: [notifications.id],
-  }),
-  stock: one(stocks, {
-    fields: [notificationStocks.stockId],
-    references: [stocks.id],
-  }),
-}));
-

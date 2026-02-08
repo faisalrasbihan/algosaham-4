@@ -17,6 +17,7 @@ export interface Strategy {
     avgTradeDuration: number // in days
     stocksHeld: number
     createdDate: string
+    qualityScore?: string
     subscribers?: number
     isSubscribed?: boolean
     subscriptionDate?: string

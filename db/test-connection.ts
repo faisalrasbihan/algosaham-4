@@ -27,8 +27,9 @@ async function testConnection() {
       console.log("Sample strategy:");
       console.log("  - ID:", result[0].id);
       console.log("  - Name:", result[0].name);
-      console.log("  - YTD Return:", result[0].ytdReturn);
-      console.log("  - Sharpe Ratio:", result[0].sharpeRatio);
+      console.log("  - Total Return:", result[0].totalReturn);
+      console.log("  - Success Rate:", result[0].successRate);
+      console.log("  - Quality Score:", result[0].qualityScore);
     }
 
     console.log("\n✨ Database is ready to use!");
@@ -53,4 +54,3 @@ async function testConnection() {
 }
 
 testConnection();
-

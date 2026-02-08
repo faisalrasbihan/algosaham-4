@@ -1,10 +1,71 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { strategies, indicators } from "@/db/schema";
+import { strategies, users } from "@/db/schema";
 import { BacktestRequest } from "@/lib/api";
+import crypto from "crypto";
+import { eq } from "drizzle-orm";
 
-type NewIndicator = typeof indicators.$inferInsert;
+// Helper function to ensure user exists in database
+async function ensureUserExists(userId: string) {
+    try {
+        // Check if user exists
+        const existingUser = await db.query.users.findFirst({
+            where: eq(users.clerkId, userId),
+        });
+
+        if (!existingUser) {
+            // Get user details from Clerk
+            const clerkUser = await currentUser();
+
+            if (!clerkUser) {
+                throw new Error("Could not fetch user from Clerk");
+            }
+
+            // Create user in database
+            await db.insert(users).values({
+                clerkId: userId,
+                email: clerkUser.emailAddresses[0]?.emailAddress || '',
+                name: clerkUser.firstName && clerkUser.lastName
+                    ? `${clerkUser.firstName} ${clerkUser.lastName}`
+                    : clerkUser.firstName || clerkUser.lastName || null,
+                imageUrl: clerkUser.imageUrl || null,
+                subscriptionTier: 'free',
+                subscriptionStatus: 'active',
+            });
+
+            console.log('✅ User auto-created in database:', userId);
+        }
+    } catch (error) {
+        console.error('❌ Error ensuring user exists:', error);
+        throw error;
+    }
+}
+
+// Helper function to calculate quality score from Sharpe ratio
+function calculateQualityScore(sharpeRatio: number | null | undefined): string {
+    if (sharpeRatio === null || sharpeRatio === undefined) {
+        return "Unknown";
+    }
+
+    // Quality score ranges based on Sharpe ratio
+    // Poor: < 1.0
+    // Good: 1.0 - 2.0
+    // Excellent: > 2.0
+    if (sharpeRatio < 1.0) {
+        return "Poor";
+    } else if (sharpeRatio >= 1.0 && sharpeRatio <= 2.0) {
+        return "Good";
+    } else {
+        return "Excellent";
+    }
+}
+
+// Helper function to generate config hash
+function generateConfigHash(config: BacktestRequest): string {
+    const configString = JSON.stringify(config);
+    return crypto.createHash('sha256').update(configString).digest('hex').substring(0, 16);
+}
 
 export async function POST(req: Request) {
     try {
@@ -17,11 +78,24 @@ export async function POST(req: Request) {
             );
         }
 
+        // Ensure user exists in database (auto-create if needed)
+        await ensureUserExists(userId);
+
         const body = await req.json();
-        const { name, description, config } = body as {
+        const { name, description, config, backtestResults } = body as {
             name: string;
             description: string;
             config: BacktestRequest;
+            backtestResults?: {
+                summary?: {
+                    totalReturn?: number;
+                    maxDrawdown?: number;
+                    winRate?: number;
+                    totalTrades?: number;
+                    sharpeRatio?: number;
+                };
+                signals?: any[];
+            };
         };
 
         if (!name) {
@@ -31,51 +105,66 @@ export async function POST(req: Request) {
             );
         }
 
-        // Start a transaction to save strategy and its indicators
-        const result = await db.transaction(async (tx) => {
-            // 1. Insert Strategy
-            const [newStrategy] = await tx.insert(strategies).values({
-                name,
-                description,
-                configuration: config,
-                creatorId: userId,
-                createdAt: new Date(),
-            }).returning();
+        // Generate config hash for Redis linking
+        const configHash = generateConfigHash(config);
 
-            // 2. Insert Indicators
-            const indicatorValues: NewIndicator[] = [];
+        // Log the backtest results structure for debugging
+        console.log('📊 Backtest Results Structure:', JSON.stringify({
+            hasSummary: !!backtestResults?.summary,
+            hasSignals: !!backtestResults?.signals,
+            hasRecentSignals: !!(backtestResults as any)?.recentSignals,
+            summaryKeys: backtestResults?.summary ? Object.keys(backtestResults.summary) : [],
+            totalReturn: backtestResults?.summary?.totalReturn,
+            winRate: backtestResults?.summary?.winRate,
+            totalTrades: backtestResults?.summary?.totalTrades,
+        }, null, 2));
 
-            if (config.fundamentalIndicators && config.fundamentalIndicators.length > 0) {
-                config.fundamentalIndicators.forEach((ind: any) => {
-                    indicatorValues.push({
-                        strategyId: newStrategy.id,
-                        name: ind.type,
-                        parameters: { min: ind.min, max: ind.max },
-                    });
-                });
-            }
+        // Extract metadata from backtest results if available
+        const totalReturn = backtestResults?.summary?.totalReturn ?? null;
+        const maxDrawdown = backtestResults?.summary?.maxDrawdown ?? null;
+        const successRate = backtestResults?.summary?.winRate ?? null;
+        const totalTrades = backtestResults?.summary?.totalTrades ?? 0;
+        const sharpeRatio = backtestResults?.summary?.sharpeRatio ?? null;
 
-            if (config.technicalIndicators && config.technicalIndicators.length > 0) {
-                config.technicalIndicators.forEach((ind: any) => {
-                    const { type, ...params } = ind;
-                    indicatorValues.push({
-                        strategyId: newStrategy.id,
-                        name: type,
-                        parameters: params,
-                    });
-                });
-            }
+        // Calculate total unique stocks from signals (check both locations)
+        let totalStocks = 0;
+        if (backtestResults?.signals && Array.isArray(backtestResults.signals)) {
+            totalStocks = new Set(backtestResults.signals.map((s: any) => s.ticker)).size;
+        } else if ((backtestResults as any)?.recentSignals?.signals) {
+            totalStocks = new Set((backtestResults as any).recentSignals.signals.map((s: any) => s.ticker)).size;
+        }
 
-            if (indicatorValues.length > 0) {
-                await tx.insert(indicators).values(indicatorValues);
-            }
-
-            return newStrategy;
+        console.log('💾 Saving strategy with metadata:', {
+            totalReturn,
+            maxDrawdown,
+            successRate,
+            totalTrades,
+            totalStocks,
+            sharpeRatio,
         });
+
+        // Calculate quality score from Sharpe ratio
+        const qualityScore = calculateQualityScore(sharpeRatio);
+
+        // Insert Strategy with metadata
+        const [newStrategy] = await db.insert(strategies).values({
+            name,
+            description,
+            creatorId: userId,
+            configHash,
+            totalReturn: totalReturn?.toString(),
+            maxDrawdown: maxDrawdown?.toString(),
+            successRate: successRate?.toString(),
+            totalTrades,
+            totalStocks,
+            qualityScore,
+            isPublic: false,
+            isActive: true,
+        }).returning();
 
         return NextResponse.json({
             success: true,
-            data: result,
+            data: newStrategy,
         });
     } catch (error) {
         console.error("Error saving strategy:", error);

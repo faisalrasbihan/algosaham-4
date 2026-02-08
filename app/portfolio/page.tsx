@@ -8,34 +8,46 @@ import { subscribedStrategies } from "@/components/cards/data"
 import { useUser, RedirectToSignIn } from "@clerk/nextjs"
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface Strategy {
     id: number
     name: string
     description: string | null
-    config: any
-    userId: string
+    creatorId: string
     createdAt: Date
-    updatedAt: Date
-    indicators?: any[]
-    // Database fields
-    winRate?: string | null
-    totalReturns?: string | null
-    ytdReturn?: string | null
-    monthlyReturn?: string | null
-    weeklyReturn?: string | null
-    sharpeRatio?: string | null
-    sortinoRatio?: string | null
-    calmarRatio?: string | null
+    // New schema fields
+    totalReturn?: string | null
     maxDrawdown?: string | null
+    successRate?: string | null
+    totalTrades?: number | null
     totalStocks?: number | null
+    qualityScore?: string | null
+    configHash?: string | null
+    isPublic?: boolean
+    isActive?: boolean
 }
 
 export default function Portfolio() {
     const { isLoaded, isSignedIn } = useUser()
+    const router = useRouter()
     const [shouldRedirect, setShouldRedirect] = useState(false)
     const [savedStrategies, setSavedStrategies] = useState<Strategy[]>([])
     const [isLoadingStrategies, setIsLoadingStrategies] = useState(true)
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [strategyToDelete, setStrategyToDelete] = useState<string | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     useEffect(() => {
         if (isLoaded && !isSignedIn) {
@@ -67,6 +79,59 @@ export default function Portfolio() {
             fetchStrategies()
         }
     }, [isSignedIn])
+
+    const handleEdit = async (id: string) => {
+        try {
+            // Fetch the strategy details
+            const response = await fetch(`/api/strategies/${id}`)
+            const data = await response.json()
+
+            if (data.success && data.strategy) {
+                // Store the strategy config in localStorage to load in backtest page
+                localStorage.setItem('editStrategy', JSON.stringify(data.strategy))
+                // Navigate to backtest page
+                router.push('/backtest')
+            } else {
+                toast.error('Failed to load strategy')
+            }
+        } catch (error) {
+            console.error('Error loading strategy:', error)
+            toast.error('Failed to load strategy')
+        }
+    }
+
+    const handleDeleteClick = (id: string) => {
+        setStrategyToDelete(id)
+        setDeleteDialogOpen(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (!strategyToDelete) return
+
+        setIsDeleting(true)
+        try {
+            const response = await fetch(`/api/strategies/delete?id=${strategyToDelete}`, {
+                method: 'DELETE',
+            })
+
+            const data = await response.json()
+
+            if (data.success) {
+                // Remove from local state
+                setSavedStrategies(prev => prev.filter(s => s.id.toString() !== strategyToDelete))
+                toast.success('Strategy deleted successfully')
+            } else {
+                toast.error(data.error || 'Failed to delete strategy')
+            }
+        } catch (error) {
+            console.error('Error deleting strategy:', error)
+            toast.error('Failed to delete strategy')
+        } finally {
+            setIsDeleting(false)
+            setDeleteDialogOpen(false)
+            setStrategyToDelete(null)
+        }
+    }
 
     if (shouldRedirect) {
         return <RedirectToSignIn />
@@ -124,21 +189,24 @@ export default function Portfolio() {
                                                 id: strategy.id.toString(),
                                                 name: strategy.name,
                                                 description: strategy.description || '',
-                                                winRate: Number(strategy.winRate) || 0,
-                                                totalReturn: Number(strategy.totalReturns) || 0,
-                                                yoyReturn: Number(strategy.ytdReturn) || 0,
-                                                momReturn: Number(strategy.monthlyReturn) || 0,
-                                                weeklyReturn: Number(strategy.weeklyReturn) || 0,
-                                                sharpeRatio: Number(strategy.sharpeRatio) || 0,
-                                                sortinoRatio: Number(strategy.sortinoRatio) || 0,
-                                                calmarRatio: Number(strategy.calmarRatio) || 0,
+                                                winRate: Number(strategy.successRate) || 0,
+                                                totalReturn: Number(strategy.totalReturn) || 0,
+                                                yoyReturn: 0,
+                                                momReturn: 0,
+                                                weeklyReturn: 0,
+                                                sharpeRatio: 0,
+                                                sortinoRatio: 0,
+                                                calmarRatio: 0,
                                                 maxDrawdown: Number(strategy.maxDrawdown) || 0,
                                                 profitFactor: 0,
-                                                totalTrades: strategy.totalStocks || 0,
+                                                totalTrades: strategy.totalTrades || 0,
                                                 avgTradeDuration: 0,
                                                 stocksHeld: strategy.totalStocks || 0,
                                                 createdDate: new Date(strategy.createdAt).toLocaleDateString(),
+                                                qualityScore: strategy.qualityScore || 'Unknown',
                                             }}
+                                            onEdit={handleEdit}
+                                            onDelete={handleDeleteClick}
                                         />
                                     ))}
                                 </div>
@@ -147,6 +215,35 @@ export default function Portfolio() {
                     </section>
                 </div>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Strategy</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this strategy? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteConfirm}
+                            disabled={isDeleting}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                'Delete'
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

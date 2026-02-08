@@ -21,7 +21,10 @@ export default function BacktestPage() {
       <div className="flex h-[calc(100vh-104px)]">
         {/* Left Panel - Strategy Builder */}
         <div className="w-[380px] flex-shrink-0 bg-card border-r border-border overflow-y-auto">
-          <BacktestStrategyBuilder onRunBacktest={handleBacktestRun} />
+          <BacktestStrategyBuilder
+            onRunBacktest={handleBacktestRun}
+            backtestResults={results}
+          />
         </div>
 
         {/* Right Panel - Results */}
