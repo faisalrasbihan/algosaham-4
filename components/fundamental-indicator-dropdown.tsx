@@ -27,6 +27,7 @@ const fundamentalIndicators = [
 export function FundamentalIndicatorDropdown({ onAddIndicator }: FundamentalIndicatorDropdownProps) {
     const [isOpen, setIsOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
+    const buttonRef = useRef<HTMLButtonElement>(null)
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -45,6 +46,15 @@ export function FundamentalIndicatorDropdown({ onAddIndicator }: FundamentalIndi
         }
     }, [isOpen])
 
+    // Reset button styles when dropdown closes
+    useEffect(() => {
+        if (!isOpen && buttonRef.current) {
+            buttonRef.current.style.backgroundColor = "transparent"
+            buttonRef.current.style.color = ""
+            buttonRef.current.style.borderColor = "#cbd5e1"
+        }
+    }, [isOpen])
+
     const handleAddIndicator = (indicator: typeof fundamentalIndicators[0]) => {
         onAddIndicator({
             name: indicator.name,
@@ -57,6 +67,7 @@ export function FundamentalIndicatorDropdown({ onAddIndicator }: FundamentalIndi
     return (
         <div className="relative" ref={dropdownRef}>
             <Button
+                ref={buttonRef}
                 variant="outline"
                 size="sm"
                 className="w-full bg-transparent font-mono hover:text-foreground border-slate-300 hover:border-[#d07225] justify-between"

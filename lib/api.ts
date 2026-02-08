@@ -188,24 +188,16 @@ export class ApiService {
   }
 
   static async runBacktest(config: BacktestRequest): Promise<BacktestResult> {
-    console.log('🚀 [API SERVICE] Starting runBacktest...')
-    console.log('📋 [API SERVICE] Config received:', {
-      backtestId: config.backtestId,
-      filters: config.filters,
-      fundamentalIndicators: config.fundamentalIndicators?.length || 0,
-      technicalIndicators: config.technicalIndicators?.length || 0,
-      backtestConfig: config.backtestConfig
-    })
-
     try {
-      console.log('🔄 [API SERVICE] Calling Next.js API route (which proxies to Railway)...')
-      // Call Next.js API route instead of Railway directly to avoid CORS issues
+      const requestBody = { config }
+      console.log('📤 [REQUEST]', JSON.stringify(requestBody, null, 2))
+
       const response = await fetch('/api/backtest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ config }),
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {
@@ -214,37 +206,11 @@ export class ApiService {
       }
 
       const result = await response.json()
-
-      console.log('✅ [API SERVICE] Backtest completed successfully')
-      console.log('📊 [API SERVICE] Result summary:', {
-        hasSummary: result.summary !== undefined,
-        hasTotalReturn: result.summary?.totalReturn !== undefined,
-        hasAnnualReturn: result.summary?.annualizedReturn !== undefined,
-        hasRecentSignals: result.recentSignals !== undefined,
-        recentSignalsCount: result.recentSignals?.signals ? result.recentSignals.signals.length : 0,
-        hasSignals: result.signals !== undefined,
-        signalsCount: result.signals ? result.signals.length : 0,
-        hasTrades: result.trades ? result.trades.length : 0,
-        hasPerformanceData: result.performanceData ? result.performanceData.length : 0
-      })
-
-      // Log signals if present
-      if (result.recentSignals?.signals && result.recentSignals.signals.length > 0) {
-        console.log('🎯 [API SERVICE] Recent Signals found:', result.recentSignals.signals.length)
-        console.log('🎯 [API SERVICE] First recent signal:', result.recentSignals.signals[0])
-        console.log('🎯 [API SERVICE] Recent signals summary:', result.recentSignals.summary)
-      } else if (result.signals && result.signals.length > 0) {
-        console.log('🎯 [API SERVICE] Signals found:', result.signals.length)
-        console.log('🎯 [API SERVICE] First signal:', result.signals[0])
-      } else {
-        console.log('⚠️ [API SERVICE] No signals or recentSignals in response')
-      }
+      console.log('📥 [RESPONSE]', JSON.stringify(result, null, 2))
 
       return result
     } catch (error) {
-      console.error('💥 [API SERVICE] Backtest API error:', error)
-      console.error('💥 [API SERVICE] Error type:', typeof error)
-      console.error('💥 [API SERVICE] Error instanceof Error:', error instanceof Error)
+      console.error('❌ [ERROR]', error)
       throw error
     }
   }

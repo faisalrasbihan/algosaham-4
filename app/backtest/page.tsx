@@ -9,25 +9,9 @@ import { BacktestRequest } from "@/lib/api"
 
 export default function BacktestPage() {
   const { results, loading, error, runBacktest } = useBacktest()
-  
-  console.log('🔧 [BACKTEST PAGE] Component rendered with state:', {
-    hasResults: !!results,
-    loading,
-    hasError: !!error,
-    resultsKeys: results ? Object.keys(results) : []
-  })
 
   const handleBacktestRun = async (config: BacktestRequest) => {
-    console.log('🔧 [BACKTEST PAGE] handleBacktestRun called with config:', {
-      backtestId: config.backtestId,
-      filters: config.filters,
-      fundamentalIndicators: config.fundamentalIndicators?.length || 0,
-      technicalIndicators: config.technicalIndicators?.length || 0
-    })
-    
-    console.log('🔧 [BACKTEST PAGE] Calling runBacktest...')
     await runBacktest(config)
-    console.log('🔧 [BACKTEST PAGE] runBacktest completed')
   }
 
   return (
@@ -42,7 +26,7 @@ export default function BacktestPage() {
 
         {/* Right Panel - Results */}
         <div className="flex-1 overflow-y-auto">
-          <ResultsPanel 
+          <ResultsPanel
             backtestResults={results}
             loading={loading}
             error={error}

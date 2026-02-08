@@ -34,12 +34,15 @@ import {
   FileCode,
   CheckCircle,
   Clock,
+  Copy,
+  CheckCheck,
 } from "lucide-react"
 import { AddIndicatorModal } from "@/components/add-indicator-modal"
 import { FundamentalIndicatorDropdown } from "@/components/fundamental-indicator-dropdown"
 import { OnboardingTutorial } from "@/components/onboarding-tutorial"
 import { SignInButton, useUser } from "@clerk/nextjs"
 import { LogIn } from "lucide-react"
+import { toast } from "sonner"
 import type { BacktestRequest } from "@/lib/api"
 
 interface Indicator {
@@ -109,6 +112,7 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
   const [saveWithBacktest, setSaveWithBacktest] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const [editingIndicators, setEditingIndicators] = useState<Record<string, boolean>>({})
+  const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState<string>("strategy")
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
@@ -470,6 +474,26 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
           maxHoldingDays: maxHoldingPeriod === "no-limit" ? 999999 : Number.parseInt(maxHoldingPeriod),
         },
       },
+    }
+  }
+
+  // Copy backtest configuration to clipboard
+  const handleCopyConfig = async () => {
+    const config = buildBacktestConfig()
+    const jsonString = JSON.stringify(config, null, 2)
+
+    try {
+      await navigator.clipboard.writeText(jsonString)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+      toast.success('Config copied to clipboard!', {
+        description: 'You can now paste and analyze the JSON configuration.',
+      })
+    } catch (err) {
+      console.error('Failed to copy config:', err)
+      toast.error('Failed to copy config', {
+        description: 'Please try again or check your browser permissions.',
+      })
     }
   }
 
@@ -1604,6 +1628,19 @@ export function BacktestStrategyBuilder({ onRunBacktest }: BacktestStrategyBuild
                   }} className="font-mono">
                     <Save className="h-4 w-4 mr-2" />
                     Save Strategy
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleCopyConfig} className="font-mono">
+                    {copied ? (
+                      <>
+                        <CheckCheck className="h-4 w-4 mr-2 text-green-600" />
+                        <span className="text-green-600">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Config JSON
+                      </>
+                    )}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

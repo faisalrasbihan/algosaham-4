@@ -25,6 +25,8 @@ import {
   Save,
   Edit,
   Check,
+  Copy,
+  CheckCheck,
 } from "lucide-react"
 import { AddIndicatorModal } from "@/components/add-indicator-modal"
 import { OnboardingTutorial } from "@/components/onboarding-tutorial"
@@ -49,7 +51,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
   const [stockType, setStockType] = useState("All Stocks")
   const [sectors, setSectors] = useState<string[]>(["Banking"])
   const [selectedTicker, setSelectedTicker] = useState<string>("")
-  
+
   // Placeholder ticker data - will be populated from database fetch later
   const tickerOptions = [
     { value: "BBCA", label: "BBCA - Bank Central Asia" },
@@ -78,7 +80,8 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
   const [strategyName, setStrategyName] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [editingIndicators, setEditingIndicators] = useState<Record<string, boolean>>({})
-  
+  const [copied, setCopied] = useState(false)
+
   // Backtest configuration state
   const [initialCapital, setInitialCapital] = useState(1000000000)
   const [startDate, setStartDate] = useState("2025-02-22")
@@ -113,10 +116,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
 
   // Auto-run backtest on component mount (only once)
   useEffect(() => {
-    console.log('🚀 [STRATEGY BUILDER] Component mounted, running initial backtest...')
-    
     if (onRunBacktest) {
-      // Create the exact config as specified
       const initialConfig: BacktestRequest = {
         backtestId: "test1",
         filters: {
@@ -152,14 +152,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
           }
         }
       }
-
-      console.log('📋 [STRATEGY BUILDER] Initial backtest config:')
-      console.log(JSON.stringify(initialConfig, null, 2))
-      
-      console.log('🔄 [STRATEGY BUILDER] Calling onRunBacktest with initial config...')
       onRunBacktest(initialConfig)
-    } else {
-      console.warn('⚠️ [STRATEGY BUILDER] No onRunBacktest function provided, skipping initial backtest')
     }
   }, []) // Empty dependency array - only run once on mount
 
@@ -228,45 +221,14 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
 
   const handleSaveStrategy = async (runBacktest = false) => {
     setIsSaving(true)
-    // Simulate saving process
     await new Promise((resolve) => setTimeout(resolve, 1500))
     setIsSaving(false)
     setShowSaveModal(false)
     setStrategyName("")
-
-    if (runBacktest) {
-      // Simulate running backtest after saving
-      console.log("Running backtest with saved strategy:", strategyName)
-    }
   }
 
-  const handleRunBacktest = () => {
-    console.log('🎮 [STRATEGY BUILDER] Run backtest button clicked!')
-    console.log('🎮 [STRATEGY BUILDER] onRunBacktest function available:', !!onRunBacktest)
-    
-    if (!onRunBacktest) {
-      console.warn('⚠️ [STRATEGY BUILDER] No onRunBacktest function provided')
-      return
-    }
-    
-    console.log('🎮 [STRATEGY BUILDER] Current form state:', {
-      marketCaps,
-      stockType,
-      sectors,
-      fundamentalIndicators: fundamentalIndicators.length,
-      technicalIndicators: technicalIndicators.length,
-      initialCapital,
-      startDate,
-      endDate,
-      stopLoss,
-      takeProfit,
-      maxHoldingDays
-    })
-    
-    // Convert indicators to API format
-    console.log('🔄 [STRATEGY BUILDER] Converting fundamental indicators...')
+  const buildBacktestConfig = (): BacktestRequest => {
     const apiFundamentalIndicators = fundamentalIndicators.map(indicator => {
-      // Map indicator names to API types
       const typeMap: Record<string, string> = {
         "PE Ratio": "PE_RATIO",
         "PBV": "PBV",
@@ -276,19 +238,16 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
         "NPM": "NPM",
         "EPS": "EPS"
       }
-      
+
       const type = typeMap[indicator.name] || indicator.name.toUpperCase().replace(/\s+/g, '_')
-      
-      const converted = {
+
+      return {
         type,
         min: indicator.params.min,
         max: indicator.params.max
       }
-      console.log('🔄 [STRATEGY BUILDER] Converted fundamental indicator:', converted)
-      return converted
     })
 
-    console.log('🔄 [STRATEGY BUILDER] Converting technical indicators...')
     const apiTechnicalIndicators = technicalIndicators.map(indicator => {
       let converted
       switch (indicator.name) {
@@ -373,11 +332,10 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
             ...indicator.params
           }
       }
-      console.log('🔄 [STRATEGY BUILDER] Converted technical indicator:', converted)
       return converted
     })
 
-    const backtestConfig: BacktestRequest = {
+    return {
       backtestId: `strategy_${Date.now()}`,
       filters: {
         marketCap: marketCaps.length > 0 ? marketCaps : ["large"],
@@ -406,13 +364,25 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
         }
       }
     }
+  }
 
-    console.log('📤 [STRATEGY BUILDER] Final backtest config:')
-    console.log(JSON.stringify(backtestConfig, null, 2))
-    console.log('📤 [STRATEGY BUILDER] Calling onRunBacktest with config...')
-    
-    onRunBacktest(backtestConfig)
-    console.log('📤 [STRATEGY BUILDER] onRunBacktest called, scrolling to bottom...')
+  const handleCopyConfig = async () => {
+    const config = buildBacktestConfig()
+    const jsonString = JSON.stringify(config, null, 2)
+
+    try {
+      await navigator.clipboard.writeText(jsonString)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy config:', err)
+    }
+  }
+
+  const handleRunBacktest = () => {
+    if (!onRunBacktest) return
+    const config = buildBacktestConfig()
+    onRunBacktest(config)
     scrollToBottom()
   }
 
@@ -427,7 +397,7 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
       <div className="flex-1 p-4 pb-24 space-y-3 overflow-y-auto" ref={scrollContainerRef}>
         {/* Tutorial Button */}
         <OnboardingTutorial />
-        
+
         {/* Stock Filters */}
         <Card className="border bg-card rounded-none" data-tutorial="stock-filters">
           <CardHeader className={`flex items-center ${collapsedSections.filters ? "py-2" : "pb-2"}`}>
@@ -519,9 +489,8 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
                           onClick={() => toggleSector(sector)}
                         >
                           <div
-                            className={`w-4 h-4 border rounded mr-2 flex items-center justify-center ${
-                              sectors.includes(sector) ? "bg-primary border-primary" : "border-input"
-                            }`}
+                            className={`w-4 h-4 border rounded mr-2 flex items-center justify-center ${sectors.includes(sector) ? "bg-primary border-primary" : "border-input"
+                              }`}
                           >
                             {sectors.includes(sector) && <div className="w-2 h-2 bg-primary-foreground rounded-sm" />}
                           </div>
@@ -827,20 +796,20 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-muted-foreground">Stop Loss (%)</Label>
-                  <Input 
-                    type="number" 
+                  <Input
+                    type="number"
                     value={stopLoss}
                     onChange={(e) => setStopLoss(Number(e.target.value))}
-                    className="font-mono border-slate-200" 
+                    className="font-mono border-slate-200"
                   />
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Take Profit (%)</Label>
-                  <Input 
-                    type="number" 
+                  <Input
+                    type="number"
                     value={takeProfit}
                     onChange={(e) => setTakeProfit(Number(e.target.value))}
-                    className="font-mono border-slate-200" 
+                    className="font-mono border-slate-200"
                   />
                 </div>
               </div>
@@ -881,20 +850,20 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-muted-foreground">Start Date</Label>
-                  <Input 
-                    type="date" 
+                  <Input
+                    type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="border-slate-200" 
+                    className="border-slate-200"
                   />
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">End Date</Label>
-                  <Input 
-                    type="date" 
+                  <Input
+                    type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="border-slate-200" 
+                    className="border-slate-200"
                   />
                 </div>
               </div>
@@ -956,6 +925,19 @@ export function StrategyBuilder({ onRunBacktest }: StrategyBuilderProps) {
                   <DropdownMenuItem onClick={() => setShowSaveModal(true)} className="font-mono">
                     <Save className="h-4 w-4 mr-2" />
                     Save Strategy
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleCopyConfig} className="font-mono">
+                    {copied ? (
+                      <>
+                        <CheckCheck className="h-4 w-4 mr-2 text-green-600" />
+                        <span className="text-green-600">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Config JSON
+                      </>
+                    )}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

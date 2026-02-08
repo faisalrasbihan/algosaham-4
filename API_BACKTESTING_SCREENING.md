@@ -24,6 +24,60 @@ Both endpoints use the same configuration structure.
 }
 ```
 
+**Screening note:** You may include `riskManagement` either at the top level
+or inside `backtestConfig` to compute SL/TP suggestions in the response.
+
+## Execution Model (Backtest)
+
+- Signals are computed on day **T** using the close price.
+- Entries execute at **day T+1 open**.
+- Same-day exits are allowed (SL/TP evaluated on intraday high/low).
+- Multiple entries on the same day are ordered by liquidity:
+  `prev_daily_value` if available, otherwise `close * volume`, then ticker.
+
+## Risk Management
+
+```json
+{
+  "riskManagement": {
+    "stopLoss": { "method": "FIXED", "percent": 5 },
+    "takeProfit": { "method": "RISK_REWARD", "riskRewardRatio": 2.0 },
+    "maxHoldingDays": 30,
+    "exitSignals": {
+      "exitRules": ["STOP_LOSS", "TAKE_PROFIT", "MAX_HOLD"],
+      "exitPriority": ["STOP_LOSS", "TAKE_PROFIT", "MAX_HOLD"]
+    }
+  }
+}
+```
+
+**Notes**
+- `stopLoss.method`: `FIXED` or `ATR`
+- `takeProfit.method`: `FIXED`, `ATR`, or `RISK_REWARD`
+- `exitSignals` is optional. If provided, it controls which exits are active
+  and the priority when multiple exit rules trigger.
+
+## Signal Output Fields
+
+Signals returned by `/screen_stocks` and `recentSignals` in `/run_backtest`
+include these additional fields:
+
+```json
+{
+  "stopLoss": 9350,
+  "takeProfit": 10850,
+  "riskRewardRatio": 2.0,
+  "currentPrice": 10050,
+  "method": {
+    "stopLoss": "FIXED",
+    "takeProfit": "FIXED"
+  }
+}
+```
+
+These values are computed from the **signal day close** (the last known price),
+not the next-day open.
+
 ---
 
 ## Filters
@@ -57,7 +111,7 @@ Filter stocks based on financial metrics. Use `min` and/or `max` to set bounds.
 
 ## Technical Indicators
 
-> **Note:** All indicators support `signalWindow` parameter (default: 3) - if a signal triggered within the last N days, it's still considered active.
+> **Note:** All indicators support `signalWindow` parameter (default: 3) - if a signal triggered within the last N days, it's still considered active for **BUY** signals.
 
 ### Moving Average Indicators
 
@@ -512,7 +566,12 @@ Based on Indonesian Auto-Reject price limits:
     }
   ],
   "recentSignals": {
+    "screeningId": "momentum_v1",
     "scannedDays": 5,
+    "dateRange": {
+      "from": "2024-03-24",
+      "to": "2024-03-28"
+    },
     "signals": [
       {
         "ticker": "BBCA",
@@ -522,8 +581,16 @@ Based on Indonesian Auto-Reject price limits:
         "signal": "BUY",
         "reasons": ["RSI(14) oversold", "SMA(20,50) golden cross"],
         "price": 9850,
+        "currentPrice": 10050,
         "sector": "Finance",
-        "marketCap": "large"
+        "marketCap": "large",
+        "stopLoss": 9350,
+        "takeProfit": 10850,
+        "riskRewardRatio": 2.0,
+        "method": {
+          "stopLoss": "FIXED",
+          "takeProfit": "FIXED"
+        }
       }
     ],
     "summary": {
@@ -621,11 +688,15 @@ Based on Indonesian Auto-Reject price limits:
 
 #### Recent Signals Fields
 
-Buy signals from the last 5 trading days of the backtest period.
+Buy signals from the **latest** 5 trading days in the dataset (screening-style),
+regardless of the backtest period.
 
 | Field | Description |
 |-------|-------------|
+| `screeningId` | Screening ID (same as `backtestId`) |
 | `scannedDays` | Number of recent trading days scanned (5) |
+| `dateRange.from` | First trading day in scan window (YYYY-MM-DD) |
+| `dateRange.to` | Last trading day in scan window (YYYY-MM-DD) |
 | `signals[]` | Array of signal objects (sorted by `daysAgo` then `ticker`) |
 | `signals[].ticker` | Stock ticker symbol |
 | `signals[].companyName` | Company name |
@@ -634,8 +705,15 @@ Buy signals from the last 5 trading days of the backtest period.
 | `signals[].signal` | Always `"BUY"` |
 | `signals[].reasons` | Array of signal reason strings (e.g., `["RSI(14) oversold", "SMA golden cross"]`) |
 | `signals[].price` | Closing price when signal triggered |
+| `signals[].currentPrice` | Latest close price for the ticker (as of `dateRange.to`) |
 | `signals[].sector` | Stock sector |
 | `signals[].marketCap` | Market cap group: `"small"`, `"mid"`, or `"large"` |
+| `signals[].stopLoss` | Suggested stop loss price (based on signal-day close) |
+| `signals[].takeProfit` | Suggested take profit price (based on signal-day close) |
+| `signals[].riskRewardRatio` | Risk-reward ratio if `takeProfit.method` is `RISK_REWARD` |
+| `signals[].method` | Methods used to compute levels |
+| `signals[].method.stopLoss` | Stop loss method: `FIXED` or `ATR` |
+| `signals[].method.takeProfit` | Take profit method: `FIXED`, `ATR`, or `RISK_REWARD` |
 | `summary.totalSignals` | Total buy signals in scanned period |
 | `summary.uniqueStocks` | Number of distinct tickers with signals |
 | `summary.byDay` | Object mapping date string to signal count per day |
@@ -668,38 +746,44 @@ Snapshot of open (unsold) positions at the end of the backtest period.
 
 ```json
 {
-  "totalStocks": 8,
-  "screened": [
+  "screeningId": "momentum_v1",
+  "scannedDays": 5,
+  "dateRange": {
+    "from": "2024-12-23",
+    "to": "2024-12-27"
+  },
+  "signals": [
     {
       "ticker": "BBCA",
       "companyName": "Bank Central Asia",
       "date": "2024-12-27",
-      "fundamentals": {
-        "marketCapGroup": "large",
-        "isSyariah": 0,
-        "dailyValue": 1500000000,
-        "sector": "Finance",
-        "peRatio": 18.5,
-        "pbv": 4.2,
-        "roe": 21.3,
-        "deRatio": 0.8
-      },
-      "technicals": {
-        "buySignal": true,
-        "reasons": "RSI(14) oversold (28.5); SMA(20,50) golden cross"
-      },
-      "indicators": {
-        "RSI_14": 28.5,
-        "SMA_20": 9750,
-        "SMA_50": 9600
+      "daysAgo": 0,
+      "signal": "BUY",
+      "reasons": ["RSI(14) oversold", "SMA(20,50) golden cross"],
+      "price": 9850,
+      "currentPrice": 10050,
+      "sector": "Finance",
+      "marketCap": "large",
+      "stopLoss": 9350,
+      "takeProfit": 10850,
+      "riskRewardRatio": 2.0,
+      "method": {
+        "stopLoss": "FIXED",
+        "takeProfit": "FIXED"
       }
     }
   ],
   "summary": {
-    "totalFiltered": 850,
+    "totalSignals": 8,
+    "uniqueStocks": 6,
+    "byDay": {
+      "2024-12-27": 3,
+      "2024-12-26": 2,
+      "2024-12-24": 3
+    },
+    "stocksScanned": 850,
     "passedFilters": 150,
-    "passedFundamentals": 45,
-    "passedTechnicals": 8
+    "passedFundamentals": 45
   }
 }
 ```
@@ -708,10 +792,12 @@ Snapshot of open (unsold) positions at the end of the backtest period.
 
 | Field | Description |
 |-------|-------------|
-| `totalFiltered` | Total stocks before any filters |
+| `totalSignals` | Total buy signals in scanned period |
+| `uniqueStocks` | Number of distinct tickers with signals |
+| `byDay` | Object mapping date string to signal count per day |
+| `stocksScanned` | Total stocks scanned (latest snapshot per ticker) |
 | `passedFilters` | Stocks passing market cap/sector/etc filters |
 | `passedFundamentals` | Stocks also passing fundamental criteria |
-| `passedTechnicals` | Final count with active buy signals |
 
 ---
 
