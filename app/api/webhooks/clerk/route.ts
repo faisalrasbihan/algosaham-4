@@ -66,7 +66,7 @@ export async function POST(req: Request) {
                 email: email_addresses[0]?.email_address || '',
                 name: first_name && last_name ? `${first_name} ${last_name}` : first_name || last_name || null,
                 imageUrl: image_url || null,
-                subscriptionTier: 'free',
+                subscriptionTier: 'ritel',
                 subscriptionStatus: 'active',
             })
 
