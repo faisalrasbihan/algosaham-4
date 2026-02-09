@@ -1622,61 +1622,65 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
           </div>
 
           <div className="p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="flex w-full">
+            <div className="flex w-full gap-2">
+              <div className="flex flex-1">
+                <Button
+                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium font-mono rounded-r-none border-r border-primary-foreground/20"
+                  onClick={handleRunBacktest}
+                  data-tutorial="run-backtest"
+                >
+                  <Play className="h-5 w-5 mr-2" />
+                  Run Backtest
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-3 rounded-l-none">
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end">
+                    <DropdownMenuItem onClick={() => {
+                      if (isLoaded && !isSignedIn) {
+                        setSaveWithBacktest(true)
+                        setShowLoginPrompt(true)
+                      } else {
+                        setSaveWithBacktest(true)
+                        setShowSaveModal(true)
+                      }
+                    }} className="font-mono">
+                      <Play className="h-4 w-4 mr-2" />
+                      Save & Run
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleCopyConfig} className="font-mono">
+                      {copied ? (
+                        <>
+                          <CheckCheck className="h-4 w-4 mr-2 text-green-600" />
+                          <span className="text-green-600">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy Config JSON
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               <Button
-                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium font-mono rounded-r-none border-r border-primary-foreground/20"
-                onClick={handleRunBacktest}
-                data-tutorial="run-backtest"
+                className="bg-secondary text-secondary-foreground hover:bg-secondary/80 h-12 px-4 border border-border"
+                onClick={() => {
+                  if (isLoaded && !isSignedIn) {
+                    setSaveWithBacktest(false)
+                    setShowLoginPrompt(true)
+                  } else {
+                    setSaveWithBacktest(false)
+                    setShowSaveModal(true)
+                  }
+                }}
               >
-                <Play className="h-5 w-5 mr-2" />
-                Run Backtest
+                <Save className="h-5 w-5" />
               </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-3 rounded-l-none">
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end">
-                  <DropdownMenuItem onClick={() => {
-                    if (isLoaded && !isSignedIn) {
-                      setSaveWithBacktest(true)
-                      setShowLoginPrompt(true)
-                    } else {
-                      setSaveWithBacktest(true)
-                      setShowSaveModal(true)
-                    }
-                  }} className="font-mono">
-                    <Play className="h-4 w-4 mr-2" />
-                    Run & Save
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => {
-                    if (isLoaded && !isSignedIn) {
-                      setSaveWithBacktest(false)
-                      setShowLoginPrompt(true)
-                    } else {
-                      setSaveWithBacktest(false)
-                      setShowSaveModal(true)
-                    }
-                  }} className="font-mono">
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Strategy
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleCopyConfig} className="font-mono">
-                    {copied ? (
-                      <>
-                        <CheckCheck className="h-4 w-4 mr-2 text-green-600" />
-                        <span className="text-green-600">Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy Config JSON
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
         </TabsContent >

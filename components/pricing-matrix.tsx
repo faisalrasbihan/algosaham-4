@@ -292,7 +292,7 @@ function PricingMatrixInner() {
                       </span>
                     </div>
                     <span className="text-sm text-muted-foreground font-mono">
-                      {plan.monthlyPrice === 0 ? "selamanya" : isYearly ? "/bulan (ditagih tahunan)" : "/bulan"}
+                      {plan.monthlyPrice === 0 ? "selamanya" : isYearly ? "per bulan (ditagih tahunan)" : "per bulan"}
                     </span>
                   </div>
 

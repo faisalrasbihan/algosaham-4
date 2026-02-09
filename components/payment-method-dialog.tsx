@@ -104,24 +104,23 @@ export function PaymentMethodDialog({
                 return
             }
 
+            // Close the dialog before opening Midtrans Snap to prevent double overlay
+            onClose()
+
             // Open Midtrans Snap payment popup
             window.snap.pay(data.data.token, {
                 onSuccess: () => {
                     toast.success("Pembayaran berhasil! Selamat menikmati paket " + planName)
-                    onClose()
                     onPaymentSuccess?.()
                 },
                 onPending: () => {
                     toast.info("Pembayaran sedang diproses. Silakan selesaikan pembayaran Anda.")
-                    onClose()
                 },
                 onError: () => {
                     toast.error("Pembayaran gagal. Silakan coba lagi.")
-                    setStep('select')
                 },
                 onClose: () => {
                     toast.info("Pembayaran dibatalkan")
-                    setStep('select')
                 },
             })
         } catch (error) {
