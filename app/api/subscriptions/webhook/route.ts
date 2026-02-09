@@ -5,6 +5,16 @@ import { createSubscription } from "@/lib/midtrans";
 // Midtrans webhook notification handler
 // This endpoint receives payment status notifications from Midtrans
 
+// GET handler for webhook health check (Midtrans tests the URL)
+export async function GET(request: NextRequest) {
+    return NextResponse.json({
+        status: "ok",
+        message: "Midtrans webhook endpoint is ready",
+        timestamp: new Date().toISOString(),
+    });
+}
+
+
 interface MidtransNotification {
     transaction_time: string;
     transaction_status: string;
