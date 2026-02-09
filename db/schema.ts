@@ -11,8 +11,10 @@ export const users = pgTable("users", {
   imageUrl: text("image_url"),
 
   // Subscription info
-  subscriptionTier: text("subscription_tier").default("free"), // free, premium, pro
+  subscriptionTier: text("subscription_tier").default("ritel"), // ritel, suhu, bandar
   subscriptionStatus: text("subscription_status").default("active"), // active, canceled, expired, past_due
+  subscriptionPeriodStart: timestamp("subscription_period_start", { withTimezone: true }),
+  subscriptionPeriodEnd: timestamp("subscription_period_end", { withTimezone: true }),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),

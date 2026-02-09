@@ -221,71 +221,126 @@ interface SuccessfulPaymentData {
 async function handleSuccessfulPayment(data: SuccessfulPaymentData) {
     console.log("Processing successful payment:", data);
 
-    // If we have a saved_token_id from credit card, create a recurring subscription
-    if (data.savedTokenId && data.paymentType === 'credit_card') {
-        try {
-            console.log("Creating credit card recurring subscription with saved token...");
+    try {
+        // Import database utilities
+        const { db } = await import("@/db");
+        const { users, payments } = await import("@/db/schema");
+        const { eq } = await import("drizzle-orm");
 
-            const subscriptionName = `AlgoSaham ${data.planType.charAt(0).toUpperCase() + data.planType.slice(1)} - ${data.billingInterval}`;
-            const amount = parseInt(data.amount, 10);
+        // Calculate subscription period
+        const now = new Date();
+        const periodStart = now;
+        let periodEnd: Date;
 
-            // Get the monthly amount for recurring
-            const monthlyAmount = data.billingInterval === 'yearly'
-                ? Math.round(amount / 12)  // Divide yearly amount by 12
-                : amount;
-
-            const subscription = await createSubscription({
-                name: subscriptionName,
-                amount: monthlyAmount.toString(),
-                currency: 'IDR',
-                payment_type: 'credit_card',
-                token: data.savedTokenId,
-                schedule: {
-                    interval: 1, // Always charge monthly
-                    interval_unit: 'month',
-                    max_interval: data.billingInterval === 'monthly' ? 12 : 12, // 1 year
-                    start_time: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19), // Start in 30 days
-                },
-                customer_details: {
-                    // Note: We don't have customer details here, they will come from the initial transaction
-                },
-                metadata: {
-                    user_id: data.userId,
-                    plan_type: data.planType,
-                    billing_interval: data.billingInterval,
-                    initial_order_id: data.orderId,
-                },
-            });
-
-            console.log(`Created recurring subscription ${subscription.id} for user ${data.userId}`);
-
-            // TODO: Save subscription to database
-            // await db.insert(paymentSubscriptions).values({
-            //     userId: data.userId,
-            //     planType: data.planType,
-            //     billingInterval: data.billingInterval,
-            //     paymentMethod: 'credit_card',
-            //     midtransSubscriptionId: subscription.id,
-            //     midtransToken: data.savedTokenId,
-            //     amount: data.amount,
-            //     status: 'active',
-            //     currentPeriodStart: new Date(),
-            //     currentPeriodEnd: addMonths(new Date(), data.billingInterval === 'monthly' ? 1 : 12),
-            // });
-
-        } catch (error) {
-            console.error("Error creating recurring subscription:", error);
-            // Don't throw - the initial payment was still successful
+        if (data.billingInterval === 'monthly') {
+            // Add 1 month
+            periodEnd = new Date(now);
+            periodEnd.setMonth(periodEnd.getMonth() + 1);
+        } else {
+            // Add 1 year
+            periodEnd = new Date(now);
+            periodEnd.setFullYear(periodEnd.getFullYear() + 1);
         }
+
+        // Find user by clerkId (userId from order)
+        // The userId in the order is a shortened version, we need to find the full clerkId
+        const allUsers = await db.select().from(users);
+        const user = allUsers.find(u => u.clerkId.includes(data.userId));
+
+        if (!user) {
+            console.error(`User not found for userId: ${data.userId}`);
+            return;
+        }
+
+        // Update user's subscription tier and period
+        await db.update(users)
+            .set({
+                subscriptionTier: data.planType, // 'suhu' or 'bandar'
+                subscriptionStatus: 'active',
+                subscriptionPeriodStart: periodStart,
+                subscriptionPeriodEnd: periodEnd,
+                updatedAt: now,
+            })
+            .where(eq(users.clerkId, user.clerkId));
+
+        console.log(`Updated user ${user.clerkId} to ${data.planType} tier until ${periodEnd.toISOString()}`);
+
+        // Create payment record
+        await db.insert(payments).values({
+            userId: user.clerkId,
+            orderId: data.orderId,
+            transactionId: data.transactionId,
+            transactionStatus: 'settlement',
+            transactionTime: now,
+            settlementTime: now,
+            grossAmount: data.amount,
+            currency: 'IDR',
+            paymentType: data.paymentType,
+            fraudStatus: 'accept',
+            subscriptionTier: data.planType,
+            billingPeriod: data.billingInterval,
+            periodStart: periodStart,
+            periodEnd: periodEnd,
+            metadata: {
+                savedTokenId: data.savedTokenId,
+                initialPayment: true,
+            },
+        });
+
+        console.log(`Created payment record for order ${data.orderId}`);
+
+        // If we have a saved_token_id from credit card, create a recurring subscription
+        if (data.savedTokenId && data.paymentType === 'credit_card') {
+            try {
+                console.log("Creating credit card recurring subscription with saved token...");
+
+                const subscriptionName = `AlgoSaham ${data.planType.charAt(0).toUpperCase() + data.planType.slice(1)} - ${data.billingInterval}`;
+                const amount = parseInt(data.amount, 10);
+
+                // Get the monthly amount for recurring
+                const monthlyAmount = data.billingInterval === 'yearly'
+                    ? Math.round(amount / 12)  // Divide yearly amount by 12
+                    : amount;
+
+                const subscription = await createSubscription({
+                    name: subscriptionName,
+                    amount: monthlyAmount.toString(),
+                    currency: 'IDR',
+                    payment_type: 'credit_card',
+                    token: data.savedTokenId,
+                    schedule: {
+                        interval: 1, // Always charge monthly
+                        interval_unit: 'month',
+                        max_interval: data.billingInterval === 'monthly' ? 12 : 12, // 1 year
+                        start_time: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19), // Start in 30 days
+                    },
+                    customer_details: {
+                        // Note: We don't have customer details here, they will come from the initial transaction
+                    },
+                    metadata: {
+                        user_id: user.clerkId,
+                        plan_type: data.planType,
+                        billing_interval: data.billingInterval,
+                        initial_order_id: data.orderId,
+                    },
+                });
+
+                console.log(`Created recurring subscription ${subscription.id} for user ${user.clerkId}`);
+
+                // TODO: Save subscription to paymentSubscriptions table if needed
+                // await db.insert(paymentSubscriptions).values({ ... });
+
+            } catch (error) {
+                console.error("Error creating recurring subscription:", error);
+                // Don't throw - the initial payment was still successful
+            }
+        }
+
+        console.log(`Successfully processed payment for user ${user.clerkId}, plan: ${data.planType}`);
+    } catch (error) {
+        console.error("Error in handleSuccessfulPayment:", error);
+        throw error;
     }
-
-    // TODO: Update user's plan in database
-    // await db.update(users).set({ plan: data.planType }).where(eq(users.clerkId, data.userId));
-
-    // TODO: Create transaction record
-    // await db.insert(paymentTransactions).values({ ... });
-
-    console.log(`Successfully processed payment for user ${data.userId}, plan: ${data.planType}`);
 }
 
 interface FailedPaymentData {
@@ -299,10 +354,48 @@ interface FailedPaymentData {
 async function handleFailedPayment(data: FailedPaymentData) {
     console.log("Processing failed payment:", data);
 
-    // TODO: Update payment_transactions record with failure status
-    // TODO: Optionally send notification to user
+    try {
+        // Import database utilities
+        const { db } = await import("@/db");
+        const { users, payments } = await import("@/db/schema");
 
-    console.log(`Payment failed for user ${data.userId}: ${data.statusMessage}`);
+        // Find user by clerkId (userId from order)
+        const allUsers = await db.select().from(users);
+        const user = allUsers.find(u => u.clerkId.includes(data.userId));
+
+        if (!user) {
+            console.error(`User not found for userId: ${data.userId}`);
+            return;
+        }
+
+        // Parse order ID to get plan info
+        const orderInfo = parseOrderId(data.orderId);
+        if (!orderInfo) {
+            console.error(`Could not parse order ID: ${data.orderId}`);
+            return;
+        }
+
+        // Create payment record for failed payment
+        await db.insert(payments).values({
+            userId: user.clerkId,
+            orderId: data.orderId,
+            transactionId: data.transactionId,
+            transactionStatus: data.status, // deny, cancel, expire
+            transactionTime: new Date(),
+            grossAmount: "0", // We don't have the amount in failed payment notification
+            currency: 'IDR',
+            paymentType: 'unknown',
+            statusMessage: data.statusMessage,
+            subscriptionTier: orderInfo.planType,
+            metadata: {
+                failureReason: data.statusMessage,
+            },
+        });
+
+        console.log(`Recorded failed payment for user ${user.clerkId}: ${data.statusMessage}`);
+    } catch (error) {
+        console.error("Error in handleFailedPayment:", error);
+    }
 }
 
 interface RefundData {

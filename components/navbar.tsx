@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
+import { WalletCards } from "lucide-react";
 
 
 export function Navbar() {
@@ -86,21 +87,6 @@ export function Navbar() {
         <Link href="/about" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Pelajari
         </Link>
-      </div>
-
-      <div className="flex items-center space-x-3">
-        <SignedOut>
-          <SignInButton mode="modal" oauthFlow="popup">
-            <Button variant="outline" size="sm" className="hover:bg-[#487b78] hover:text-white">
-              Sign In
-            </Button>
-          </SignInButton>
-          <SignUpButton mode="modal" oauthFlow="popup">
-            <Button size="sm" style={{ backgroundColor: "#d07225", color: "white" }} className="hover:opacity-90">
-              Sign Up
-            </Button>
-          </SignUpButton>
-        </SignedOut>
         <SignedIn>
           <div className="relative" onMouseEnter={() => setShowCredits(true)} onMouseLeave={() => setShowCredits(false)}>
             <div
@@ -140,8 +126,35 @@ export function Navbar() {
               </div>
             )}
           </div>
-          <Link href="/portfolio" className="text-sm font-medium hover:text-primary transition-colors mx-6">
-            Portfolio
+        </SignedIn>
+      </div>
+
+      <div className="flex items-center space-x-3">
+        <SignedOut>
+          <SignInButton mode="modal" oauthFlow="popup">
+            <Button variant="outline" size="sm" className="hover:bg-[#487b78] hover:text-white">
+              Sign In
+            </Button>
+          </SignInButton>
+          <SignUpButton mode="modal" oauthFlow="popup">
+            <Button size="sm" style={{ backgroundColor: "#d07225", color: "white" }} className="hover:opacity-90">
+              Sign Up
+            </Button>
+          </SignUpButton>
+        </SignedOut>
+        <SignedIn>
+          <Link href="/portfolio">
+            <button
+              className="px-3 py-1.5 rounded-md border flex items-center gap-2 text-sm font-medium transition-colors hover:bg-muted mr-3"
+              style={{
+                borderColor: "#e5e7eb",
+                backgroundColor: "rgba(245, 245, 245, 0.5)",
+                color: "#1f2937",
+              }}
+            >
+              <WalletCards size={16} />
+              Portfolio
+            </button>
           </Link>
           <UserButton />
         </SignedIn>

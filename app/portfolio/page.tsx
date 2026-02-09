@@ -143,7 +143,7 @@ export default function Portfolio() {
     }
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background dotted-background">
             <Navbar />
             <TickerTape />
             <div className="flex-1 overflow-y-auto mt-8 pb-8">

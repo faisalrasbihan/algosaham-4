@@ -138,7 +138,7 @@ function PricingMatrixInner() {
   const plans = [
     {
       name: "Ritel",
-      subtitle: "Free",
+      subtitle: "Ritel",
       monthlyPrice: 0,
       yearlyPrice: 0,
       description: "Untuk investor pemula",
@@ -148,7 +148,7 @@ function PricingMatrixInner() {
     },
     {
       name: "Suhu",
-      subtitle: "Popular",
+      subtitle: "Suhu",
       monthlyPrice: 99000,
       yearlyPrice: 49500,
       description: "Untuk trader aktif",
@@ -158,7 +158,7 @@ function PricingMatrixInner() {
     },
     {
       name: "Bandar",
-      subtitle: "Pro",
+      subtitle: "Bandar",
       monthlyPrice: 189000,
       yearlyPrice: 94500,
       description: "Untuk trader profesional",
@@ -267,7 +267,7 @@ function PricingMatrixInner() {
                 key={index}
                 className={`relative rounded-xl border flex flex-col transition-all duration-300 ${plan.highlighted
                   ? "border-primary bg-primary/5 shadow-xl scale-[1.02]"
-                  : "border-border bg-card hover:border-primary/50 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+                  : "border-border bg-card"
                   }`}
               >
                 {plan.badge && (
@@ -302,7 +302,7 @@ function PricingMatrixInner() {
                       disabled={loadingPlan !== null}
                       className={`w-full ${plan.highlighted
                         ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                        : "bg-secondary hover:bg-secondary/80 text-foreground"
+                        : "bg-secondary hover:bg-[#d07225] hover:text-white text-foreground transition-colors"
                         }`}
                     >
                       {loadingPlan === plan.key ? (
@@ -321,7 +321,7 @@ function PricingMatrixInner() {
                       <Button
                         className={`w-full ${plan.highlighted
                           ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                          : "bg-secondary hover:bg-secondary/80 text-foreground"
+                          : "bg-secondary hover:bg-[#d07225] hover:text-white text-foreground transition-colors"
                           }`}
                       >
                         {plan.monthlyPrice === 0 ? "Mulai Gratis" : "Login untuk Berlangganan"}

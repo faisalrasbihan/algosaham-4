@@ -15,7 +15,7 @@ export default function BacktestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background dotted-background">
       <Navbar />
       <TickerTape />
       <div className="flex h-[calc(100vh-104px)]">
