@@ -13,10 +13,10 @@ export function Navbar() {
   const { isSignedIn, isLoaded } = useUser();
   const [showCredits, setShowCredits] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState({
-    isPro: false, // Default to free tier
+    tier: 'ritel' as 'ritel' | 'suhu' | 'bandar',
     credits: {
       used: 0,
-      total: 0,
+      total: 100,
     },
   });
 
@@ -28,19 +28,24 @@ export function Navbar() {
         const response = await fetch('/api/user/tier');
         if (response.ok) {
           const data = await response.json();
-          const tier = data.tier || 'free';
+          const tier = data.tier || 'ritel';
+
+          // Set credits based on tier
+          let totalCredits = 100; // ritel
+          if (tier === 'suhu') totalCredits = 500;
+          if (tier === 'bandar') totalCredits = 1000;
 
           setSubscriptionData({
-            isPro: tier === 'pro' || tier === 'bandar',
+            tier: tier,
             credits: {
               used: 0, // TODO: Implement credit tracking
-              total: tier === 'pro' || tier === 'bandar' ? 1000 : 100,
+              total: totalCredits,
             },
           });
         }
       } catch (error) {
         console.error('Failed to fetch user tier:', error);
-        // Keep default free tier on error
+        // Keep default ritel tier on error
       }
     }
 
@@ -49,8 +54,23 @@ export function Navbar() {
     }
   }, [isSignedIn, isLoaded]);
 
-  const userPlan = subscriptionData.isPro ? "PRO" : "FREE";
+  // Display tier name in uppercase
+  const userPlan = subscriptionData.tier.toUpperCase();
   const credits = subscriptionData.credits;
+
+  // Tier colors
+  const getTierColor = (tier: string) => {
+    switch (tier.toLowerCase()) {
+      case 'suhu':
+        return { border: '#d4af37', bg: '#d4af3710', text: '#d4af37' }; // Gold
+      case 'bandar':
+        return { border: '#9333ea', bg: '#9333ea10', text: '#9333ea' }; // Purple
+      default: // ritel
+        return { border: '#6b7280', bg: '#f3f4f610', text: '#6b7280' }; // Gray
+    }
+  };
+
+  const tierColors = getTierColor(subscriptionData.tier);
 
   return (
     <nav className="h-16 bg-card/50 backdrop-blur-sm border-b border-border px-6 flex items-center justify-between relative z-50">
@@ -92,9 +112,9 @@ export function Navbar() {
             <div
               className="px-3 py-1.5 rounded-md border text-xs font-medium cursor-default !font-ibm-plex-mono"
               style={{
-                borderColor: userPlan === "PRO" ? "#d4af37" : "#6b7280",
-                backgroundColor: userPlan === "PRO" ? "#d4af3710" : "#f3f4f610",
-                color: userPlan === "PRO" ? "#d4af37" : "#6b7280",
+                borderColor: tierColors.border,
+                backgroundColor: tierColors.bg,
+                color: tierColors.text,
               }}
             >
               {userPlan} PLAN
