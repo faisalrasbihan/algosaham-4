@@ -117,7 +117,7 @@ export function Navbar() {
                 color: tierColors.text,
               }}
             >
-              {userPlan} PLAN
+              {userPlan}
             </div>
             {/* Credit tooltip */}
             {showCredits && (
