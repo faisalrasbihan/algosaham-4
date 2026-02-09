@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TrendingUp, TrendingDown, Sparkles, BarChart3 } from "lucide-react"
+import Image from "next/image"
 import {
   Tooltip,
   TooltipContent,
@@ -208,11 +209,24 @@ export function StockRecommendations({ signals = [], trades = [] }: StockRecomme
                     <Tooltip delayDuration={300}>
                       <TooltipTrigger asChild>
                         <div className="flex items-center gap-2">
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${stock.return > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                              }`}
-                          >
-                            {stock.ticker.substring(0, 2)}
+                          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-slate-100 relative">
+                            <Image
+                              src={`/stock_icons/${stock.ticker}.png`}
+                              alt={stock.ticker}
+                              width={32}
+                              height={32}
+                              className="object-cover"
+                              onError={(e) => {
+                                // Fallback to colored circle with initials if image fails to load
+                                const target = e.target as HTMLImageElement
+                                target.style.display = 'none'
+                                const parent = target.parentElement
+                                if (parent) {
+                                  parent.className = `w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${stock.return > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`
+                                  parent.textContent = stock.ticker.substring(0, 2)
+                                }
+                              }}
+                            />
                           </div>
                           <div>
                             <div className="font-mono font-semibold text-sm text-foreground">{stock.ticker}</div>
