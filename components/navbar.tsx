@@ -165,7 +165,7 @@ export function Navbar() {
         <SignedIn>
           <Link href="/portfolio">
             <button
-              className="px-3 py-1.5 rounded-md border flex items-center gap-2 text-sm font-medium transition-colors hover:bg-muted mr-3"
+              className="px-3 py-1.5 rounded-md border flex items-center gap-2 text-sm font-medium transition-colors hover:bg-muted mr-3 cursor-pointer"
               style={{
                 borderColor: "#e5e7eb",
                 backgroundColor: "rgba(245, 245, 245, 0.5)",

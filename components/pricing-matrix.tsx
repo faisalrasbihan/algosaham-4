@@ -266,7 +266,7 @@ function PricingMatrixInner() {
               <div
                 key={index}
                 className={`relative rounded-xl border flex flex-col transition-all duration-300 ${plan.highlighted
-                  ? "border-primary bg-primary/5 shadow-xl scale-[1.02]"
+                  ? "border-primary bg-card shadow-xl scale-[1.02]"
                   : "border-border bg-card"
                   }`}
               >
