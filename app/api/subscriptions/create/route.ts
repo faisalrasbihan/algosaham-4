@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { getSnapToken, createSubscription } from "@/lib/midtrans";
+import { ensureUserInDatabase } from "@/lib/ensure-user";
 
 // Plan pricing configuration
 const PLAN_PRICING = {
@@ -28,6 +29,9 @@ export async function POST(request: NextRequest) {
                 { status: 401 }
             );
         }
+
+        // Ensure user exists in database (upsert logic)
+        await ensureUserInDatabase();
 
         const user = await currentUser();
         const body = await request.json();

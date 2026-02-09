@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { db } from '@/db'
 import { strategies } from '@/db/schema'
 import { eq, desc } from 'drizzle-orm'
+import { ensureUserInDatabase } from '@/lib/ensure-user'
 
 export async function GET(request: NextRequest) {
     try {
@@ -11,6 +12,9 @@ export async function GET(request: NextRequest) {
         if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
+
+        // Ensure user exists in database (upsert logic)
+        await ensureUserInDatabase()
 
         // Fetch user's strategies
         const userStrategies = await db
