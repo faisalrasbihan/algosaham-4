@@ -106,6 +106,7 @@ export interface CreatePayAccountResponse {
         }>;
         reference_id?: string;
     };
+    status_message?: string;
 }
 
 export interface GetPayAccountResponse {
@@ -372,6 +373,7 @@ export interface SnapTransactionRequest {
         error?: string;
         pending?: string;
     };
+    enabled_payments?: string[];
 }
 
 export interface SnapTokenResponse {

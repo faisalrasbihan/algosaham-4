@@ -73,24 +73,67 @@ export async function POST(request: NextRequest) {
         // =====================================================
         // GOPAY RECURRING SUBSCRIPTION
         // =====================================================
-        if (method === 'gopay' && gopayAccountId && gopayToken) {
-            // Create a recurring subscription with GoPay
-            try {
-                const subscriptionName = `AlgoSaham ${planType.charAt(0).toUpperCase() + planType.slice(1)} - ${billingInterval}`;
+        if (method === 'gopay') {
+            // If we have tokenization data (account ID & token), create a recurring subscription
+            // Otherwise, fallback to one-time payment via Snap
+            if (gopayAccountId && gopayToken) {
+                // Create a recurring subscription with GoPay
+                try {
+                    const subscriptionName = `AlgoSaham ${planType.charAt(0).toUpperCase() + planType.slice(1)} - ${billingInterval}`;
 
-                const subscription = await createSubscription({
-                    name: subscriptionName,
-                    amount: amount.toString(),
-                    currency: 'IDR',
-                    payment_type: 'gopay',
-                    token: gopayToken,
-                    schedule: {
-                        interval: billingInterval === 'monthly' ? 1 : 12,
-                        interval_unit: 'month',
-                        max_interval: billingInterval === 'monthly' ? 12 : 5, // 1 year or 5 years max
-                    },
-                    gopay: {
-                        account_id: gopayAccountId,
+                    const subscription = await createSubscription({
+                        name: subscriptionName,
+                        amount: amount.toString(),
+                        currency: 'IDR',
+                        payment_type: 'gopay',
+                        token: gopayToken,
+                        schedule: {
+                            interval: billingInterval === 'monthly' ? 1 : 12,
+                            interval_unit: 'month',
+                            max_interval: billingInterval === 'monthly' ? 12 : 5, // 1 year or 5 years max
+                        },
+                        gopay: {
+                            account_id: gopayAccountId,
+                        },
+                        customer_details: {
+                            first_name: user?.firstName || undefined,
+                            last_name: user?.lastName || undefined,
+                            email: user?.emailAddresses[0]?.emailAddress || undefined,
+                            phone: user?.phoneNumbers[0]?.phoneNumber || undefined,
+                        },
+                        metadata: {
+                            user_id: userId,
+                            plan_type: planType,
+                            billing_interval: billingInterval,
+                        },
+                    });
+
+                    return NextResponse.json({
+                        success: true,
+                        data: {
+                            subscriptionId: subscription.id,
+                            status: subscription.status,
+                            paymentMethod: 'gopay',
+                            orderId,
+                            amount,
+                            planType,
+                            billingInterval,
+                        },
+                    });
+                } catch (error) {
+                    console.error("Error creating GoPay subscription:", error);
+                    return NextResponse.json(
+                        { error: error instanceof Error ? error.message : "Failed to create GoPay subscription" },
+                        { status: 500 }
+                    );
+                }
+            } else {
+                // Fallback: One-time payment using Snap
+                // User will scan QR code or use Deeplink
+                const snapResponse = await getSnapToken({
+                    transaction_details: {
+                        order_id: orderId,
+                        gross_amount: amount,
                     },
                     customer_details: {
                         first_name: user?.firstName || undefined,
@@ -98,18 +141,19 @@ export async function POST(request: NextRequest) {
                         email: user?.emailAddresses[0]?.emailAddress || undefined,
                         phone: user?.phoneNumbers[0]?.phoneNumber || undefined,
                     },
-                    metadata: {
-                        user_id: userId,
-                        plan_type: planType,
-                        billing_interval: billingInterval,
+                    enabled_payments: ['gopay', 'qris'],
+                    callbacks: {
+                        finish: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=success`,
+                        error: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=error`,
+                        pending: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=pending`,
                     },
                 });
 
                 return NextResponse.json({
                     success: true,
                     data: {
-                        subscriptionId: subscription.id,
-                        status: subscription.status,
+                        token: snapResponse.token,
+                        redirectUrl: snapResponse.redirect_url,
                         paymentMethod: 'gopay',
                         orderId,
                         amount,
@@ -117,12 +161,6 @@ export async function POST(request: NextRequest) {
                         billingInterval,
                     },
                 });
-            } catch (error) {
-                console.error("Error creating GoPay subscription:", error);
-                return NextResponse.json(
-                    { error: error instanceof Error ? error.message : "Failed to create GoPay subscription" },
-                    { status: 500 }
-                );
             }
         }
 

@@ -67,10 +67,10 @@ export async function POST(request: NextRequest) {
         // Log the full response for debugging
         console.log("Midtrans GoPay response:", JSON.stringify(response, null, 2));
 
-        // Check if we got an error status
-        if (response.status_code && response.status_code !== '201' && response.status_code !== '200') {
-            console.error("Midtrans returned error status:", response.status_code);
-            throw new Error(`Midtrans error: ${response.status_code}. Make sure GoPay Tokenization is enabled in your Midtrans Dashboard.`);
+        // Check if we got an error status - allow 201 (Created), 200 (OK), and 202 (Accepted/Pending)
+        if (response.status_code && !['200', '201', '202'].includes(response.status_code)) {
+            console.error("Midtrans returned error status:", response.status_code, response.status_message);
+            throw new Error(`Midtrans error: ${response.status_code} - ${response.status_message || 'Unknown error'}`);
         }
 
         // Find the activation URL from actions - check various possible action names
