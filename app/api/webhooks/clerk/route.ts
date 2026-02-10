@@ -60,17 +60,28 @@ export async function POST(req: Request) {
         }
 
         try {
-            // Insert new user into database
-            await db.insert(users).values({
-                clerkId: id,
-                email: email_addresses[0]?.email_address || '',
-                name: first_name && last_name ? `${first_name} ${last_name}` : first_name || last_name || null,
-                imageUrl: image_url || null,
-                subscriptionTier: 'ritel',
-                subscriptionStatus: 'active',
-            })
+            // Insert or update user in database (Upsert)
+            await db
+                .insert(users)
+                .values({
+                    clerkId: id,
+                    email: email_addresses[0]?.email_address || '',
+                    name: first_name && last_name ? `${first_name} ${last_name}` : first_name || last_name || null,
+                    imageUrl: image_url || null,
+                    subscriptionTier: 'ritel',
+                    subscriptionStatus: 'active',
+                })
+                .onConflictDoUpdate({
+                    target: users.clerkId,
+                    set: {
+                        email: email_addresses[0]?.email_address || '',
+                        name: first_name && last_name ? `${first_name} ${last_name}` : first_name || last_name || null,
+                        imageUrl: image_url || null,
+                        updatedAt: new Date(),
+                    },
+                })
 
-            console.log('✅ User created in database:', id)
+            console.log('✅ User created/updated in database:', id)
         } catch (error) {
             console.error('❌ Error creating user in database:', error)
             return new Response('Error creating user', { status: 500 })

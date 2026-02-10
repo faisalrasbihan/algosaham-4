@@ -399,7 +399,7 @@ export function StockRecommendations({ signals = [], trades = [] }: StockRecomme
             </TabsTrigger>
           </TabsList>
         </CardHeader>
-        <CardContent className="flex-1 overflow-auto pt-0">
+        <CardContent className="flex-1 overflow-auto p-4 pt-0">
           <TabsContent value="signal" className="mt-0 h-full">
             {renderStockTable(signalStocks)}
           </TabsContent>

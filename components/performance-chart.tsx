@@ -91,8 +91,9 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
         vertLines: { color: '#e2e8f0' },
         horzLines: { color: '#e2e8f0' },
       },
+      // Use the container's actual height (controlled by CSS h-full in parent)
       width: chartContainerRef.current.clientWidth,
-      height: 400,
+      height: chartContainerRef.current.clientHeight,
       rightPriceScale: {
         borderColor: '#e2e8f0',
         scaleMargins: {
@@ -127,6 +128,7 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
       },
       lastValueVisible: true,
       priceLineVisible: true,
+      // Hide legend in series if needed, but we removed the custom one
     }) as ISeriesApi<"Baseline">
     strategySeriesRef.current = strategySeries
 
@@ -264,8 +266,8 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
     // Use ResizeObserver for more reliable resize handling
     const resizeObserver = new ResizeObserver((entries) => {
       if (entries[0] && chartRef.current) {
-        const { width } = entries[0].contentRect
-        chartRef.current.applyOptions({ width })
+        const { width, height } = entries[0].contentRect
+        chartRef.current.applyOptions({ width, height })
         chartRef.current.timeScale().fitContent()
       }
     })
@@ -377,7 +379,7 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
   // Show error state if no data
   if (!data || data.length === 0) {
     return (
-      <div className="h-[400px] w-full flex items-center justify-center">
+      <div className="h-full w-full flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="text-muted-foreground font-mono text-lg mb-2">No Performance Data</div>
           <p className="text-muted-foreground font-mono text-sm">Run a backtest to see performance chart</p>
@@ -387,21 +389,10 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
   }
 
   return (
-    <div className="w-full">
-      <div ref={chartContainerRef} className="h-[400px] w-full relative" />
+    <div className="w-full h-full">
+      <div ref={chartContainerRef} className="h-full w-full relative" />
       {/* Chart Legend */}
-      <div className="flex items-center justify-center gap-6 mt-4 text-sm font-mono">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-0.5 bg-[rgba(38,166,154,1)]" />
-          <span className="text-muted-foreground">Strategy Return</span>
-        </div>
-        {hasBenchmarkData && (
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-[#3b82f6]" style={{ borderTop: '2px dashed #3b82f6' }} />
-            <span className="text-muted-foreground">{benchmarkLabel} Index</span>
-          </div>
-        )}
-      </div>
+      {/* Chart Legend removed as per user request */}
     </div>
   )
 }

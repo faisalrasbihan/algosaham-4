@@ -157,7 +157,7 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
       {/* Performance Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Performance Chart */}
-        <Card className="rounded-md lg:col-span-2">
+        <Card className="rounded-md lg:col-span-2 h-full flex flex-col">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-foreground font-mono font-bold text-base">Performance Chart</CardTitle>
             {/* Benchmark Toggle */}
@@ -182,7 +182,7 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
               </button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 min-h-0">
             <PerformanceChart data={currentResults?.dailyPortfolio} selectedBenchmark={selectedBenchmark} />
           </CardContent>
         </Card>
