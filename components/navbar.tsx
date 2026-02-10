@@ -5,58 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import Image from "next/image";
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { WalletCards } from "lucide-react";
 
+import { useUserTier } from "@/context/user-tier-context";
 
 export function Navbar() {
-  const { isSignedIn, isLoaded } = useUser();
+  const { isSignedIn } = useUser();
   const [showCredits, setShowCredits] = useState(false);
-  const [subscriptionData, setSubscriptionData] = useState({
-    tier: 'ritel' as 'ritel' | 'suhu' | 'bandar',
-    credits: {
-      used: 0,
-      total: 100,
-    },
-  });
-
-  useEffect(() => {
-    async function fetchUserTier() {
-      if (!isSignedIn) return;
-
-      try {
-        const response = await fetch('/api/user/tier');
-        if (response.ok) {
-          const data = await response.json();
-          const tier = data.tier || 'ritel';
-
-          // Set credits based on tier
-          let totalCredits = 100; // ritel
-          if (tier === 'suhu') totalCredits = 500;
-          if (tier === 'bandar') totalCredits = 1000;
-
-          setSubscriptionData({
-            tier: tier,
-            credits: {
-              used: 0, // TODO: Implement credit tracking
-              total: totalCredits,
-            },
-          });
-        }
-      } catch (error) {
-        console.error('Failed to fetch user tier:', error);
-        // Keep default ritel tier on error
-      }
-    }
-
-    if (isLoaded && isSignedIn) {
-      fetchUserTier();
-    }
-  }, [isSignedIn, isLoaded]);
+  const { tier, credits } = useUserTier();
 
   // Display tier name in uppercase
-  const userPlan = subscriptionData.tier.toUpperCase();
-  const credits = subscriptionData.credits;
+  const userPlan = tier.toUpperCase();
 
   // Tier colors
   const getTierColor = (tier: string) => {
@@ -70,7 +30,7 @@ export function Navbar() {
     }
   };
 
-  const tierColors = getTierColor(subscriptionData.tier);
+  const tierColors = getTierColor(tier);
 
   return (
     <nav className="h-16 bg-card/50 backdrop-blur-sm border-b border-border px-6 flex items-center justify-between relative z-50">

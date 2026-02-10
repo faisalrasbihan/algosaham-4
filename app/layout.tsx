@@ -2,6 +2,7 @@ import type React from "react"
 import { Inter, JetBrains_Mono, IBM_Plex_Mono } from "next/font/google"
 import { ClerkProvider } from '@clerk/nextjs'
 import { Toaster } from 'sonner'
+import { UserTierProvider } from '@/context/user-tier-context'
 import "./globals.css"
 
 const inter = Inter({
@@ -106,7 +107,9 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} ${ibmPlexMono.variable} antialiased dark`}>
         <body className="min-h-screen bg-background text-foreground">
-          {children}
+          <UserTierProvider>
+            {children}
+          </UserTierProvider>
           <Toaster position="top-right" richColors />
         </body>
       </html>

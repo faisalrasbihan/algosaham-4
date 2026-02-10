@@ -58,10 +58,10 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
       tooltip: "Persentase keuntungan atau kerugian total portofolio selama periode backtest."
     },
     {
-      label: "Annual Return",
+      label: "Annualized Return",
       value: `${(currentResults.summary?.annualizedReturn || 0).toFixed(1)}%`,
       positive: (currentResults.summary?.annualizedReturn || 0) >= 0,
-      tooltip: "Compound Annual Growth Rate (CAGR), mewakili rata-rata pertumbuhan tahunan portofolio."
+      tooltip: "Compound Annual Growth Rate (CAGR) mewakili pertumbuhan tahunan portofolio yang disetahunkan."
     },
     {
       label: "Max Drawdown",

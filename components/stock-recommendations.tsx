@@ -242,16 +242,11 @@ export function StockRecommendations({ signals = [], trades = [] }: StockRecomme
                       </td>
                       <td className="py-3 px-2 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {stock.return > 0 ? (
-                            <TrendingUp className="w-4 h-4 text-green-700" />
-                          ) : stock.return < 0 ? (
-                            <TrendingDown className="w-4 h-4 text-red-600" />
-                          ) : null}
                           <span
                             className={`font-mono text-sm font-semibold ${stock.return > 0 ? "text-green-700" : stock.return < 0 ? "text-red-600" : "text-muted-foreground"
                               }`}
                           >
-                            {stock.return === 0 ? "-" : `${stock.return > 0 ? "+" : ""}${stock.return.toFixed(1)}%`}
+                            {stock.return === 0 ? "0.0%" : `${stock.return.toFixed(1)}%`}
                           </span>
                         </div>
                       </td>
