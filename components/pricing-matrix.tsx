@@ -117,7 +117,29 @@ function PricingMatrixInner() {
   const [isYearly, setIsYearly] = useState(false)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
   const { isSignedIn, user } = useUser()
+  const [userTier, setUserTier] = useState<string>("ritel")
   const searchParams = useSearchParams()
+
+  // Fetch user's subscription tier
+  useEffect(() => {
+    const fetchUserTier = async () => {
+      if (!isSignedIn) return
+
+      try {
+        const response = await fetch('/api/user/tier')
+        if (response.ok) {
+          const data = await response.json()
+          // map 'free' to 'ritel' if necessary, otherwise use data.tier
+          const tier = data.tier === 'free' ? 'ritel' : (data.tier || 'ritel')
+          setUserTier(tier)
+        }
+      } catch (error) {
+        console.error('Failed to fetch user tier:', error)
+      }
+    }
+
+    fetchUserTier()
+  }, [isSignedIn])
 
   // Payment dialog state
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
@@ -246,6 +268,8 @@ function PricingMatrixInner() {
     window.location.reload()
   }
 
+  const isPaidUser = isSignedIn && (userTier === "suhu" || userTier === "bandar")
+
   return (
     <TooltipProvider>
       <section className="py-16 px-4 dotted-background">
@@ -284,112 +308,118 @@ function PricingMatrixInner() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {plans.map((plan, index) => (
-              <div
-                key={index}
-                className={`relative rounded-xl border flex flex-col transition-all duration-300 ${plan.highlighted
-                  ? "border-primary bg-card shadow-xl scale-[1.02] z-10"
-                  : "border-border bg-card"
-                  }`}
-              >
-                {plan.badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 w-max">
-                    <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full">
-                      {plan.badge}
-                    </span>
-                  </div>
-                )}
+            {plans.map((plan, index) => {
+              const showHighlight = !isPaidUser && plan.highlighted
+              const showBadge = !isPaidUser && plan.badge
 
-                {/* Card Header with Price */}
-                <div className="p-6 border-b border-border">
-                  <div className="text-center mb-4">
-                    <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
-                    <p className="text-xs text-muted-foreground font-mono">{plan.description}</p>
-                  </div>
-
-                  <div className="text-center mb-4">
-                    <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-3xl font-bold text-foreground">
-                        {formatPrice(isYearly ? plan.yearlyPrice : plan.monthlyPrice)}
+              return (
+                <div
+                  key={index}
+                  className={`relative rounded-xl border flex flex-col transition-all duration-300 ${showHighlight
+                    ? "border-primary bg-card shadow-xl scale-[1.02] z-10"
+                    : "border-border bg-card"
+                    }`}
+                >
+                  {showBadge && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 w-max">
+                      <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full">
+                        {plan.badge}
                       </span>
                     </div>
-                    <span className="text-xs text-muted-foreground font-mono">
-                      {plan.monthlyPrice === 0 ? "selamanya" : isYearly ? "per bulan (ditagih tahunan)" : "per bulan"}
-                    </span>
-                  </div>
+                  )}
 
-                  {isSignedIn ? (
-                    <Button
-                      onClick={() => handleSubscribe(plan.key)}
-                      disabled={loadingPlan !== null || (plan.key === "ritel")}
-                      className={`w-full ${plan.highlighted
-                        ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                        : "bg-secondary hover:bg-[#d07225] hover:text-white text-foreground transition-colors"
-                        }`}
-                    >
-                      {loadingPlan === plan.key ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Memproses...
-                        </>
-                      ) : plan.key === "ritel" ? (
-                        "Paket Saat Ini"
-                      ) : (
-                        "Pilih Paket"
-                      )}
-                    </Button>
-                  ) : (
-                    <SignInButton mode="modal">
+                  {/* Card Header with Price */}
+                  <div className="p-6 border-b border-border">
+                    <div className="text-center mb-4">
+                      <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
+                      <p className="text-xs text-muted-foreground font-mono">{plan.description}</p>
+                    </div>
+
+                    <div className="text-center mb-4">
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-3xl font-bold text-foreground">
+                          {formatPrice(isYearly ? plan.yearlyPrice : plan.monthlyPrice)}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {plan.monthlyPrice === 0 ? "selamanya" : isYearly ? "per bulan (ditagih tahunan)" : "per bulan"}
+                      </span>
+                    </div>
+
+                    {isSignedIn ? (
                       <Button
-                        className={`w-full ${plan.highlighted
+                        onClick={() => handleSubscribe(plan.key)}
+                        disabled={loadingPlan !== null || (isPaidUser ? plan.key !== userTier : plan.key === userTier)}
+                        className={`w-full ${showHighlight
                           ? "bg-primary hover:bg-primary/90 text-primary-foreground"
                           : "bg-secondary hover:bg-[#d07225] hover:text-white text-foreground transition-colors"
                           }`}
                       >
-                        {plan.monthlyPrice === 0 ? "Mulai Gratis" : "Login untuk Berlangganan"}
+                        {loadingPlan === plan.key ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Memproses...
+                          </>
+                        ) : plan.key === userTier ? (
+                          plan.key === "ritel" ? "Paket Saat Ini" : "Manage Subscriptions"
+                        ) : (
+                          "Pilih Paket"
+                        )}
                       </Button>
-                    </SignInButton>
-                  )}
-                </div>
+                    ) : (
+                      <SignInButton mode="modal">
+                        <Button
+                          className={`w-full ${showHighlight
+                            ? "bg-primary hover:bg-primary/90 text-primary-foreground"
+                            : "bg-secondary hover:bg-[#d07225] hover:text-white text-foreground transition-colors"
+                            }`}
+                        >
+                          {plan.monthlyPrice === 0 ? "Mulai Gratis" : "Pilih Paket"}
+                        </Button>
+                      </SignInButton>
+                    )}
+                  </div>
 
-                {/* Features List inside card */}
-                <div className="p-4 flex-1 overflow-auto">
-                  {pricingData.map((category, categoryIndex) => (
-                    <div key={categoryIndex} className="mb-4 last:mb-0">
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
-                        {category.category}
-                      </h4>
-                      <div className="space-y-1 pl-1">
-                        {category.features.map((feature, featureIndex) => {
-                          const value = getFeatureValue(plan.key, feature)
-                          return (
-                            <div
-                              key={featureIndex}
-                              className="flex items-center justify-between py-2 px-2 rounded-md text-sm hover:bg-muted/50"
-                            >
-                              <span className="text-muted-foreground text-xs flex items-center gap-1">
-                                {feature.name}
-                                {feature.tooltip && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" className="max-w-xs">
-                                      <p>{feature.tooltip}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                )}
-                              </span>
-                              <span className="font-mono text-foreground font-medium text-sm text-right">{renderFeatureValue(value)}</span>
-                            </div>
-                          )
-                        })}
+                  {/* Features List inside card */}
+                  <div className="p-4 flex-1 overflow-auto">
+                    {pricingData.map((category, categoryIndex) => (
+                      <div key={categoryIndex} className="mb-4 last:mb-0">
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
+                          {category.category}
+                        </h4>
+                        <div className="space-y-1 pl-1">
+                          {category.features.map((feature, featureIndex) => {
+                            const value = getFeatureValue(plan.key, feature)
+                            return (
+                              <div
+                                key={featureIndex}
+                                className="flex items-center justify-between py-2 px-2 rounded-md text-sm hover:bg-muted/50"
+                              >
+                                <span className="text-muted-foreground text-xs flex items-center gap-1">
+                                  {feature.name}
+
+                                  {feature.tooltip && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="max-w-xs">
+                                        <p>{feature.tooltip}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                </span>
+                                <span className="font-mono text-foreground font-medium text-sm text-right">{renderFeatureValue(value)}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Contact */}

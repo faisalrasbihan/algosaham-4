@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
                         email: user?.emailAddresses[0]?.emailAddress || undefined,
                         phone: user?.phoneNumbers[0]?.phoneNumber || undefined,
                     },
-                    enabled_payments: ['gopay', 'qris'],
+                    // enabled_payments: ['gopay', 'qris'],
                     callbacks: {
                         finish: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=success`,
                         error: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=error`,
