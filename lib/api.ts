@@ -7,6 +7,7 @@ export interface BacktestRequest {
     syariah: boolean
     minDailyValue?: number
     tickers?: string[]
+    sectors?: string[]
   }
   fundamentalIndicators: Array<{
     type: string

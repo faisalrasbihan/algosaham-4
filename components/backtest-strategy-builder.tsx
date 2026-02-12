@@ -480,6 +480,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
         syariah: stockType === "Syariah Only",
         minDailyValue: minDailyValue,
         tickers: selectedTickers,
+        sectors: sectors.length > 0 ? sectors : undefined,
       },
       fundamentalIndicators: fundamentalIndicators.map((ind) => ({
         type: fundamentalTypeMap[ind.name] || ind.name.toUpperCase().replace(/\s+/g, "_"),
@@ -621,6 +622,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
       if (config.filters.syariah !== undefined) setStockType(config.filters.syariah ? "Syariah Only" : "All Stocks")
       if (config.filters.tickers) setSelectedTickers(config.filters.tickers)
       if (config.filters.minDailyValue) setMinDailyValue(config.filters.minDailyValue)
+      if (config.filters.sectors) setSectors(config.filters.sectors)
     }
 
     if (config.fundamentalIndicators) {
@@ -1468,23 +1470,31 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs text-muted-foreground">Stop Loss (%)</Label>
-                      <Input
-                        type="number"
-                        value={stopLoss}
-                        onChange={(e) => setStopLoss(Number(e.target.value))}
-                        placeholder="5"
-                        className="font-mono border-slate-300 bg-white"
-                      />
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={stopLoss}
+                          onChange={(e) => setStopLoss(Number(e.target.value))}
+                          placeholder="5"
+                          className="font-mono border-slate-300 bg-white pr-8"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                      </div>
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Take Profit (%)</Label>
-                      <Input
-                        type="number"
-                        value={takeProfit}
-                        onChange={(e) => setTakeProfit(Number(e.target.value))}
-                        placeholder="15"
-                        className="font-mono border-slate-300 bg-white"
-                      />
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={takeProfit}
+                          onChange={(e) => setTakeProfit(Number(e.target.value))}
+                          placeholder="15"
+                          className="font-mono border-slate-300 bg-white pr-8"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                      </div>
                     </div>
                   </div>
                   <div>
