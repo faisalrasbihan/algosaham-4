@@ -202,8 +202,21 @@ export class ApiService {
       })
 
       if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`)
+        let errorMessage = `API request failed: ${response.status} ${response.statusText}`
+        try {
+          const errorData = await response.json()
+          if (errorData.message) {
+            errorMessage = errorData.message // Use the user-friendly message
+          } else if (errorData.error) {
+            errorMessage = errorData.error
+          } else {
+            // Fallback to text if no JSON
+            errorMessage = await response.text()
+          }
+        } catch (e) {
+          errorMessage = await response.text()
+        }
+        throw new Error(errorMessage)
       }
 
       const result = await response.json()

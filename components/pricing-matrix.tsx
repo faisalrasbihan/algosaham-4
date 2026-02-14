@@ -29,7 +29,7 @@ const pricingData: FeatureCategory[] = [
     category: "Analysis",
     features: [
       {
-        name: "Quota / Day",
+        name: "Quota",
         ritel: "5x / day",
         suhu: "Unlimited",
         bandar: "Unlimited",
@@ -41,7 +41,7 @@ const pricingData: FeatureCategory[] = [
     category: "Backtesting",
     features: [
       {
-        name: "Quota / Month",
+        name: "Quota",
         ritel: "1x / month",
         suhu: "25x / month",
         bandar: "Unlimited"
@@ -79,7 +79,7 @@ const pricingData: FeatureCategory[] = [
         name: "Privacy",
         ritel: "Public only",
         suhu: "Public only",
-        bandar: "Private & Hidden",
+        bandar: "Private & Public",
         tooltip:
           "Pengaturan privasi hasil backtest. Bandar dapat menyembunyikan strategi.",
       },

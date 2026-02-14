@@ -11,10 +11,11 @@ interface MarketplaceStrategyCardProps {
     strategy: Strategy
     isSubscribed?: boolean
     onSubscribe?: (id: string) => void
+    isLoading?: boolean
     className?: string
 }
 
-export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubscribe, className }: MarketplaceStrategyCardProps) {
+export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubscribe, isLoading = false, className }: MarketplaceStrategyCardProps) {
     return (
         <Card className={cn("flex-shrink-0 w-full hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer", className)}>
             <CardContent className="p-4">
@@ -147,32 +148,33 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                         Created: {new Date(strategy.createdDate).toLocaleDateString()}
                     </div>
 
-                    <div className="flex items-center gap-2 pt-1">
-                        <Button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onSubscribe?.(strategy.id);
-                            }}
-                            size="sm"
-                            className={
-                                isSubscribed
-                                    ? "bg-green-600 hover:bg-green-700 text-xs flex-1"
-                                    : "bg-primary hover:bg-primary/90 text-xs flex-1"
-                            }
-                        >
-                            {isSubscribed ? (
-                                <>
-                                    <Heart className="w-3 h-3 mr-1 fill-current" />
-                                    Subscribed
-                                </>
-                            ) : (
-                                <>
-                                    <Heart className="w-3 h-3 mr-1" />
-                                    Subscribe
-                                </>
-                            )}
-                        </Button>
-                    </div>
+                    <Button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isLoading) onSubscribe?.(strategy.id);
+                        }}
+                        disabled={isLoading}
+                        size="sm"
+                        className={
+                            isSubscribed
+                                ? "w-full bg-green-600 hover:bg-green-700 text-xs"
+                                : "w-full bg-primary hover:bg-primary/90 text-xs"
+                        }
+                    >
+                        {isLoading ? (
+                            "Loading..."
+                        ) : isSubscribed ? (
+                            <>
+                                <Heart className="w-3 h-3 mr-1 fill-current" />
+                                Subscribed
+                            </>
+                        ) : (
+                            <>
+                                <Heart className="w-3 h-3 mr-1" />
+                                Subscribe
+                            </>
+                        )}
+                    </Button>
                 </div>
             </CardContent>
         </Card>

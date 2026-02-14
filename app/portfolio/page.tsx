@@ -4,8 +4,8 @@ import { Navbar } from "@/components/navbar"
 import { TickerTape } from "@/components/ticker-tape"
 import { SubscribedStrategyCard } from "@/components/cards/subscribed-strategy-card"
 import { RegularStrategyCard } from "@/components/cards/regular-strategy-card"
-import { subscribedStrategies } from "@/components/cards/data"
 import { useUser, RedirectToSignIn } from "@clerk/nextjs"
+import { Button } from "@/components/ui/button" // Added Button import
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -44,7 +44,9 @@ export default function Portfolio() {
     const router = useRouter()
     const [shouldRedirect, setShouldRedirect] = useState(false)
     const [savedStrategies, setSavedStrategies] = useState<Strategy[]>([])
+    const [subscribedStrategies, setSubscribedStrategies] = useState<any[]>([])
     const [isLoadingStrategies, setIsLoadingStrategies] = useState(true)
+    const [isLoadingSubscribed, setIsLoadingSubscribed] = useState(true)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [strategyToDelete, setStrategyToDelete] = useState<string | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
@@ -55,11 +57,12 @@ export default function Portfolio() {
         }
     }, [isLoaded, isSignedIn])
 
-    // Fetch user's saved strategies
+    // Fetch user's saved strategies and subscriptions
     useEffect(() => {
-        const fetchStrategies = async () => {
+        const fetchData = async () => {
             if (!isSignedIn) return
 
+            // Fetch Saved Strategies
             try {
                 setIsLoadingStrategies(true)
                 const response = await fetch('/api/strategies/list')
@@ -73,12 +76,73 @@ export default function Portfolio() {
             } finally {
                 setIsLoadingStrategies(false)
             }
+
+            // Fetch Subscribed Strategies
+            try {
+                setIsLoadingSubscribed(true)
+                const response = await fetch('/api/subscriptions/list')
+                const data = await response.json()
+
+                if (data.success && data.data) {
+                    // Map API data to component format
+                    const mappedSubscribed = data.data.map((s: any) => ({
+                        id: s.id.toString(),
+                        name: s.name,
+                        description: s.description,
+                        creator: s.creator || 'Unknown',
+                        totalReturn: parseFloat(s.totalReturn || 0),
+                        yoyReturn: 0,
+                        momReturn: 0,
+                        weeklyReturn: 0,
+                        maxDrawdown: parseFloat(s.maxDrawdown || 0),
+                        sharpeRatio: parseFloat(s.sharpeRatio || 0),
+                        sortinoRatio: 0,
+                        calmarRatio: 0,
+                        profitFactor: 0,
+                        winRate: parseFloat(s.successRate || 0),
+                        totalTrades: s.totalTrades || 0,
+                        avgTradeDuration: 0,
+                        stocksHeld: s.totalStocks || 0,
+                        createdDate: s.createdAt || new Date().toISOString(),
+                        subscribers: s.subscribers || 0,
+                        subscriptionDate: s.subscribedAt,
+                        returnSinceSubscription: parseFloat(s.returnSinceSubscription || 0)
+                    }))
+                    setSubscribedStrategies(mappedSubscribed)
+                }
+            } catch (error) {
+                console.error('Failed to fetch subscriptions:', error)
+            } finally {
+                setIsLoadingSubscribed(false)
+            }
         }
 
         if (isSignedIn) {
-            fetchStrategies()
+            fetchData()
         }
     }, [isSignedIn])
+
+    const handleUnsubscribe = async (id: string) => {
+        try {
+            const response = await fetch('/api/strategies/unsubscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ strategyId: id })
+            })
+
+            const data = await response.json()
+
+            if (data.success) {
+                setSubscribedStrategies(prev => prev.filter(s => s.id !== id))
+                toast.success('Unsubscribed successfully')
+            } else {
+                toast.error(data.error || 'Failed to unsubscribe')
+            }
+        } catch (error) {
+            console.error('Error unsubscribing:', error)
+            toast.error('Failed to unsubscribe')
+        }
+    }
 
     const handleEdit = async (id: string) => {
         try {
@@ -149,18 +213,35 @@ export default function Portfolio() {
             <div className="flex-1 overflow-y-auto mt-8 pb-8">
 
                 <div className="space-y-12">
-                    {/* Community Strategies Section */}
+                    {/* Subscribed Strategies Section */}
                     <section>
                         <div className="px-6">
                             <div className="mb-6">
-                                <h2 className="text-2xl font-bold text-foreground">Community Strategies</h2>
-                                <p className="text-muted-foreground">Popular strategies from the community</p>
+                                <h2 className="text-2xl font-bold text-foreground">Subscribed Strategies</h2>
+                                <p className="text-muted-foreground">Strategies you are following from the community</p>
                             </div>
-                            <div className="flex gap-5 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-6 -mx-6">
-                                {subscribedStrategies.map((strategy) => (
-                                    <SubscribedStrategyCard key={strategy.id} strategy={strategy} />
-                                ))}
-                            </div>
+                            {isLoadingSubscribed ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                </div>
+                            ) : subscribedStrategies.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-8 text-center bg-accent/20 rounded-lg mx-6 border border-dashed border-muted">
+                                    <p className="text-muted-foreground mb-2">You haven't subscribed to any strategies yet</p>
+                                    <Button variant="outline" onClick={() => router.push('/strategies')}>
+                                        Explore Strategies
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="flex gap-5 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-6 -mx-6">
+                                    {subscribedStrategies.map((strategy) => (
+                                        <SubscribedStrategyCard
+                                            key={strategy.id}
+                                            strategy={strategy}
+                                            onUnsubscribe={handleUnsubscribe}
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </section>
 

@@ -11,10 +11,33 @@ export const users = pgTable("users", {
   imageUrl: text("image_url"),
 
   // Subscription info
-  subscriptionTier: text("subscription_tier").default("ritel"), // ritel, suhu, bandar
+  subscriptionTier: text("subscription_tier").default("ritel"), // ritel, bandar, suhu
   subscriptionStatus: text("subscription_status").default("active"), // active, canceled, expired, past_due
   subscriptionPeriodStart: timestamp("subscription_period_start", { withTimezone: true }),
   subscriptionPeriodEnd: timestamp("subscription_period_end", { withTimezone: true }),
+
+  // ANALYZE - Daily quota & usage
+  analyzeLimit: integer("analyze_limit").notNull().default(5), // ritel: 5, bandar: -1, suhu: -1
+  analyzeUsedToday: integer("analyze_used_today").default(0),
+  analyzeLastReset: timestamp("analyze_last_reset", { withTimezone: true }).defaultNow(),
+
+  // BACKTEST - Daily quota & usage
+  backtestLimit: integer("backtest_limit").notNull().default(1), // ritel: 1, bandar: 25, suhu: -1
+  backtestUsedToday: integer("backtest_used_today").default(0),
+  backtestLastReset: timestamp("backtest_last_reset", { withTimezone: true }).defaultNow(),
+
+  // SAVED STRATEGIES - Total limit & current count
+  savedStrategiesLimit: integer("saved_strategies_limit").notNull().default(1), // ritel: 1, bandar: 10, suhu: 50
+  savedStrategiesCount: integer("saved_strategies_count").default(0),
+
+  // SUBSCRIPTIONS - Total limit & current count (following other users' strategies)
+  subscriptionsLimit: integer("subscriptions_limit").notNull().default(0), // ritel: 0, bandar: 10, suhu: 100
+  subscriptionsCount: integer("subscriptions_count").default(0),
+
+  // AI CHAT - Daily quota & usage
+  aiChatLimit: integer("ai_chat_limit").default(5), // ritel: 5, bandar: -1, suhu: -1
+  aiChatUsedToday: integer("ai_chat_used_today").default(0),
+  aiChatLastReset: timestamp("ai_chat_last_reset", { withTimezone: true }).defaultNow(),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
@@ -77,6 +100,8 @@ export const subscriptions = pgTable("subscriptions", {
   subscribedAt: timestamp("subscribed_at", { withTimezone: true }).defaultNow().notNull(),
   unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true }),
   isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 
   // Last updated (for tracking when metrics were last calculated)
   lastCalculatedAt: timestamp("last_calculated_at", { withTimezone: true }),

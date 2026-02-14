@@ -83,7 +83,7 @@ interface ChatMessage {
 }
 
 interface BacktestStrategyBuilderProps {
-  onRunBacktest: (config: BacktestRequest) => void
+  onRunBacktest: (config: BacktestRequest) => Promise<void>
   backtestResults?: any | null
 }
 
@@ -531,10 +531,17 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
     }
   }
 
-  const handleRunBacktest = () => {
+  const handleRunBacktest = async () => {
     const config = buildBacktestConfig()
-    onRunBacktest(config)
-    scrollToBottom()
+    try {
+      await onRunBacktest(config)
+      scrollToBottom()
+    } catch (error) {
+      console.error("Backtest failed:", error)
+      toast.error("Backtest Failed", {
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+      })
+    }
   }
 
   const formatIndicatorParams = (params: Record<string, any>) => {

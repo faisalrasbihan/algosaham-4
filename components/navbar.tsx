@@ -13,7 +13,7 @@ import { useUserTier } from "@/context/user-tier-context";
 export function Navbar() {
   const { isSignedIn } = useUser();
   const [showCredits, setShowCredits] = useState(false);
-  const { tier, credits } = useUserTier();
+  const { tier, credits, limits, usage } = useUserTier();
 
   // Display tier name in uppercase
   const userPlan = tier.toUpperCase();
@@ -81,27 +81,46 @@ export function Navbar() {
             </div>
             {/* Credit tooltip */}
             {showCredits && (
-              <div className="absolute top-full right-0 mt-2 w-48 p-3 rounded-lg border border-border bg-white shadow-lg z-[100]">
-                <div className="text-xs space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Used Credit:</span>
-                    <span className="font-medium">{credits.used}</span>
+              <div className="absolute top-full right-0 mt-2 w-64 p-4 rounded-lg border border-border bg-white shadow-lg z-[100]">
+                <div className="text-sm font-semibold mb-3 border-b pb-2">Plan Usage</div>
+                <div className="text-xs space-y-3">
+
+                  {/* Backtest Quota */}
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-muted-foreground">Backtests (Daily)</span>
+                      <span className="font-medium">
+                        {credits.total === 9999 ? '∞' : `${credits.used} / ${credits.total}`}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{ width: credits.total === 9999 ? '100%' : `${Math.min((credits.used / credits.total) * 100, 100)}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Available:</span>
-                    <span className="font-medium">{credits.total - credits.used}</span>
+
+                  {/* Subscriptions Quota */}
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-muted-foreground">Subscriptions</span>
+                      <span className="font-medium">
+                        {limits.subscriptions === -1 ? '∞' : `${usage.subscriptions} / ${limits.subscriptions}`}
+                      </span>
+                    </div>
                   </div>
-                  <div className="pt-2 border-t border-border flex justify-between">
-                    <span className="text-muted-foreground">Total Credit:</span>
-                    <span className="font-semibold">{credits.total}</span>
+
+                  {/* Saved Strategies Quota */}
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-muted-foreground">Saved Strategies</span>
+                      <span className="font-medium">
+                        {limits.savedStrategies === -1 ? '∞' : `${usage.savedStrategies} / ${limits.savedStrategies}`}
+                      </span>
+                    </div>
                   </div>
-                  {/* Progress bar */}
-                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all"
-                      style={{ width: `${(credits.used / credits.total) * 100}%` }}
-                    />
-                  </div>
+
                 </div>
               </div>
             )}

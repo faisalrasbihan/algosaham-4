@@ -5,15 +5,50 @@ import { useUser } from "@clerk/nextjs";
 
 type UserTier = "ritel" | "suhu" | "bandar";
 
+interface UserLimits {
+    backtest: number;
+    subscriptions: number;
+    savedStrategies: number;
+    aiChat: number;
+    analyze: number;
+}
+
+interface UserUsage {
+    backtest: number;
+    subscriptions: number;
+    savedStrategies: number;
+    aiChat: number;
+    analyze: number;
+}
+
 interface UserTierContextType {
     tier: UserTier;
+    // Keeping credits for backward compatibility if needed, but we'll use usage/limits primarily
     credits: {
         used: number;
         total: number;
     };
+    limits: UserLimits;
+    usage: UserUsage;
     isLoading: boolean;
     refreshTier: () => Promise<void>;
 }
+
+const defaultLimits: UserLimits = {
+    backtest: 1,
+    subscriptions: 0,
+    savedStrategies: 1,
+    aiChat: 10,
+    analyze: 5
+};
+
+const defaultUsage: UserUsage = {
+    backtest: 0,
+    subscriptions: 0,
+    savedStrategies: 0,
+    aiChat: 0,
+    analyze: 0
+};
 
 const UserTierContext = createContext<UserTierContextType | undefined>(undefined);
 
@@ -21,36 +56,45 @@ export function UserTierProvider({ children }: { children: ReactNode }) {
     const { isSignedIn, isLoaded } = useUser();
     const [tier, setTier] = useState<UserTier>("ritel");
     const [credits, setCredits] = useState({ used: 0, total: 100 });
+    const [limits, setLimits] = useState<UserLimits>(defaultLimits);
+    const [usage, setUsage] = useState<UserUsage>(defaultUsage);
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchUserTier = async () => {
         if (!isSignedIn) {
             setTier("ritel");
             setCredits({ used: 0, total: 100 });
+            setLimits(defaultLimits);
+            setUsage(defaultUsage);
             setIsLoading(false);
             return;
         }
 
         try {
-            const response = await fetch("/api/user/tier");
+            const response = await fetch("/api/user/limits");
             if (response.ok) {
                 const data = await response.json();
-                const newTier = (data.tier || "ritel") as UserTier;
 
-                // Set credits based on tier
-                let totalCredits = 100; // ritel
-                if (newTier === "suhu") totalCredits = 500;
-                if (newTier === "bandar") totalCredits = 1000;
+                if (data.success) {
+                    const newTier = (data.tier || "ritel") as UserTier;
+                    setTier(newTier);
+                    setLimits(data.limits);
+                    setUsage(data.usage);
 
-                setTier(newTier);
-                setCredits({
-                    used: 0, // TODO: Implement credit tracking
-                    total: totalCredits,
-                });
+                    // Map specific quota to "credits" for backward compatibility or simple display
+                    // Here we map Backtest quota as the primary "credit"
+                    const totalCredits = data.limits.backtest === -1 ? 9999 : data.limits.backtest;
+                    const usedCredits = data.usage.backtest;
+
+                    setCredits({
+                        used: usedCredits,
+                        total: totalCredits,
+                    });
+                }
             }
         } catch (error) {
             console.error("Failed to fetch user tier:", error);
-            // Keep default ritel tier on error
+            // Keep default/previous state on error
         } finally {
             setIsLoading(false);
         }
@@ -63,7 +107,7 @@ export function UserTierProvider({ children }: { children: ReactNode }) {
     }, [isLoaded, isSignedIn]);
 
     return (
-        <UserTierContext.Provider value={{ tier, credits, isLoading, refreshTier: fetchUserTier }}>
+        <UserTierContext.Provider value={{ tier, credits, limits, usage, isLoading, refreshTier: fetchUserTier }}>
             {children}
         </UserTierContext.Provider>
     );

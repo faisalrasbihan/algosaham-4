@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { db } from '@/db'
-import { strategies } from '@/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { strategies, users } from '@/db/schema'
+import { eq, and, sql } from 'drizzle-orm'
 
 export async function DELETE(request: NextRequest) {
     try {
@@ -36,6 +36,13 @@ export async function DELETE(request: NextRequest) {
                 { status: 404 }
             )
         }
+
+        // Decrement user's saved strategies count
+        await db.update(users)
+            .set({
+                savedStrategiesCount: sql`${users.savedStrategiesCount} - 1`
+            })
+            .where(eq(users.clerkId, userId));
 
         return NextResponse.json({
             success: true,

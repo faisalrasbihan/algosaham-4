@@ -112,6 +112,20 @@ export async function POST(req: Request) {
         });
 
         const userTier = user?.subscriptionTier || 'free';
+        const limit = user?.savedStrategiesLimit ?? 1; // Default to 1 if not set
+        const current = user?.savedStrategiesCount || 0;
+
+        // Check limit (unless unlimited = -1)
+        if (limit !== -1 && current >= limit) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "Strategy limit reached",
+                    message: `You have reached your limit of ${limit} saved strategies. Upgrade your plan to save more.`
+                },
+                { status: 403 }
+            );
+        }
 
         // Determine if strategy should be public
         // Free tier: always public (isPublic = true)
@@ -178,6 +192,11 @@ export async function POST(req: Request) {
             isPublic,
             isActive: true,
         }).returning();
+
+        // Increment user's saved strategies count
+        await db.update(users)
+            .set({ savedStrategiesCount: (user?.savedStrategiesCount || 0) + 1 })
+            .where(eq(users.clerkId, userId));
 
         return NextResponse.json({
             success: true,

@@ -24,6 +24,7 @@ export function useBacktest(): UseBacktestReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to run backtest'
       setError(errorMessage)
+      throw err // Re-throw so UI can show toast
     } finally {
       setLoading(false)
     }

@@ -1,0 +1,2 @@
+ALTER TABLE "subscriptions" ADD COLUMN "created_at" timestamp with time zone DEFAULT now();--> statement-breakpoint
+ALTER TABLE "subscriptions" ADD COLUMN "updated_at" timestamp with time zone DEFAULT now();
