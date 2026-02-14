@@ -72,33 +72,34 @@ export async function POST(request: NextRequest) {
   }
 
   const { userId } = await auth()
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  // Allow guests to run backtest (initial load)
+  // if (!userId) {
+  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // }
 
   try {
     // Parse the request body
     const body = await request.json()
 
-    // Check user limits
-    // Note: ensureUserExists is called inside save strategy but here we might need it too
-    // For now we assume user exists or we check DB directly
-    const user = await db.query.users.findFirst({
-      where: eq(users.clerkId, userId),
-    });
+    // Check user limits ONLY if logged in
+    if (userId) {
+      const user = await db.query.users.findFirst({
+        where: eq(users.clerkId, userId),
+      });
 
-    if (user) {
-      const limit = user.backtestLimit;
-      const used = user.backtestUsedToday || 0;
+      if (user) {
+        const limit = user.backtestLimit;
+        const used = user.backtestUsedToday || 0;
 
-      if (limit !== -1 && used >= limit) {
-        return NextResponse.json(
-          {
-            error: "Daily backtest limit reached",
-            message: `You have used ${used}/${limit} backtests for today. Upgrade your plan for more.`
-          },
-          { status: 403 }
-        );
+        if (limit !== -1 && used >= limit) {
+          return NextResponse.json(
+            {
+              error: "Daily backtest limit reached",
+              message: `You have used ${used}/${limit} backtests for today. Upgrade your plan for more.`
+            },
+            { status: 403 }
+          );
+        }
       }
     }
 

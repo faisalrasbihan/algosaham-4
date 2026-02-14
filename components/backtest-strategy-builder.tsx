@@ -95,7 +95,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
   const [sectors, setSectors] = useState<string[]>([])
   const [sectorDropdownOpen, setSectorDropdownOpen] = useState(false)
   const [selectedTickers, setSelectedTickers] = useState<string[]>([])
-  const [tickerOptions, setTickerOptions] = useState<{ value: string; label: string }[]>([])
+  const [tickerOptions, setTickerOptions] = useState<{ value: string; label: string; sector?: string; marketCap?: number }[]>([])
   const [tickerDropdownOpen, setTickerDropdownOpen] = useState(false)
   const [tickerSearch, setTickerSearch] = useState("")
   const [isLoadingTickers, setIsLoadingTickers] = useState(false)
@@ -269,7 +269,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
 
   // Auto-run backtest on page load
   useEffect(() => {
-    handleRunBacktest()
+    handleRunBacktest(true)
   }, []) // Empty dependency array ensures this only runs once on mount
 
   useEffect(() => {
@@ -417,7 +417,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
         setShowSuccessModal(true)
 
         if (runBacktest) {
-          handleRunBacktest()
+          handleRunBacktest(true)
         }
       } else {
         throw new Error(result.error || "Failed to save strategy")
@@ -531,7 +531,18 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
     }
   }
 
-  const handleRunBacktest = async () => {
+  const handleRunBacktest = async (isInitial = false) => {
+    // If called from event handler, isInitial will be an event object. Ensure it's explicitly boolean true.
+    const skipAuthCheck = typeof isInitial === 'boolean' && isInitial
+
+    if (!skipAuthCheck) {
+      if (!isLoaded) return
+      if (!isSignedIn) {
+        setShowLoginPrompt(true)
+        return
+      }
+    }
+
     const config = buildBacktestConfig()
     try {
       await onRunBacktest(config)
@@ -543,6 +554,20 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
       })
     }
   }
+
+  // Auto-run backtest on mount
+  useEffect(() => {
+    const runInitialBacktest = async () => {
+      const config = buildBacktestConfig()
+      try {
+        await onRunBacktest(config)
+      } catch (error) {
+        console.error("Initial backtest failed:", error)
+      }
+    }
+    runInitialBacktest()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const formatIndicatorParams = (params: Record<string, any>) => {
     return Object.entries(params)
@@ -1077,7 +1102,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
 
 
                   <div ref={tickerDropdownRef}>
-                    <Label className="text-xs text-muted-foreground mb-2 block">Ticker</Label>
+                    <Label className="text-xs text-muted-foreground mb-2 block">Kode Saham</Label>
                     <div className="relative">
                       <Button
                         variant="outline"
@@ -1089,7 +1114,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
                       >
                         <span className="text-sm text-foreground truncate">
                           {selectedTickers.length === 0
-                            ? "Select tickers..."
+                            ? "Pilih kode saham..."
                             : selectedTickers.length === 1
                               ? tickerOptions.find((t) => t.value === selectedTickers[0])?.label || selectedTickers[0]
                               : `${selectedTickers.length} tickers selected`}
@@ -1117,11 +1142,39 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
                               <div className="py-2 px-3 text-sm text-muted-foreground">No tickers found</div>
                             ) : (
                               tickerOptions
-                                .filter(t =>
-                                  !tickerSearch ||
-                                  t.label.toLowerCase().includes(tickerSearch.toLowerCase()) ||
-                                  t.value.toLowerCase().includes(tickerSearch.toLowerCase())
-                                )
+                                .filter(t => {
+                                  // Text search filter
+                                  const searchMatch = !tickerSearch ||
+                                    t.label.toLowerCase().includes(tickerSearch.toLowerCase()) ||
+                                    t.value.toLowerCase().includes(tickerSearch.toLowerCase())
+
+                                  if (!searchMatch) return false
+
+                                  // Sector filter
+                                  const sectorMatch = sectors.length === 0 || (t.sector && sectors.includes(t.sector))
+                                  if (!sectorMatch) return false
+
+                                  // Market Cap filter
+                                  if (marketCaps.length === 0) return true
+                                  // If no market cap data, assume it matches if filter is permissive,
+                                  // but usually better to hide or show. Let's show if marketCap is missing to avoid blocking everything (or handle specifically).
+                                  // Logic:
+                                  // Small: < 2T
+                                  // Mid: 2T - 10T
+                                  // Large: > 10T
+                                  // Values in DB are likely in full IDR units
+
+                                  const mc = t.marketCap || 0
+                                  const isSmall = mc < 2_000_000_000_000
+                                  const isMid = mc >= 2_000_000_000_000 && mc < 10_000_000_000_000
+                                  const isLarge = mc >= 10_000_000_000_000
+
+                                  return (
+                                    (marketCaps.includes("small") && isSmall) ||
+                                    (marketCaps.includes("mid") && isMid) ||
+                                    (marketCaps.includes("large") && isLarge)
+                                  )
+                                })
                                 .map((ticker, index) => (
                                   <div
                                     key={ticker.value}
@@ -1643,7 +1696,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
               <div className="flex flex-1">
                 <Button
                   className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium font-mono rounded-r-none border-r border-primary-foreground/20"
-                  onClick={handleRunBacktest}
+                  onClick={() => handleRunBacktest(false)}
                   data-tutorial="run-backtest"
                 >
                   <Play className="h-5 w-5 mr-2" />
@@ -1834,7 +1887,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
             </div>
             <DialogTitle className="font-mono text-xl">Sign In Required</DialogTitle>
             <DialogDescription className="font-mono text-sm text-muted-foreground text-center pt-2">
-              You need to sign in to save your strategy. Would you like to sign in now?
+              You need to sign in to use this feature. Would you like to sign in now?
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 pt-4">

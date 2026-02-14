@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { getSnapToken, createSubscription } from "@/lib/midtrans";
 import { ensureUserInDatabase } from "@/lib/ensure-user";
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
 
 // Plan pricing configuration
 const PLAN_PRICING = {
@@ -35,24 +32,6 @@ export async function POST(request: NextRequest) {
 
         // Ensure user exists in database (upsert logic)
         await ensureUserInDatabase();
-
-        // Check subscription limit
-        const dbUser = await db.query.users.findFirst({
-            where: (users, { eq }) => eq(users.clerkId, userId),
-        });
-
-        if (dbUser) {
-            const limit = dbUser.subscriptionsLimit;
-            const current = dbUser.subscriptionsCount || 0;
-
-            // If limit is not -1 (unlimited) and current >= limit
-            if (limit !== -1 && current >= limit) {
-                return NextResponse.json(
-                    { error: `Subscription limit reached. You can only follow ${limit} strategies on your current plan.` },
-                    { status: 403 }
-                );
-            }
-        }
 
         const user = await currentUser();
         const body = await request.json();
