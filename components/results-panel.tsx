@@ -13,7 +13,9 @@ import { TradeHistoryTable } from "@/components/trade-history-table"
 import { MonthlyPerformanceHeatmap } from "@/components/monthly-performance-heatmap"
 import { StockRecommendations } from "@/components/stock-recommendations"
 import { useBacktest } from "@/lib/hooks/useBacktest"
-import { Loader2 } from "lucide-react"
+import { Loader2, AlertCircle, ArrowUpRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 interface ResultsPanelProps {
   backtestResults?: any
@@ -122,14 +124,61 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
     )
   }
 
+  // Detect if the error is a quota/limit error
+  const isQuotaError = error && (
+    error.toLowerCase().includes('limit reached') ||
+    error.toLowerCase().includes('upgrade your plan')
+  );
+
+  // Format error message: style number patterns (e.g. "27/25") with IBM Plex Mono + red pill
+  const formatErrorMessage = (msg: string) => {
+    const parts = msg.split(/(\d+\/\d+)/g);
+    return parts.map((part, i) => {
+      if (/^\d+\/\d+$/.test(part)) {
+        return (
+          <span
+            key={i}
+            className="inline-block px-2 py-0.5 rounded-md text-red-700 font-semibold text-xs"
+            style={{
+              fontFamily: "'IBM Plex Mono', monospace",
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            }}
+          >
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
   if (error) {
     return (
       <div className="p-6 space-y-6 py-3.5 px-3.5">
         <Card className="rounded-md">
-          <CardContent className="flex items-center justify-center py-12">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="text-red-500 font-mono text-lg">Error</div>
-              <p className="text-muted-foreground font-mono text-center">{error}</p>
+          <CardContent className="flex items-center justify-center py-16">
+            <div className="flex flex-col items-center space-y-3 max-w-sm text-center">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">
+                {isQuotaError ? 'Kuota Harian Tercapai' : 'Backtest Gagal'}
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {formatErrorMessage(error)}
+              </p>
+              {isQuotaError && (
+                <Link href="/harga">
+                  <Button
+                    size="sm"
+                    className="mt-2 text-white font-medium hover:opacity-90 transition-all group"
+                    style={{ backgroundColor: '#d07225' }}
+                  >
+                    Upgrade Plan
+                    <ArrowUpRight className="w-3.5 h-3.5 ml-1.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </Button>
+                </Link>
+              )}
             </div>
           </CardContent>
         </Card>

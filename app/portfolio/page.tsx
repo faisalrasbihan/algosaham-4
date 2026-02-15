@@ -8,6 +8,7 @@ import { useUser, RedirectToSignIn } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button" // Added Button import
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
+import { StrategyCardSkeleton } from "@/components/strategy-card-skeleton"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
@@ -50,6 +51,9 @@ export default function Portfolio() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [strategyToDelete, setStrategyToDelete] = useState<string | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
+    const [unsubscribeDialogOpen, setUnsubscribeDialogOpen] = useState(false)
+    const [strategyToUnsubscribe, setStrategyToUnsubscribe] = useState<string | null>(null)
+    const [isUnsubscribing, setIsUnsubscribing] = useState(false)
 
     useEffect(() => {
         if (isLoaded && !isSignedIn) {
@@ -122,25 +126,37 @@ export default function Portfolio() {
         }
     }, [isSignedIn])
 
-    const handleUnsubscribe = async (id: string) => {
+    const handleUnsubscribeClick = (id: string) => {
+        setStrategyToUnsubscribe(id)
+        setUnsubscribeDialogOpen(true)
+    }
+
+    const handleUnsubscribeConfirm = async () => {
+        if (!strategyToUnsubscribe) return
+
+        setIsUnsubscribing(true)
         try {
             const response = await fetch('/api/strategies/unsubscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ strategyId: id })
+                body: JSON.stringify({ strategyId: strategyToUnsubscribe })
             })
 
             const data = await response.json()
 
             if (data.success) {
-                setSubscribedStrategies(prev => prev.filter(s => s.id !== id))
-                toast.success('Unsubscribed successfully')
+                setSubscribedStrategies(prev => prev.filter(s => s.id !== strategyToUnsubscribe))
+                toast.success('Berhasil berhenti berlangganan strategi')
             } else {
-                toast.error(data.error || 'Failed to unsubscribe')
+                toast.error(data.error || 'Gagal berhenti berlangganan')
             }
         } catch (error) {
             console.error('Error unsubscribing:', error)
-            toast.error('Failed to unsubscribe')
+            toast.error('Gagal berhenti berlangganan')
+        } finally {
+            setIsUnsubscribing(false)
+            setUnsubscribeDialogOpen(false)
+            setStrategyToUnsubscribe(null)
         }
     }
 
@@ -221,8 +237,10 @@ export default function Portfolio() {
                                 <p className="text-muted-foreground">Strategies you are following from the community</p>
                             </div>
                             {isLoadingSubscribed ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <div className="flex gap-5 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-6 -mx-6">
+                                    {[1, 2, 3].map((i) => (
+                                        <StrategyCardSkeleton key={i} />
+                                    ))}
                                 </div>
                             ) : subscribedStrategies.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-8 text-center bg-accent/20 rounded-lg mx-6 border border-dashed border-muted">
@@ -237,7 +255,7 @@ export default function Portfolio() {
                                         <SubscribedStrategyCard
                                             key={strategy.id}
                                             strategy={strategy}
-                                            onUnsubscribe={handleUnsubscribe}
+                                            onUnsubscribe={handleUnsubscribeClick}
                                         />
                                     ))}
                                 </div>
@@ -253,8 +271,10 @@ export default function Portfolio() {
                                 <p className="text-muted-foreground">Strategies you've created and backtested</p>
                             </div>
                             {isLoadingStrategies ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <div className="flex gap-5 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-6 -mx-6">
+                                    {[1, 2, 3].map((i) => (
+                                        <StrategyCardSkeleton key={i} />
+                                    ))}
                                 </div>
                             ) : savedStrategies.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -320,6 +340,35 @@ export default function Portfolio() {
                                 </>
                             ) : (
                                 'Delete'
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Unsubscribe Confirmation Dialog */}
+            <AlertDialog open={unsubscribeDialogOpen} onOpenChange={setUnsubscribeDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Berhenti Berlangganan</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Apakah kamu yakin ingin berhenti berlangganan strategi ini? Kamu bisa berlangganan lagi kapan saja.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isUnsubscribing}>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleUnsubscribeConfirm}
+                            disabled={isUnsubscribing}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {isUnsubscribing ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Memproses...
+                                </>
+                            ) : (
+                                'Ya, Berhenti'
                             )}
                         </AlertDialogAction>
                     </AlertDialogFooter>

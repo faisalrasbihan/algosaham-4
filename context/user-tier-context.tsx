@@ -70,6 +70,7 @@ export function UserTierProvider({ children }: { children: ReactNode }) {
             return;
         }
 
+        setIsLoading(true);
         try {
             const response = await fetch("/api/user/limits");
             if (response.ok) {

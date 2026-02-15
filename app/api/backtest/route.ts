@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 // Environment-based logging - only log in development
 const isDev = process.env.NODE_ENV === 'development'
@@ -159,6 +159,18 @@ export async function POST(request: NextRequest) {
     // Parse the response
     const result = await response.json()
     log('✅ [API ROUTE] Backtest completed, trades:', result.trades?.length || 0)
+
+    // Increment backtest usage for logged-in users
+    if (userId) {
+      try {
+        await db.update(users)
+          .set({ backtestUsedToday: sql`${users.backtestUsedToday} + 1` })
+          .where(eq(users.clerkId, userId));
+        log('📊 [API ROUTE] Incremented backtest usage for user:', userId)
+      } catch (err) {
+        console.error('[API ROUTE] Failed to increment backtest usage:', err)
+      }
+    }
 
     return NextResponse.json(result)
 

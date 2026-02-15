@@ -43,10 +43,11 @@ import {
 import { AddIndicatorModal } from "@/components/add-indicator-modal"
 import { FundamentalIndicatorDropdown } from "@/components/fundamental-indicator-dropdown"
 import { OnboardingTutorial } from "@/components/onboarding-tutorial"
-import { SignInButton, useUser } from "@clerk/nextjs"
+import { SignInButton, useUser, useClerk } from "@clerk/nextjs" // Added useClerk
 import { LogIn } from "lucide-react"
 import { toast } from "sonner"
 import type { BacktestRequest } from "@/lib/api"
+import { useUserTier } from "@/context/user-tier-context"; // Added import
 
 interface Indicator {
   id: string
@@ -89,6 +90,7 @@ interface BacktestStrategyBuilderProps {
 
 export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: BacktestStrategyBuilderProps) {
   const { isSignedIn, isLoaded } = useUser()
+  const { refreshTier } = useUserTier(); // Added hook usage
   const [marketCaps, setMarketCaps] = useState<string[]>(["large", "mid"])
   const [stockType, setStockType] = useState("All Stocks")
   const [minDailyValue, setMinDailyValue] = useState<number>(1000000000)
@@ -547,11 +549,17 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
     try {
       await onRunBacktest(config)
       scrollToBottom()
+      // Refresh user tier limits after running backtest
+      refreshTier();
     } catch (error) {
       console.error("Backtest failed:", error)
-      toast.error("Backtest Failed", {
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-      })
+      const msg = error instanceof Error ? error.message : ""
+      const isQuotaError = msg.toLowerCase().includes('limit reached') || msg.toLowerCase().includes('upgrade your plan')
+      if (!isQuotaError) {
+        toast.error("Backtest Failed", {
+          description: msg || "An unknown error occurred",
+        })
+      }
     }
   }
 
