@@ -1,6 +1,6 @@
 "use client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 import { TrendingUp, TrendingDown, Sparkles, BarChart3 } from "lucide-react"
 import Image from "next/image"
 import {
@@ -124,48 +124,7 @@ export function StockRecommendations({ signals = [], trades = [] }: StockRecomme
     })
   }, [signals])
 
-  // Map API trades to portfolio holdings (only open positions)
-  const portfolioStocks: StockRecommendation[] = useMemo(() => {
-    // Group trades by ticker to find open positions
-    const positionMap = new Map<string, { buy: ApiTrade, sells: ApiTrade[] }>()
 
-    trades.forEach(trade => {
-      if (trade.action === "BUY") {
-        if (!positionMap.has(trade.ticker)) {
-          positionMap.set(trade.ticker, { buy: trade, sells: [] })
-        }
-      } else if (trade.action === "SELL") {
-        const position = positionMap.get(trade.ticker)
-        if (position) {
-          position.sells.push(trade)
-        }
-      }
-    })
-
-    // Convert open positions to recommendations
-    const holdings: StockRecommendation[] = []
-    positionMap.forEach((position, ticker) => {
-      // Only include if there are more buys than sells (open position)
-      if (position.sells.length === 0) {
-        // Find the most recent sell to get current performance
-        const lastSell = position.sells[position.sells.length - 1]
-
-        holdings.push({
-          ticker: position.buy.ticker,
-          name: position.buy.companyName,
-          days: lastSell?.holdingDays || 0,
-          return: lastSell?.profitLossPercent || 0,
-          maxDrawdown: 0, // Not available in trade data
-          entryPrice: position.buy.price,
-          currentPrice: lastSell?.price || position.buy.price,
-          signal: "buy" as const,
-          reasons: position.buy.reason,
-        })
-      }
-    })
-
-    return holdings
-  }, [trades])
 
   const renderStockTable = (stocks: StockRecommendation[]) => {
     if (stocks.length === 0) {
@@ -191,10 +150,10 @@ export function StockRecommendations({ signals = [], trades = [] }: StockRecomme
                 <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-white">
                   Stock
                 </th>
-                <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-white">
+                <th className="hidden 2xl:table-cell text-right py-2 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-white">
                   Days
                 </th>
-                <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-white">
+                <th className="hidden md:table-cell lg:hidden xl:table-cell text-right py-2 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-white">
                   Entry
                 </th>
                 <th className="text-right py-2 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-white">
@@ -230,14 +189,14 @@ export function StockRecommendations({ signals = [], trades = [] }: StockRecomme
                           </div>
                           <div>
                             <div className="font-mono font-semibold text-sm text-foreground">{stock.ticker}</div>
-                            <div className="text-xs text-muted-foreground truncate max-w-[120px]">{stock.name}</div>
+                            <div className="text-xs text-muted-foreground truncate max-w-[120px] hidden md:block lg:hidden xl:block">{stock.name}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-2 text-right">
+                      <td className="hidden 2xl:table-cell py-3 px-2 text-right">
                         <span className="font-mono text-sm text-foreground">{stock.days}d</span>
                       </td>
-                      <td className="py-3 px-2 text-right">
+                      <td className="hidden md:table-cell lg:hidden xl:table-cell py-3 px-2 text-right">
                         <span className="font-mono text-sm text-muted-foreground">{stock.entryPrice.toLocaleString()}</span>
                       </td>
                       <td className="py-3 px-2 text-right">
@@ -382,27 +341,12 @@ export function StockRecommendations({ signals = [], trades = [] }: StockRecomme
 
   return (
     <Card className="rounded-md h-full flex flex-col">
-      <Tabs defaultValue="signal" className="w-full h-full flex flex-col">
-        <CardHeader className="pb-3 flex-shrink-0 flex flex-row items-center justify-between">
-          <CardTitle className="text-foreground font-mono font-bold text-base">Stock Recommendations</CardTitle>
-          <TabsList className="h-8">
-            <TabsTrigger value="signal" className="text-xs">
-              Signal
-            </TabsTrigger>
-            <TabsTrigger value="portfolio" className="text-xs">
-              Portfolio
-            </TabsTrigger>
-          </TabsList>
-        </CardHeader>
-        <CardContent className="flex-1 overflow-auto p-4 pt-0">
-          <TabsContent value="signal" className="mt-0 h-full">
-            {renderStockTable(signalStocks)}
-          </TabsContent>
-          <TabsContent value="portfolio" className="mt-0 h-full">
-            {renderStockTable(portfolioStocks)}
-          </TabsContent>
-        </CardContent>
-      </Tabs>
+      <CardHeader className="pb-3 flex-shrink-0">
+        <CardTitle className="text-foreground font-mono font-bold text-base">Stock Recommendations</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-auto p-4 pt-0">
+        {renderStockTable(signalStocks)}
+      </CardContent>
     </Card>
   )
 }

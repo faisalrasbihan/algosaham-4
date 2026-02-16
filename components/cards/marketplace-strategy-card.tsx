@@ -157,9 +157,10 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                         size="sm"
                         className={
                             isSubscribed
-                                ? "w-full bg-green-600 hover:bg-green-700 text-xs"
+                                ? "w-full text-white text-xs hover:opacity-90"
                                 : "w-full bg-primary hover:bg-primary/90 text-xs"
                         }
+                        style={isSubscribed ? { backgroundColor: '#487b78' } : undefined}
                     >
                         {isLoading ? (
                             "Loading..."

@@ -17,7 +17,7 @@ export function Navbar() {
   // Display tier name in uppercase
   const userPlan = tier.toUpperCase();
 
-  // Tier colors — solid, saturated backgrounds
+  // Tier colors — coherent color scheme with consistent saturation
   const getTierColor = (tier: string) => {
     switch (tier.toLowerCase()) {
       case 'suhu':
@@ -28,15 +28,15 @@ export function Navbar() {
         };
       case 'bandar':
         return {
-          bg: '#ca8a04',
+          bg: '#d4af37',
           text: '#ffffff',
-          gradient: 'linear-gradient(135deg, #ca8a04, #eab308)',
+          gradient: 'linear-gradient(135deg, #d4af37, #f0c75e)',
         };
       default: // ritel
         return {
           bg: '#71717a',
           text: '#ffffff',
-          gradient: 'linear-gradient(135deg, #71717a, #a1a1aa)',
+          gradient: 'linear-gradient(135deg, #71717a, #8a8a94)',
         };
     }
   };
@@ -44,12 +44,8 @@ export function Navbar() {
   const tierColors = getTierColor(tier);
 
   // Progress bar color based on usage percentage  
-  const getProgressColor = (used: number, total: number) => {
-    if (total === -1 || total === 9999) return '#487b78';
-    const pct = (used / total) * 100;
-    if (pct >= 90) return '#ef4444';
-    if (pct >= 70) return '#f59e0b';
-    return '#487b78';
+  const getProgressColor = () => {
+    return tierColors.bg;
   };
 
   return (
@@ -154,7 +150,7 @@ export function Navbar() {
                               className="h-full rounded-full transition-all duration-500 ease-out"
                               style={{
                                 width: credits.total === 9999 ? '100%' : `${Math.min((credits.used / credits.total) * 100, 100)}%`,
-                                backgroundColor: getProgressColor(credits.used, credits.total),
+                                backgroundColor: getProgressColor(),
                               }}
                             />
                           </div>
@@ -178,7 +174,7 @@ export function Navbar() {
                                 className="h-full rounded-full transition-all duration-500 ease-out"
                                 style={{
                                   width: `${Math.min((usage.subscriptions / limits.subscriptions) * 100, 100)}%`,
-                                  backgroundColor: getProgressColor(usage.subscriptions, limits.subscriptions),
+                                  backgroundColor: getProgressColor(),
                                 }}
                               />
                             </div>
@@ -202,7 +198,7 @@ export function Navbar() {
                                 className="h-full rounded-full transition-all duration-500 ease-out"
                                 style={{
                                   width: `${Math.min((usage.savedStrategies / limits.savedStrategies) * 100, 100)}%`,
-                                  backgroundColor: getProgressColor(usage.savedStrategies, limits.savedStrategies),
+                                  backgroundColor: getProgressColor(),
                                 }}
                               />
                             </div>

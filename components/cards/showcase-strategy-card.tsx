@@ -21,11 +21,11 @@ import {
 
 // Bandar tier colors — consistent with navbar
 const BANDAR_COLORS = {
-    bg: '#ca8a04',
-    bgLight: 'rgba(202, 138, 4, 0.08)',
-    bgMedium: 'rgba(202, 138, 4, 0.15)',
-    text: '#ca8a04',
-    gradient: 'linear-gradient(135deg, #ca8a04, #eab308)',
+    bg: '#d4af37',
+    bgLight: 'rgba(212, 175, 55, 0.08)',
+    bgMedium: 'rgba(212, 175, 55, 0.15)',
+    text: '#d4af37',
+    gradient: 'linear-gradient(135deg, #d4af37, #f0c75e)',
 }
 
 interface ShowcaseStrategyCardProps {

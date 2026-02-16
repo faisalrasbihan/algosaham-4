@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Users, Info, TrendingUp, TrendingDown, Calendar, HeartOff } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Strategy } from "./types"
 
 interface SubscribedStrategyCardProps {
@@ -12,6 +13,12 @@ interface SubscribedStrategyCardProps {
 }
 
 export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedStrategyCardProps) {
+    const recommendedStocks = (strategy as any).recommendedStocks || [
+        { symbol: "BBCA", color: "bg-blue-600" },
+        { symbol: "BBRI", color: "bg-orange-500" },
+        { symbol: "BREN", color: "bg-green-600" },
+    ];
+
     return (
         <Card className="flex-shrink-0 w-80 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer">
             <CardContent className="p-4">
@@ -34,6 +41,24 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedSt
                                 <p className="text-xs text-muted-foreground mt-1">
                                     by <span className="text-ochre font-medium">{strategy.creator}</span>
                                 </p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex justify-center py-2">
+                        <div className="flex -space-x-2 overflow-hidden justify-center p-1">
+                            {recommendedStocks.slice(0, 3).map((stock: any, idx: number) => (
+                                <Avatar key={idx} className="inline-block h-7 w-7 rounded-full border-2 border-background">
+                                    <AvatarImage src={`/stock_icons/${stock.symbol}.png`} alt={stock.symbol} />
+                                    <AvatarFallback className={`${stock.color} text-white text-[9px] font-bold`}>
+                                        {stock.symbol}
+                                    </AvatarFallback>
+                                </Avatar>
+                            ))}
+                            {recommendedStocks.length > 3 && (
+                                <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[9px] font-bold">
+                                    +{recommendedStocks.length - 3}
+                                </div>
                             )}
                         </div>
                     </div>

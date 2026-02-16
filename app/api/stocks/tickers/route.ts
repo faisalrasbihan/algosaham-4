@@ -7,17 +7,8 @@ export async function GET() {
     const result = await genkiClient`
       SELECT 
         s.stock_code, 
-        s.stock_name,
-        fr.sector,
-        (
-          SELECT d.close * d.listed_shares 
-          FROM fact_stock_daily d 
-          WHERE d.stock_code = s.stock_code 
-          ORDER BY d.date DESC 
-          LIMIT 1
-        ) as market_cap
+        s.stock_name
       FROM dim_stock s
-      LEFT JOIN dim_financial_ratio fr ON s.stock_code = fr.stock_code AND fr.is_current = true
       WHERE s.is_current = true
       ORDER BY s.stock_code ASC
     `;

@@ -11,19 +11,20 @@ import { StrategyCardSkeleton } from "@/components/strategy-card-skeleton"
 import { toast } from "sonner"
 import { Strategy } from "@/components/cards/types"
 import { useUserTier } from "@/context/user-tier-context"
-import { Loader2 } from "lucide-react"
+import { Loader2, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+
+// Dialog states: 'confirm' | 'loading' | 'success'
+type SubscribeDialogState = 'confirm' | 'loading' | 'success'
 
 export default function Strategies() {
   const [exploreStrategies, setExploreStrategies] = useState<Strategy[]>([])
@@ -34,7 +35,8 @@ export default function Strategies() {
   // Subscribe confirmation dialog state
   const [subscribeDialogOpen, setSubscribeDialogOpen] = useState(false)
   const [strategyToSubscribe, setStrategyToSubscribe] = useState<string | null>(null)
-  const [isSubscribing, setIsSubscribing] = useState(false)
+  const [dialogState, setDialogState] = useState<SubscribeDialogState>('confirm')
+  const [subscribedStrategyName, setSubscribedStrategyName] = useState("")
 
   const { tier, limits, usage, refreshTier } = useUserTier()
 
@@ -94,6 +96,7 @@ export default function Strategies() {
     } else {
       // Subscribe: show confirmation dialog
       setStrategyToSubscribe(strategyId)
+      setDialogState('confirm')
       refreshTier() // Fetch fresh quota
       setSubscribeDialogOpen(true)
     }
@@ -126,13 +129,14 @@ export default function Strategies() {
         toast.success("Berhenti berlangganan strategi")
       } else {
         setSubscribedIds(prev => [...prev, strategyId])
-        toast.success("Berhasil berlangganan strategi")
       }
 
       refreshTier()
+      return true
     } catch (error) {
       console.error('Subscription error:', error)
       toast.error(error instanceof Error ? error.message : "Gagal memperbarui langganan")
+      return false
     } finally {
       setSubscriptionLoading(prev => ({ ...prev, [strategyId]: false }))
     }
@@ -141,10 +145,31 @@ export default function Strategies() {
   // Confirm subscribe from the dialog
   const handleConfirmSubscribe = async () => {
     if (!strategyToSubscribe) return
-    setIsSubscribing(true)
-    await performSubscriptionAction(strategyToSubscribe, false)
-    setIsSubscribing(false)
+
+    // Find the strategy name for the success message
+    const strategy = exploreStrategies.find(s => s.id === strategyToSubscribe)
+    setSubscribedStrategyName(strategy?.name || "")
+
+    // Move to loading state
+    setDialogState('loading')
+
+    const success = await performSubscriptionAction(strategyToSubscribe, false)
+
+    if (success) {
+      // Move to success state
+      setDialogState('success')
+    } else {
+      // On error, close the dialog
+      setSubscribeDialogOpen(false)
+      setDialogState('confirm')
+      setStrategyToSubscribe(null)
+    }
+  }
+
+  // Close the dialog and reset state
+  const handleCloseDialog = () => {
     setSubscribeDialogOpen(false)
+    setDialogState('confirm')
     setStrategyToSubscribe(null)
   }
 
@@ -162,7 +187,7 @@ export default function Strategies() {
             <div className="px-6">
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-foreground mb-1">Strategy Showcase</h2>
-                <p className="text-muted-foreground">Top-performing strategies of the week</p>
+                <p className="text-muted-foreground">Top-performing strategies we curated for you</p>
               </div>
               <div className="flex gap-4 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-6 -mx-6">
                 {popularStrategies.map((strategy) => (
@@ -223,67 +248,126 @@ export default function Strategies() {
       </div>
 
       {/* Subscribe Confirmation Dialog */}
-      <AlertDialog open={subscribeDialogOpen} onOpenChange={setSubscribeDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Berlangganan Strategi</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                {subscriptionQuotaReached ? (
-                  <>
-                    <p>Kuota langganan kamu sudah habis.</p>
-                    <p className="text-sm">
-                      Kamu telah menggunakan{' '}
-                      <span
-                        className="inline-block px-2 py-0.5 rounded-md font-semibold text-xs text-red-700"
-                        style={{ fontFamily: "'IBM Plex Mono', monospace", backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
-                      >
-                        {usage.subscriptions}/{limits.subscriptions}
-                      </span>{' '}
-                      slot langganan. Upgrade plan untuk menambah kuota.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p>Apakah kamu yakin ingin berlangganan strategi ini?</p>
-                    <p className="text-sm">
-                      Sisa kuota langganan kamu:{' '}
-                      <span
-                        className="inline-block px-2 py-0.5 rounded-md font-semibold text-xs text-foreground"
-                        style={{ fontFamily: "'IBM Plex Mono', monospace", backgroundColor: 'rgba(140, 188, 185, 0.15)' }}
-                      >
-                        {subscriptionsRemaining}
-                      </span>
-                      {limits.subscriptions !== -1 && (
-                        <span className="text-muted-foreground"> dari {limits.subscriptions} slot</span>
-                      )}
-                    </p>
-                  </>
-                )}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSubscribing}>Batal</AlertDialogCancel>
-            {subscriptionQuotaReached ? (
-              <Link href="/harga">
+      <Dialog open={subscribeDialogOpen} onOpenChange={(open) => {
+        // Only allow closing when not in loading state
+        if (!open && dialogState !== 'loading') {
+          handleCloseDialog()
+        }
+      }}>
+        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => {
+          // Prevent closing during loading
+          if (dialogState === 'loading') e.preventDefault()
+        }}>
+          {/* Loading State */}
+          {dialogState === 'loading' && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+              <p className="text-sm text-muted-foreground font-mono">Memproses langganan...</p>
+            </div>
+          )}
+
+          {/* Success State */}
+          {dialogState === 'success' && (
+            <>
+              <DialogHeader className="items-center text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                </div>
+                <DialogTitle className="font-mono text-xl">Berhasil Berlangganan!</DialogTitle>
+                <DialogDescription className="font-mono text-sm text-muted-foreground text-center pt-2">
+                  Kamu berhasil berlangganan strategi{' '}
+                  {subscribedStrategyName && (
+                    <span className="font-semibold text-foreground">&quot;{subscribedStrategyName}&quot;</span>
+                  )}
+                  . Strategi ini sekarang tersedia di portofolio kamu.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-3 pt-4">
                 <Button
-                  size="sm"
-                  className="text-white font-medium hover:opacity-90"
-                  style={{ backgroundColor: '#d07225' }}
+                  onClick={handleCloseDialog}
+                  className="w-full font-mono bg-[#d07225] hover:bg-[#a65b1d]"
                 >
-                  Upgrade Plan
+                  Continue
                 </Button>
-              </Link>
-            ) : (
-              <AlertDialogAction onClick={handleConfirmSubscribe} disabled={isSubscribing}>
-                {isSubscribing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {isSubscribing ? 'Memproses...' : 'Ya, Berlangganan'}
-              </AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    handleCloseDialog()
+                    window.location.href = "/portfolio"
+                  }}
+                  className="w-full font-mono"
+                >
+                  Lihat Strategi Saya
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* Confirmation State */}
+          {dialogState === 'confirm' && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Berlangganan Strategi</DialogTitle>
+                <DialogDescription asChild>
+                  <div className="space-y-3">
+                    {subscriptionQuotaReached ? (
+                      <>
+                        <p>Kuota langganan kamu sudah habis.</p>
+                        <p className="text-sm">
+                          Kamu telah menggunakan{' '}
+                          <span
+                            className="inline-block px-2 py-0.5 rounded-md font-semibold text-xs text-red-700"
+                            style={{ fontFamily: "'IBM Plex Mono', monospace", backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+                          >
+                            {usage.subscriptions}/{limits.subscriptions}
+                          </span>{' '}
+                          slot langganan. Upgrade plan untuk menambah kuota.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p>Apakah kamu yakin ingin berlangganan strategi ini?</p>
+                        <p className="text-sm">
+                          Sisa kuota langganan kamu:{' '}
+                          <span
+                            className="inline-block px-2 py-0.5 rounded-md font-semibold text-xs text-foreground"
+                            style={{ fontFamily: "'IBM Plex Mono', monospace", backgroundColor: 'rgba(140, 188, 185, 0.15)' }}
+                          >
+                            {subscriptionsRemaining}
+                          </span>
+                          {limits.subscriptions !== -1 && (
+                            <span className="text-muted-foreground"> dari {limits.subscriptions} slot</span>
+                          )}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={handleCloseDialog}>
+                  Batal
+                </Button>
+                {subscriptionQuotaReached ? (
+                  <Link href="/harga">
+                    <Button
+                      size="sm"
+                      className="text-white font-medium hover:opacity-90"
+                      style={{ backgroundColor: '#d07225' }}
+                    >
+                      Upgrade Plan
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button onClick={handleConfirmSubscribe}>
+                    Ya, Berlangganan
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

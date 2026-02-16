@@ -159,8 +159,8 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
   }, [])
 
   // Backtest config states
-  const [stopLoss, setStopLoss] = useState<number>(7)
-  const [takeProfit, setTakeProfit] = useState<number>(15)
+  const [stopLoss, setStopLoss] = useState<number | string>(7)
+  const [takeProfit, setTakeProfit] = useState<number | string>(15)
   const [maxHoldingPeriod, setMaxHoldingPeriod] = useState<string>("14")
   const [startDate, setStartDate] = useState<string>("2024-06-01")
   const [endDate, setEndDate] = useState<string>("2024-08-31")
@@ -219,16 +219,17 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
 
   const marketCapOptions = ["small", "mid", "large"]
   const sectorOptions = [
-    "Banking",
-    "Consumer",
-    "Property",
-    "Technology",
-    "Mining",
     "Energy",
+    "Basic Materials",
+    "Industrials",
+    "Consumer Cyclicals",
+    "Consumer Non-Cyclicals",
     "Healthcare",
-    "Telecommunications",
-    "Transportation",
-    "Agriculture",
+    "Financials",
+    "Properties & Real Estate",
+    "Technology",
+    "Transportation & Logistics",
+    "Infrastructure",
   ]
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -505,8 +506,8 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
           maxPositions: 4,
         },
         riskManagement: {
-          stopLossPercent: stopLoss,
-          takeProfitPercent: takeProfit,
+          stopLossPercent: Number(stopLoss),
+          takeProfitPercent: Number(takeProfit),
           maxHoldingDays: maxHoldingPeriod === "no-limit" ? 999999 : Number.parseInt(maxHoldingPeriod),
         },
       },
@@ -1543,8 +1544,17 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
                           type="number"
                           step="0.1"
                           value={stopLoss}
-                          onChange={(e) => setStopLoss(Number(e.target.value))}
-                          placeholder="5"
+                          onChange={(e) => {
+                            const val = e.target.value
+                            if (val === "") {
+                              setStopLoss("")
+                            } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") {
+                              setStopLoss(Number(val))
+                            } else {
+                              setStopLoss(val)
+                            }
+                          }}
+                          placeholder="0"
                           className="font-mono border-slate-300 bg-white pr-8"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
@@ -1557,8 +1567,17 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
                           type="number"
                           step="0.1"
                           value={takeProfit}
-                          onChange={(e) => setTakeProfit(Number(e.target.value))}
-                          placeholder="15"
+                          onChange={(e) => {
+                            const val = e.target.value
+                            if (val === "") {
+                              setTakeProfit("")
+                            } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") {
+                              setTakeProfit(Number(val))
+                            } else {
+                              setTakeProfit(val)
+                            }
+                          }}
+                          placeholder="0"
                           className="font-mono border-slate-300 bg-white pr-8"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>

@@ -5,9 +5,9 @@ import { TickerTape } from "@/components/ticker-tape"
 import { SubscribedStrategyCard } from "@/components/cards/subscribed-strategy-card"
 import { RegularStrategyCard } from "@/components/cards/regular-strategy-card"
 import { useUser, RedirectToSignIn } from "@clerk/nextjs"
-import { Button } from "@/components/ui/button" // Added Button import
+import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, CheckCircle } from "lucide-react"
 import { StrategyCardSkeleton } from "@/components/strategy-card-skeleton"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -21,6 +21,17 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+
+// Dialog states for unsubscribe: 'confirm' | 'loading' | 'success'
+type UnsubscribeDialogState = 'confirm' | 'loading' | 'success'
 
 interface Strategy {
     id: number
@@ -53,7 +64,8 @@ export default function Portfolio() {
     const [isDeleting, setIsDeleting] = useState(false)
     const [unsubscribeDialogOpen, setUnsubscribeDialogOpen] = useState(false)
     const [strategyToUnsubscribe, setStrategyToUnsubscribe] = useState<string | null>(null)
-    const [isUnsubscribing, setIsUnsubscribing] = useState(false)
+    const [unsubscribeDialogState, setUnsubscribeDialogState] = useState<UnsubscribeDialogState>('confirm')
+    const [unsubscribedStrategyName, setUnsubscribedStrategyName] = useState("")
 
     useEffect(() => {
         if (isLoaded && !isSignedIn) {
@@ -128,13 +140,20 @@ export default function Portfolio() {
 
     const handleUnsubscribeClick = (id: string) => {
         setStrategyToUnsubscribe(id)
+        setUnsubscribeDialogState('confirm')
         setUnsubscribeDialogOpen(true)
     }
 
     const handleUnsubscribeConfirm = async () => {
         if (!strategyToUnsubscribe) return
 
-        setIsUnsubscribing(true)
+        // Find the strategy name for the success message
+        const strategy = subscribedStrategies.find(s => s.id === strategyToUnsubscribe)
+        setUnsubscribedStrategyName(strategy?.name || "")
+
+        // Move to loading state
+        setUnsubscribeDialogState('loading')
+
         try {
             const response = await fetch('/api/strategies/unsubscribe', {
                 method: 'POST',
@@ -146,18 +165,25 @@ export default function Portfolio() {
 
             if (data.success) {
                 setSubscribedStrategies(prev => prev.filter(s => s.id !== strategyToUnsubscribe))
-                toast.success('Berhasil berhenti berlangganan strategi')
+                // Move to success state
+                setUnsubscribeDialogState('success')
             } else {
                 toast.error(data.error || 'Gagal berhenti berlangganan')
+                // Close dialog on error
+                handleCloseUnsubscribeDialog()
             }
         } catch (error) {
             console.error('Error unsubscribing:', error)
             toast.error('Gagal berhenti berlangganan')
-        } finally {
-            setIsUnsubscribing(false)
-            setUnsubscribeDialogOpen(false)
-            setStrategyToUnsubscribe(null)
+            // Close dialog on error
+            handleCloseUnsubscribeDialog()
         }
+    }
+
+    const handleCloseUnsubscribeDialog = () => {
+        setUnsubscribeDialogOpen(false)
+        setUnsubscribeDialogState('confirm')
+        setStrategyToUnsubscribe(null)
     }
 
     const handleEdit = async (id: string) => {
@@ -347,33 +373,85 @@ export default function Portfolio() {
             </AlertDialog>
 
             {/* Unsubscribe Confirmation Dialog */}
-            <AlertDialog open={unsubscribeDialogOpen} onOpenChange={setUnsubscribeDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Berhenti Berlangganan</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Apakah kamu yakin ingin berhenti berlangganan strategi ini? Kamu bisa berlangganan lagi kapan saja.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isUnsubscribing}>Batal</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleUnsubscribeConfirm}
-                            disabled={isUnsubscribing}
-                            className="bg-red-600 hover:bg-red-700"
-                        >
-                            {isUnsubscribing ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Memproses...
-                                </>
-                            ) : (
-                                'Ya, Berhenti'
-                            )}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <Dialog open={unsubscribeDialogOpen} onOpenChange={(open) => {
+                // Only allow closing when not in loading state
+                if (!open && unsubscribeDialogState !== 'loading') {
+                    handleCloseUnsubscribeDialog()
+                }
+            }}>
+                <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => {
+                    // Prevent closing during loading
+                    if (unsubscribeDialogState === 'loading') e.preventDefault()
+                }}>
+                    {/* Loading State */}
+                    {unsubscribeDialogState === 'loading' && (
+                        <div className="flex flex-col items-center justify-center py-12">
+                            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                            <p className="text-sm text-muted-foreground font-mono">Memproses...</p>
+                        </div>
+                    )}
+
+                    {/* Success State */}
+                    {unsubscribeDialogState === 'success' && (
+                        <>
+                            <DialogHeader className="items-center text-center">
+                                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                                    <CheckCircle className="h-8 w-8 text-green-600" />
+                                </div>
+                                <DialogTitle className="font-mono text-xl">Berhasil Berhenti Berlangganan!</DialogTitle>
+                                <DialogDescription className="font-mono text-sm text-muted-foreground text-center pt-2">
+                                    Kamu berhasil berhenti berlangganan strategi{' '}
+                                    {unsubscribedStrategyName && (
+                                        <span className="font-semibold text-foreground">&quot;{unsubscribedStrategyName}&quot;</span>
+                                    )}
+                                    . Kamu bisa berlangganan lagi kapan saja.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="flex flex-col gap-3 pt-4">
+                                <Button
+                                    onClick={handleCloseUnsubscribeDialog}
+                                    className="w-full font-mono bg-[#d07225] hover:bg-[#a65b1d]"
+                                >
+                                    Continue
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        handleCloseUnsubscribeDialog()
+                                        router.push('/strategies')
+                                    }}
+                                    className="w-full font-mono"
+                                >
+                                    Lihat Strategi Lain
+                                </Button>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Confirmation State */}
+                    {unsubscribeDialogState === 'confirm' && (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle>Berhenti Berlangganan</DialogTitle>
+                                <DialogDescription>
+                                    Apakah kamu yakin ingin berhenti berlangganan strategi ini? Kamu bisa berlangganan lagi kapan saja.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={handleCloseUnsubscribeDialog}>
+                                    Batal
+                                </Button>
+                                <Button
+                                    onClick={handleUnsubscribeConfirm}
+                                    className="bg-red-600 hover:bg-red-700"
+                                >
+                                    Ya, Berhenti
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
