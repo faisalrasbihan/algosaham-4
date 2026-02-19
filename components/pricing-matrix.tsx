@@ -192,8 +192,8 @@ function PricingMatrixInner() {
     {
       name: "Suhu",
       subtitle: "Suhu",
-      monthlyPrice: 99000,
-      yearlyPrice: 49500, // 50% discount
+      monthlyPrice: 89500,
+      yearlyPrice: 44750, // 50% discount
       description: "Trader aktif",
       highlighted: true,
       badge: "Most Popular",

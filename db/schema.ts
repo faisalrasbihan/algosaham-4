@@ -68,6 +68,7 @@ export const strategies = pgTable("strategies", {
   totalStocks: integer("total_stocks").default(0), // "0"
   qualityScore: text("quality_score"), // "Poor", "Good", "Excellent"
   subscribers: integer("subscribers").default(0), // Number of users following this strategy
+  topHoldings: jsonb("top_holdings"), // Top 3 stock tickers e.g. ["BBCA", "BMRI", "TLKM"]
 
   // Visibility/status
   isPublic: boolean("is_public").default(false),
@@ -90,6 +91,7 @@ export const subscriptions = pgTable("subscriptions", {
   // Snapshot at subscription time (baseline for tracking)
   snapshotReturn: numeric("snapshot_return"), // Strategy's total return when user subscribed
   snapshotValue: numeric("snapshot_value"), // Portfolio value when subscribed
+  snapshotHoldings: jsonb("snapshot_holdings"), // Top 3 stocks when subscribed
   snapshotDate: timestamp("snapshot_date", { withTimezone: true }), // When snapshot was taken
 
   // Current performance (updated regularly from Redis)

@@ -177,6 +177,35 @@ export async function POST(req: Request) {
         // Calculate quality score from Sharpe ratio
         const qualityScore = calculateQualityScore(sharpeRatio);
 
+        // Extract top 3 holdings (most recent signals)
+        let topHoldings: { symbol: string; color?: string }[] = [];
+
+        const allSignals = (backtestResults as any)?.recentSignals?.signals || backtestResults?.signals || [];
+
+        if (Array.isArray(allSignals) && allSignals.length > 0) {
+            // Sort by date descending
+            const sortedSignals = [...allSignals].sort((a, b) =>
+                new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+
+            // Get unique tickers
+            const uniqueTickers = new Set<string>();
+            for (const signal of sortedSignals) {
+                if (uniqueTickers.size >= 3) break;
+                if (!uniqueTickers.has(signal.ticker)) {
+                    uniqueTickers.add(signal.ticker);
+                    // Cycle through colors for variety
+                    const colors = ["bg-blue-600", "bg-orange-500", "bg-green-600", "bg-purple-600", "bg-red-600"];
+                    const color = colors[uniqueTickers.size - 1] || "bg-gray-600";
+
+                    topHoldings.push({
+                        symbol: signal.ticker,
+                        color
+                    });
+                }
+            }
+        }
+
         // Insert Strategy with metadata
         const [newStrategy] = await db.insert(strategies).values({
             name,
@@ -191,6 +220,7 @@ export async function POST(req: Request) {
             qualityScore,
             isPublic,
             isActive: true,
+            topHoldings: topHoldings.length > 0 ? topHoldings : null,
         }).returning();
 
         // Increment user's saved strategies count

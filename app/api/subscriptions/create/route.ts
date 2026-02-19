@@ -6,8 +6,8 @@ import { ensureUserInDatabase } from "@/lib/ensure-user";
 // Plan pricing configuration
 const PLAN_PRICING = {
     suhu: {
-        monthly: 99000,
-        yearly: 49500 * 12, // Annual price (50% discount)
+        monthly: 89500,
+        yearly: 44750 * 12, // Annual price (50% discount)
     },
     bandar: {
         monthly: 189000,

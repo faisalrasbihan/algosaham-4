@@ -122,7 +122,9 @@ export default function Portfolio() {
                         createdDate: s.createdAt || new Date().toISOString(),
                         subscribers: s.subscribers || 0,
                         subscriptionDate: s.subscribedAt,
-                        returnSinceSubscription: parseFloat(s.returnSinceSubscription || 0)
+                        returnSinceSubscription: parseFloat(s.returnSinceSubscription || 0),
+                        snapshotHoldings: s.snapshotHoldings,
+                        topHoldings: s.topHoldings
                     }))
                     setSubscribedStrategies(mappedSubscribed)
                 }

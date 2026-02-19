@@ -86,6 +86,7 @@ export async function POST(req: Request) {
                 strategyId,
                 snapshotReturn: strategy.totalReturn,
                 snapshotValue: null, // Can be set if we track portfolio value
+                snapshotHoldings: strategy.topHoldings, // Top 3 stocks when subscribed
                 snapshotDate: new Date(),
                 currentReturn: strategy.totalReturn,
                 isActive: true,

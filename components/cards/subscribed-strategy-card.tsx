@@ -13,7 +13,7 @@ interface SubscribedStrategyCardProps {
 }
 
 export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedStrategyCardProps) {
-    const recommendedStocks = (strategy as any).recommendedStocks || [
+    const recommendedStocks = strategy.snapshotHoldings || strategy.topHoldings || [
         { symbol: "BBCA", color: "bg-blue-600" },
         { symbol: "BBRI", color: "bg-orange-500" },
         { symbol: "BREN", color: "bg-green-600" },

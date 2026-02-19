@@ -25,7 +25,7 @@ export function PricingSection() {
     {
       name: "Paket Pro",
       icon: "🟠",
-      price: "Rp429.000",
+      price: "Rp189.000",
       period: "/ Bulan",
       description: "Dirancang untuk trader serius yang ingin hasil maksimal.",
       subtitle: "Nikmati akses penuh ke seluruh fitur premium dan insight yang mendalam:",

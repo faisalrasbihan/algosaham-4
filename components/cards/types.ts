@@ -22,4 +22,6 @@ export interface Strategy {
     isSubscribed?: boolean
     subscriptionDate?: string
     returnSinceSubscription?: number
+    snapshotHoldings?: { symbol: string, color?: string }[] | null
+    topHoldings?: { symbol: string, color?: string }[] | null
 }

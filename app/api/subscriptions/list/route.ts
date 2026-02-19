@@ -19,6 +19,7 @@ export async function GET() {
             .select({
                 subscriptionId: subscriptions.id,
                 subscribedAt: subscriptions.createdAt,
+                snapshotHoldings: subscriptions.snapshotHoldings, // Add this
                 strategy: {
                     id: strategies.id,
                     name: strategies.name,
@@ -48,6 +49,7 @@ export async function GET() {
             ...sub.strategy,
             subscriptionId: sub.subscriptionId,
             subscribedAt: sub.subscribedAt,
+            snapshotHoldings: sub.snapshotHoldings, // Add this
             // Calculate return since subscription if needed, or use stored value
             // For now passing raw strategy data + subscription metadata
         }));
