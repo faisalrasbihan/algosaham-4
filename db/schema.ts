@@ -56,6 +56,7 @@ export const strategies = pgTable("strategies", {
 
   // Redis key reference
   configHash: text("config_hash").notNull().unique(), // Links to Redis: backtest:{hash}, summary:{hash}
+  config: jsonb("config").$type<any>(), // Full BacktestRequest json config (using any to prevent import cycles, but matches the API structure)
 
   // Performance metrics (for card display)
   totalReturn: numeric("total_return"), // "0%"

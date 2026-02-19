@@ -5,7 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
 import { useState } from "react";
-import { WalletCards, Zap, Heart, BookMarked, ArrowUpRight, Loader2 } from "lucide-react";
+import { WalletCards, Zap, Heart, BookMarked, ArrowUpRight, Loader2, Settings } from "lucide-react";
+import { AccountManagementPage } from "@/components/account-management-page";
 
 import { useUserTier } from "@/context/user-tier-context";
 
@@ -257,7 +258,15 @@ export function Navbar() {
               Portfolio
             </button>
           </Link>
-          <UserButton />
+          <UserButton>
+            <UserButton.UserProfilePage
+              label="Subscriptions"
+              url="account"
+              labelIcon={<Settings size={16} />}
+            >
+              <AccountManagementPage />
+            </UserButton.UserProfilePage>
+          </UserButton>
         </SignedIn>
       </div>
     </nav>

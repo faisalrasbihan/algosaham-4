@@ -212,6 +212,7 @@ export async function POST(req: Request) {
             description,
             creatorId: userId,
             configHash,
+            config,
             totalReturn: totalReturn?.toString(),
             maxDrawdown: maxDrawdown?.toString(),
             successRate: successRate?.toString(),

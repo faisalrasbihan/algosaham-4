@@ -2,16 +2,21 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Info, Calendar, Edit, Trash2 } from "lucide-react"
+import { Info, Edit, Trash2, Heart, RefreshCw, Loader2, Clock } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Strategy } from "./types"
 
 interface RegularStrategyCardProps {
     strategy: Strategy
     onEdit?: (id: string) => void
     onDelete?: (id: string) => void
+    onRerun?: (id: string) => void
+    onSubscribe?: (id: string) => void
+    isRerunning?: boolean
+    isSubscribing?: boolean
 }
 
-export function RegularStrategyCard({ strategy, onEdit, onDelete }: RegularStrategyCardProps) {
+export function RegularStrategyCard({ strategy, onEdit, onDelete, onRerun, onSubscribe, isRerunning, isSubscribing }: RegularStrategyCardProps) {
     return (
         <Card className="flex-shrink-0 w-80 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer">
             <CardContent className="p-4">
@@ -126,36 +131,85 @@ export function RegularStrategyCard({ strategy, onEdit, onDelete }: RegularStrat
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
-                        <Calendar className="w-3 h-3" />
-                        Created: {new Date(strategy.createdDate).toLocaleDateString()}
-                    </div>
+                    {strategy.lastRunDate && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
+                            <Clock className="w-3 h-3" />
+                            Last Run: {strategy.lastRunDate}
+                        </div>
+                    )}
 
-                    <div className="flex items-center gap-2 pt-1">
-                        <Button
-                            variant="default"
-                            size="sm"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onEdit?.(strategy.id);
-                            }}
-                            className="text-xs bg-ochre hover:bg-ochre/90 text-white flex-1"
-                        >
-                            <Edit className="w-3 h-3 mr-1" />
-                            Edit
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete?.(strategy.id);
-                            }}
-                            className="text-xs text-red-600 hover:text-red-700 bg-transparent flex-1"
-                        >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            Delete
-                        </Button>
+                    <div className={`flex items-center gap-2 ${strategy.lastRunDate ? 'pt-1' : 'pt-2 border-t border-border'}`}>
+                        <TooltipProvider delayDuration={300}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (!isRerunning) onRerun?.(strategy.id);
+                                        }}
+                                        disabled={isRerunning}
+                                        className="h-9 flex-1 hover:bg-[#d07225] hover:text-white hover:border-[#d07225] transition-colors"
+                                    >
+                                        {isRerunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Jalankan ulang backtest</TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (!isSubscribing) onSubscribe?.(strategy.id);
+                                        }}
+                                        disabled={isSubscribing}
+                                        className="h-9 flex-1 hover:bg-[#d07225] hover:text-white hover:border-[#d07225] transition-colors"
+                                    >
+                                        {isSubscribing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className="w-4 h-4" />}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Berlangganan strategi ini</TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onEdit?.(strategy.id);
+                                        }}
+                                        className="h-9 flex-1 hover:bg-[#d07225] hover:text-white hover:border-[#d07225] transition-colors"
+                                    >
+                                        <Edit className="w-4 h-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Edit strategi</TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDelete?.(strategy.id);
+                                        }}
+                                        className="h-9 flex-1 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Hapus strategi</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </div>
             </CardContent>

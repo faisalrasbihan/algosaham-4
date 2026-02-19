@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react"
 import { Check, X, Info, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useUser, SignInButton } from "@clerk/nextjs"
+import { useUser, SignInButton, useClerk } from "@clerk/nextjs"
 import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
 import { PaymentMethodDialog } from "@/components/payment-method-dialog"
@@ -117,6 +117,7 @@ function PricingMatrixInner() {
   const [isYearly, setIsYearly] = useState(false)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
   const { isSignedIn, user } = useUser()
+  const { openUserProfile } = useClerk()
   const [userTier, setUserTier] = useState<string>("ritel")
   const searchParams = useSearchParams()
 
@@ -348,11 +349,19 @@ function PricingMatrixInner() {
 
                     {isSignedIn ? (
                       <Button
-                        onClick={() => handleSubscribe(plan.key)}
+                        onClick={() => {
+                          if (isPaidUser && plan.key === userTier) {
+                            openUserProfile()
+                          } else {
+                            handleSubscribe(plan.key)
+                          }
+                        }}
                         disabled={loadingPlan !== null || (isPaidUser ? plan.key !== userTier : plan.key === userTier)}
-                        className={`w-full ${showHighlight
-                          ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                          : "bg-secondary hover:bg-[#d07225] hover:text-white text-foreground transition-colors"
+                        className={`w-full ${isPaidUser && plan.key === userTier
+                          ? "bg-[#d07225] hover:bg-[#b56320] text-white transition-colors"
+                          : showHighlight
+                            ? "bg-primary hover:bg-primary/90 text-primary-foreground"
+                            : "bg-secondary hover:bg-[#d07225] hover:text-white text-foreground transition-colors"
                           }`}
                       >
                         {loadingPlan === plan.key ? (

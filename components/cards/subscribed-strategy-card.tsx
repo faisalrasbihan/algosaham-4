@@ -200,7 +200,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedSt
                                 e.stopPropagation();
                                 onUnsubscribe?.(strategy.id);
                             }}
-                            className="text-xs text-red-600 hover:text-red-700 w-full"
+                            className="w-full text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors"
                         >
                             <HeartOff className="w-3 h-3 mr-1" />
                             Unsubscribe
