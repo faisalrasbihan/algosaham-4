@@ -25,8 +25,7 @@ export async function GET() {
             .where(
                 and(
                     eq(strategies.isActive, true),
-                    // Add isPublic check if schema has it, otherwise rely on isActive
-                    // eq(strategies.isPublic, true) 
+                    eq(strategies.isPublic, true)
                 )
             )
             .orderBy(desc(strategies.subscribers)); // Order by popularity

@@ -10,8 +10,8 @@ import { BacktestRequest } from "@/lib/api"
 export default function BacktestPage() {
   const { results, loading, error, runBacktest } = useBacktest()
 
-  const handleBacktestRun = async (config: BacktestRequest) => {
-    await runBacktest(config)
+  const handleBacktestRun = async (config: BacktestRequest, isInitial?: boolean) => {
+    await runBacktest(config, isInitial)
   }
 
   return (

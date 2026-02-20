@@ -4,10 +4,12 @@ import { useState, useEffect, Suspense } from "react"
 import { Check, X, Info, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useUser, SignInButton, useClerk } from "@clerk/nextjs"
+import { useUser, SignInButton } from "@clerk/nextjs"
 import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
 import { PaymentMethodDialog } from "@/components/payment-method-dialog"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { AccountManagementPage } from "@/components/account-management-page"
 
 type FeatureValue = string | boolean | number
 
@@ -117,7 +119,6 @@ function PricingMatrixInner() {
   const [isYearly, setIsYearly] = useState(false)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
   const { isSignedIn, user } = useUser()
-  const { openUserProfile } = useClerk()
   const [userTier, setUserTier] = useState<string>("ritel")
   const searchParams = useSearchParams()
 
@@ -144,6 +145,7 @@ function PricingMatrixInner() {
 
   // Payment dialog state
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
+  const [manageSubscriptionsOpen, setManageSubscriptionsOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<{
     type: PaidPlanType
     name: string
@@ -351,7 +353,7 @@ function PricingMatrixInner() {
                       <Button
                         onClick={() => {
                           if (isPaidUser && plan.key === userTier) {
-                            openUserProfile()
+                            setManageSubscriptionsOpen(true)
                           } else {
                             handleSubscribe(plan.key)
                           }
@@ -458,6 +460,13 @@ function PricingMatrixInner() {
           onPaymentSuccess={handlePaymentSuccess}
         />
       )}
+
+      {/* Manage Subscriptions Dialog */}
+      <Dialog open={manageSubscriptionsOpen} onOpenChange={setManageSubscriptionsOpen}>
+        <DialogContent className="max-w-3xl overflow-hidden p-0 h-[85vh] sm:h-[80vh] flex flex-col">
+          <AccountManagementPage />
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   )
 }

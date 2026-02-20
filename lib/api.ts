@@ -1,5 +1,8 @@
 // API service for communicating with FastAPI backend
 
+const isDev = process.env.NODE_ENV === 'development'
+const log = isDev ? console.log.bind(console) : () => { }
+
 export interface BacktestRequest {
   backtestId: string
   filters: {
@@ -131,67 +134,10 @@ export interface BacktestResult {
 }
 
 export class ApiService {
-  private static async makeRequest<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    console.log('🌐 [API SERVICE] Making request to:', endpoint)
-    console.log('🌐 [API SERVICE] Request options:', {
-      method: options.method,
-      headers: options.headers,
-      body: options.body ? 'Body present' : 'No body'
-    })
-
-    const url = endpoint
-    console.log('🌐 [API SERVICE] Full URL:', url)
-
-    const defaultOptions: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }
-
-    const finalOptions = { ...defaultOptions, ...options }
-    console.log('🌐 [API SERVICE] Final request options:', finalOptions)
-
+  static async runBacktest(config: BacktestRequest, isInitial: boolean = false): Promise<BacktestResult> {
     try {
-      console.log('📡 [API SERVICE] Sending fetch request...')
-      const response = await fetch(url, finalOptions)
-
-      console.log('📡 [API SERVICE] Response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('❌ [API SERVICE] Response not OK:', errorText)
-        throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`)
-      }
-
-      console.log('✅ [API SERVICE] Response OK, parsing JSON...')
-      const result = await response.json()
-      console.log('📊 [API SERVICE] Parsed response keys:', Object.keys(result))
-      console.log('📈 [API SERVICE] Response sample:', JSON.stringify(result, null, 2).substring(0, 300) + '...')
-
-      return result
-    } catch (error) {
-      console.error('💥 [API SERVICE] Fetch error:', error)
-      console.error('💥 [API SERVICE] Error details:', {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : 'No stack trace'
-      })
-      throw error
-    }
-  }
-
-  static async runBacktest(config: BacktestRequest): Promise<BacktestResult> {
-    try {
-      const requestBody = { config }
-      console.log('📤 [REQUEST]', JSON.stringify(requestBody, null, 2))
+      const requestBody = { config, isInitial }
+      log('📤 [REQUEST]', JSON.stringify(requestBody, null, 2))
 
       const response = await fetch('/api/backtest', {
         method: 'POST',
@@ -220,7 +166,7 @@ export class ApiService {
       }
 
       const result = await response.json()
-      console.log('📥 [RESPONSE]', JSON.stringify(result, null, 2))
+      log('📥 [RESPONSE]', JSON.stringify(result, null, 2))
 
       return result
     } catch (error) {

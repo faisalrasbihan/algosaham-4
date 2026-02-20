@@ -23,6 +23,7 @@ interface UserUsage {
 
 interface UserTierContextType {
     tier: UserTier;
+    subscriptionPeriodEnd: string | null;
     // Keeping credits for backward compatibility if needed, but we'll use usage/limits primarily
     credits: {
         used: number;
@@ -31,11 +32,12 @@ interface UserTierContextType {
     limits: UserLimits;
     usage: UserUsage;
     isLoading: boolean;
+    isRefreshing: boolean;
     refreshTier: () => Promise<void>;
 }
 
 const defaultLimits: UserLimits = {
-    backtest: 1,
+    backtest: 5,
     subscriptions: 0,
     savedStrategies: 1,
     aiChat: 10,
@@ -58,7 +60,9 @@ export function UserTierProvider({ children }: { children: ReactNode }) {
     const [credits, setCredits] = useState({ used: 0, total: 100 });
     const [limits, setLimits] = useState<UserLimits>(defaultLimits);
     const [usage, setUsage] = useState<UserUsage>(defaultUsage);
+    const [subscriptionPeriodEnd, setSubscriptionPeriodEnd] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const fetchUserTier = async () => {
         if (!isSignedIn) {
@@ -66,11 +70,18 @@ export function UserTierProvider({ children }: { children: ReactNode }) {
             setCredits({ used: 0, total: 100 });
             setLimits(defaultLimits);
             setUsage(defaultUsage);
+            setSubscriptionPeriodEnd(null);
             setIsLoading(false);
+            setIsRefreshing(false);
             return;
         }
 
-        setIsLoading(true);
+        if (!isLoading) {
+            setIsRefreshing(true);
+        } else {
+            setIsLoading(true);
+        }
+
         try {
             const response = await fetch("/api/user/limits");
             if (response.ok) {
@@ -79,6 +90,7 @@ export function UserTierProvider({ children }: { children: ReactNode }) {
                 if (data.success) {
                     const newTier = (data.tier || "ritel") as UserTier;
                     setTier(newTier);
+                    setSubscriptionPeriodEnd(data.subscriptionPeriodEnd || null);
                     setLimits(data.limits);
                     setUsage(data.usage);
 
@@ -98,6 +110,7 @@ export function UserTierProvider({ children }: { children: ReactNode }) {
             // Keep default/previous state on error
         } finally {
             setIsLoading(false);
+            setIsRefreshing(false);
         }
     };
 
@@ -108,7 +121,7 @@ export function UserTierProvider({ children }: { children: ReactNode }) {
     }, [isLoaded, isSignedIn]);
 
     return (
-        <UserTierContext.Provider value={{ tier, credits, limits, usage, isLoading, refreshTier: fetchUserTier }}>
+        <UserTierContext.Provider value={{ tier, subscriptionPeriodEnd, credits, limits, usage, isLoading, isRefreshing, refreshTier: fetchUserTier }}>
             {children}
         </UserTierContext.Provider>
     );

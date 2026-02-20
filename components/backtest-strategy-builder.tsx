@@ -84,7 +84,7 @@ interface ChatMessage {
 }
 
 interface BacktestStrategyBuilderProps {
-  onRunBacktest: (config: BacktestRequest) => Promise<void>
+  onRunBacktest: (config: BacktestRequest, isInitial?: boolean) => Promise<void>
   backtestResults?: any | null
 }
 
@@ -270,7 +270,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
     }
   }, [])
 
-  // Auto-run backtest on page load
+  // Auto-run backtest on page load without using quota
   useEffect(() => {
     handleRunBacktest(true)
   }, []) // Empty dependency array ensures this only runs once on mount
@@ -548,7 +548,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
 
     const config = buildBacktestConfig()
     try {
-      await onRunBacktest(config)
+      await onRunBacktest(config, skipAuthCheck)
       scrollToBottom()
       // Refresh user tier limits after running backtest
       refreshTier();
@@ -564,19 +564,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
     }
   }
 
-  // Auto-run backtest on mount
-  useEffect(() => {
-    const runInitialBacktest = async () => {
-      const config = buildBacktestConfig()
-      try {
-        await onRunBacktest(config)
-      } catch (error) {
-        console.error("Initial backtest failed:", error)
-      }
-    }
-    runInitialBacktest()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+
 
   const formatIndicatorParams = (params: Record<string, any>) => {
     return Object.entries(params)

@@ -5,21 +5,21 @@ interface UseBacktestReturn {
   results: BacktestResult | null
   loading: boolean
   error: string | null
-  runBacktest: (config: BacktestRequest) => Promise<void>
+  runBacktest: (config: BacktestRequest, isInitial?: boolean) => Promise<void>
   clearResults: () => void
 }
 
 export function useBacktest(): UseBacktestReturn {
   const [results, setResults] = useState<BacktestResult | null>(null)
-  const [loading, setLoading] = useState(true) // Start with loading true since backtest auto-runs on mount
+  const [loading, setLoading] = useState(true) // Revert to true since it runs on mount again
   const [error, setError] = useState<string | null>(null)
 
-  const runBacktest = useCallback(async (config: BacktestRequest) => {
+  const runBacktest = useCallback(async (config: BacktestRequest, isInitial: boolean = false) => {
     setLoading(true)
     setError(null)
 
     try {
-      const result = await ApiService.runBacktest(config)
+      const result = await ApiService.runBacktest(config, isInitial)
       setResults(result)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to run backtest'

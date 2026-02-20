@@ -52,8 +52,12 @@ const backtestConfigSchema = z.object({
         takeProfitPercent: z.number().min(0),  // No upper limit per API spec
         maxHoldingDays: z.number().int().positive(),
       }),
+    }).refine(d => d.startDate < d.endDate, {
+      message: 'startDate must be before endDate',
+      path: ['endDate'],
     }),
   }),
+  isInitial: z.boolean().optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -80,9 +84,10 @@ export async function POST(request: NextRequest) {
   try {
     // Parse the request body
     const body = await request.json()
+    const isInitialReq = body.isInitial === true;
 
-    // Check user limits ONLY if logged in
-    if (userId) {
+    // Check user limits ONLY if logged in and not an initial load request
+    if (userId && !isInitialReq) {
       const user = await db.query.users.findFirst({
         where: eq(users.clerkId, userId),
       });
@@ -130,14 +135,23 @@ export async function POST(request: NextRequest) {
 
     log('🔄 [API ROUTE] Calling Railway endpoint...')
 
-    // Call Railway backend
-    const response = await fetch(`${RAILWAY_URL}/run_backtest`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(fastApiRequest),
-    })
+    // Call Railway backend with 30s timeout
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 30_000) // 30s
+    let response: Response;
+
+    try {
+      response = await fetch(`${RAILWAY_URL}/run_backtest`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fastApiRequest),
+        signal: controller.signal,
+      })
+    } finally {
+      clearTimeout(timeout)
+    }
 
     log('📡 [API ROUTE] Railway response status:', response.status)
 
@@ -160,8 +174,8 @@ export async function POST(request: NextRequest) {
     const result = await response.json()
     log('✅ [API ROUTE] Backtest completed, trades:', result.trades?.length || 0)
 
-    // Increment backtest usage for logged-in users
-    if (userId) {
+    // Increment backtest usage for logged-in users who actively ran it
+    if (userId && !isInitialReq) {
       try {
         await db.update(users)
           .set({ backtestUsedToday: sql`${users.backtestUsedToday} + 1` })

@@ -29,6 +29,7 @@ export async function GET() {
         return NextResponse.json({
             success: true,
             tier: user.subscriptionTier || 'ritel',
+            subscriptionPeriodEnd: user.subscriptionPeriodEnd,
             limits: {
                 backtest: user.backtestLimit,
                 subscriptions: user.subscriptionsLimit,

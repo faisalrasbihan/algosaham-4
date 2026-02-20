@@ -45,8 +45,9 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedSt
                         </div>
                     </div>
 
-                    <div className="flex justify-center py-2">
-                        <div className="flex -space-x-2 overflow-hidden justify-center p-1">
+                    <div className="flex items-center justify-between py-2 border-t border-border mt-1">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Top Holdings</span>
+                        <div className="flex -space-x-2 overflow-hidden py-1">
                             {recommendedStocks.slice(0, 3).map((stock: any, idx: number) => (
                                 <Avatar key={idx} className="inline-block h-7 w-7 rounded-full border-2 border-background">
                                     <AvatarImage src={`/stock_icons/${stock.symbol}.png`} alt={stock.symbol} />

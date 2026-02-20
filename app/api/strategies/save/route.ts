@@ -4,43 +4,8 @@ import { db } from "@/db";
 import { strategies, users } from "@/db/schema";
 import { BacktestRequest } from "@/lib/api";
 import crypto from "crypto";
-import { eq } from "drizzle-orm";
-
-// Helper function to ensure user exists in database
-async function ensureUserExists(userId: string) {
-    try {
-        // Check if user exists
-        const existingUser = await db.query.users.findFirst({
-            where: eq(users.clerkId, userId),
-        });
-
-        if (!existingUser) {
-            // Get user details from Clerk
-            const clerkUser = await currentUser();
-
-            if (!clerkUser) {
-                throw new Error("Could not fetch user from Clerk");
-            }
-
-            // Create user in database
-            await db.insert(users).values({
-                clerkId: userId,
-                email: clerkUser.emailAddresses[0]?.emailAddress || '',
-                name: clerkUser.firstName && clerkUser.lastName
-                    ? `${clerkUser.firstName} ${clerkUser.lastName}`
-                    : clerkUser.firstName || clerkUser.lastName || null,
-                imageUrl: clerkUser.imageUrl || null,
-                subscriptionTier: 'free',
-                subscriptionStatus: 'active',
-            });
-
-            console.log('✅ User auto-created in database:', userId);
-        }
-    } catch (error) {
-        console.error('❌ Error ensuring user exists:', error);
-        throw error;
-    }
-}
+import { eq, sql } from "drizzle-orm";
+import { ensureUserInDatabase } from "@/lib/ensure-user";
 
 // Helper function to calculate quality score from Sharpe ratio
 function calculateQualityScore(sharpeRatio: number | null | undefined): string {
@@ -78,8 +43,15 @@ export async function POST(req: Request) {
             );
         }
 
-        // Ensure user exists in database (auto-create if needed)
-        await ensureUserExists(userId);
+        // Ensure user exists in database and retrieve user info
+        const user = await ensureUserInDatabase();
+
+        if (!user) {
+            return NextResponse.json(
+                { success: false, error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
 
         const body = await req.json();
         const { name, description, config, backtestResults, isPrivate } = body as {
@@ -106,12 +78,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // Fetch user's subscription tier
-        const user = await db.query.users.findFirst({
-            where: eq(users.clerkId, userId),
-        });
-
-        const userTier = user?.subscriptionTier || 'free';
+        const userTier = user?.subscriptionTier || 'ritel';
         const limit = user?.savedStrategiesLimit ?? 1; // Default to 1 if not set
         const current = user?.savedStrategiesCount || 0;
 
@@ -224,9 +191,9 @@ export async function POST(req: Request) {
             topHoldings: topHoldings.length > 0 ? topHoldings : null,
         }).returning();
 
-        // Increment user's saved strategies count
+        // Increment user's saved strategies count safely using atomic sql update
         await db.update(users)
-            .set({ savedStrategiesCount: (user?.savedStrategiesCount || 0) + 1 })
+            .set({ savedStrategiesCount: sql`${users.savedStrategiesCount} + 1` })
             .where(eq(users.clerkId, userId));
 
         return NextResponse.json({
