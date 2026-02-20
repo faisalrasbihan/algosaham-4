@@ -79,6 +79,13 @@ export async function POST(req: Request) {
             );
         }
 
+        if (!strategy.isPublic) {
+            return NextResponse.json(
+                { success: false, error: "Cannot subscribe to a private strategy" },
+                { status: 403 }
+            );
+        }
+
         // 4. Create Subscription
         await db.transaction(async (tx) => {
             await tx.insert(subscriptions).values({

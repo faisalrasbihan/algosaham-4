@@ -98,16 +98,18 @@ export async function POST(request: NextRequest) {
             subscription_id: notification.subscription_id,
         });
 
-        // Verify signature (skip for test notifications)
+        // Verify Midtrans signature before processing any payment changes
         const isValidSignature = verifySignature(notification);
         if (!isValidSignature) {
-            console.warn("Invalid signature for order:", notification.order_id);
-            // In sandbox/development, we'll allow it for testing
-            // In production, you should uncomment the return below
-            // return NextResponse.json(
-            //     { error: "Invalid signature" },
-            //     { status: 403 }
-            // );
+            const isSandbox = process.env.MIDTRANS_MODE === 'sandbox';
+            if (!isSandbox) {
+                console.error("Invalid Midtrans signature for order:", notification.order_id);
+                return NextResponse.json(
+                    { error: "Invalid signature" },
+                    { status: 403 }
+                );
+            }
+            console.warn("Invalid signature for order (sandbox bypass):", notification.order_id);
         }
 
         const {
@@ -238,7 +240,7 @@ async function handleSuccessfulPayment(data: SuccessfulPaymentData) {
         // Import database utilities
         const { db } = await import("@/db");
         const { users, payments } = await import("@/db/schema");
-        const { eq } = await import("drizzle-orm");
+        const { eq, like } = await import("drizzle-orm");
 
         // Calculate subscription period
         const now = new Date();
@@ -255,10 +257,12 @@ async function handleSuccessfulPayment(data: SuccessfulPaymentData) {
             periodEnd.setFullYear(periodEnd.getFullYear() + 1);
         }
 
-        // Find user by clerkId (userId from order)
-        // The userId in the order is a shortened version, we need to find the full clerkId
-        const allUsers = await db.select().from(users);
-        const user = allUsers.find(u => u.clerkId.includes(data.userId));
+        // Find user by clerkId prefix (shortUserId = first 8 chars of clerkId after 'user_' prefix)
+        // Use a targeted DB query instead of fetching all users
+        const matchingUsers = await db.select().from(users)
+            .where(like(users.clerkId, `user_${data.userId}%`))
+            .limit(1);
+        const user = matchingUsers[0];
 
         if (!user) {
             console.error(`User not found for userId: ${data.userId}`);
@@ -371,10 +375,13 @@ async function handleFailedPayment(data: FailedPaymentData) {
         // Import database utilities
         const { db } = await import("@/db");
         const { users, payments } = await import("@/db/schema");
+        const { like } = await import("drizzle-orm");
 
-        // Find user by clerkId (userId from order)
-        const allUsers = await db.select().from(users);
-        const user = allUsers.find(u => u.clerkId.includes(data.userId));
+        // Find user by clerkId prefix (targeted query, no full-table scan)
+        const matchingUsers = await db.select().from(users)
+            .where(like(users.clerkId, `user_${data.userId}%`))
+            .limit(1);
+        const user = matchingUsers[0];
 
         if (!user) {
             console.error(`User not found for userId: ${data.userId}`);
