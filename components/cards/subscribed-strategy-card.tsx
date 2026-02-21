@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Users, Info, TrendingUp, TrendingDown, Calendar, HeartOff } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Strategy } from "./types"
 
 interface SubscribedStrategyCardProps {
@@ -46,22 +47,31 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedSt
                     </div>
 
                     <div className="flex items-center justify-between py-2 border-t border-border mt-1">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Top Holdings</span>
-                        <div className="flex -space-x-2 overflow-hidden py-1">
-                            {recommendedStocks.slice(0, 3).map((stock: any, idx: number) => (
-                                <Avatar key={idx} className="inline-block h-7 w-7 rounded-full border-2 border-background">
-                                    <AvatarImage src={`/stock_icons/${stock.symbol}.png`} alt={stock.symbol} />
-                                    <AvatarFallback className={`${stock.color} text-white text-[9px] font-bold`}>
-                                        {stock.symbol}
-                                    </AvatarFallback>
-                                </Avatar>
-                            ))}
-                            {recommendedStocks.length > 3 && (
-                                <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[9px] font-bold">
-                                    +{recommendedStocks.length - 3}
-                                </div>
-                            )}
-                        </div>
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Signals</span>
+                        <TooltipProvider delayDuration={200}>
+                            <div className="flex -space-x-2 overflow-hidden py-1">
+                                {recommendedStocks.slice(0, 3).map((stock: any, idx: number) => (
+                                    <Tooltip key={idx}>
+                                        <TooltipTrigger asChild>
+                                            <Avatar className="inline-block h-9 w-9 rounded-full border-2 border-background cursor-pointer hover:border-ochre/50 hover:z-10 transition-colors">
+                                                <AvatarImage src={`/stock_icons/${stock.symbol}.png`} alt={stock.symbol} />
+                                                <AvatarFallback className={`${stock.color} text-white text-[10px] font-bold`}>
+                                                    {stock.symbol}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                            <p className="text-xs font-medium">{stock.symbol}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                ))}
+                                {recommendedStocks.length > 3 && (
+                                    <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-bold z-0">
+                                        +{recommendedStocks.length - 3}
+                                    </div>
+                                )}
+                            </div>
+                        </TooltipProvider>
                     </div>
 
                     <div className="border-t border-b border-border py-3">

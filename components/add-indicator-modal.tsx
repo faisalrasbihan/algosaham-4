@@ -53,7 +53,7 @@ interface IndicatorDef {
 interface IndicatorCategory {
   id: string
   name: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<{ className?: string, style?: React.CSSProperties }>
   indicators: IndicatorDef[]
 }
 

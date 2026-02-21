@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { StockSearch } from "@/components/stock-search"
 import { StockHeaderCard } from "@/components/stock-header-card"
 import { OverallScoreCard } from "@/components/overall-score-card"
@@ -11,7 +12,9 @@ import { Navbar } from "@/components/navbar"
 
 import { TickerTape } from "@/components/ticker-tape"
 
-export default function AnalyzePage() {
+function AnalyzeContent() {
+    const searchParams = useSearchParams()
+    const urlTicker = searchParams.get('ticker')
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -41,6 +44,13 @@ export default function AnalyzePage() {
             setLoading(false)
         }
     }
+
+    useEffect(() => {
+        // Automatically search if there's a ticker in the URL, and we haven't loaded data yet
+        if (urlTicker && !data && !loading && !error) {
+            handleSearch(urlTicker)
+        }
+    }, [urlTicker])
 
     return (
         <div className="min-h-screen bg-background dotted-background flex flex-col">
@@ -99,5 +109,21 @@ export default function AnalyzePage() {
                 </div>
             )}
         </div>
+    )
+}
+
+export default function AnalyzePage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-background dotted-background flex flex-col">
+                <Navbar />
+                <TickerTape />
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+            </div>
+        }>
+            <AnalyzeContent />
+        </Suspense>
     )
 }

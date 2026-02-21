@@ -447,31 +447,36 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
   }
 
   const mapTechnicalIndicator = (ind: Indicator) => {
+    const cleanParams: Record<string, number> = {}
+    Object.entries(ind.params).forEach(([k, v]) => {
+      cleanParams[k] = v === "" ? 0 : Number(v)
+    })
+
     switch (ind.name) {
       case "SMA Crossover":
-        return { type: "SMA_CROSSOVER", shortPeriod: ind.params.shortPeriod, longPeriod: ind.params.longPeriod }
+        return { type: "SMA_CROSSOVER", shortPeriod: cleanParams.shortPeriod, longPeriod: cleanParams.longPeriod }
       case "SMA Trend":
-        return { type: "SMA_TREND", shortPeriod: ind.params.shortPeriod, longPeriod: ind.params.longPeriod }
+        return { type: "SMA_TREND", shortPeriod: cleanParams.shortPeriod, longPeriod: cleanParams.longPeriod }
       case "RSI":
-        return { type: "RSI", period: ind.params.period, oversold: ind.params.oversold, overbought: ind.params.overbought }
+        return { type: "RSI", period: cleanParams.period, oversold: cleanParams.oversold, overbought: cleanParams.overbought }
       case "MACD":
-        return { type: "MACD", fastPeriod: ind.params.fastPeriod, slowPeriod: ind.params.slowPeriod, signalPeriod: ind.params.signalPeriod }
+        return { type: "MACD", fastPeriod: cleanParams.fastPeriod, slowPeriod: cleanParams.slowPeriod, signalPeriod: cleanParams.signalPeriod }
       case "Bollinger Bands":
-        return { type: "BOLLINGER_BANDS", period: ind.params.period, stdDev: ind.params.stdDev }
+        return { type: "BOLLINGER_BANDS", period: cleanParams.period, stdDev: cleanParams.stdDev }
       case "ATR":
-        return { type: "ATR", period: ind.params.period }
+        return { type: "ATR", period: cleanParams.period }
       case "Volatility Breakout":
-        return { type: "VOLATILITY_BREAKOUT", period: ind.params.period, multiplier: ind.params.multiplier }
+        return { type: "VOLATILITY_BREAKOUT", period: cleanParams.period, multiplier: cleanParams.multiplier }
       case "Volume SMA":
-        return { type: "VOLUME_SMA", period: ind.params.period, threshold: ind.params.threshold }
+        return { type: "VOLUME_SMA", period: cleanParams.period, threshold: cleanParams.threshold }
       case "OBV":
-        return { type: "OBV", period: ind.params.period }
+        return { type: "OBV", period: cleanParams.period }
       case "VWAP":
-        return { type: "VWAP", period: ind.params.period }
+        return { type: "VWAP", period: cleanParams.period }
       case "Volume Price Trend":
-        return { type: "VOLUME_PRICE_TREND", period: ind.params.period }
+        return { type: "VOLUME_PRICE_TREND", period: cleanParams.period }
       default:
-        return { type: ind.name.toUpperCase().replace(/\s+/g, "_"), ...ind.params }
+        return { type: ind.name.toUpperCase().replace(/\s+/g, "_"), ...cleanParams }
     }
   }
 
@@ -487,8 +492,8 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
       },
       fundamentalIndicators: fundamentalIndicators.map((ind) => ({
         type: fundamentalTypeMap[ind.name] || ind.name.toUpperCase().replace(/\s+/g, "_"),
-        min: ind.params.min,
-        max: ind.params.max,
+        min: ind.params.min === "" ? undefined : Number(ind.params.min),
+        max: ind.params.max === "" ? undefined : Number(ind.params.max),
       })),
       technicalIndicators: technicalIndicators.map(mapTechnicalIndicator),
       backtestConfig: {
@@ -1334,9 +1339,16 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
                               <Input
                                 type="number"
                                 value={indicator.params.min}
-                                onChange={(e) =>
-                                  updateIndicatorParam(indicator.id, "fundamental", "min", Number(e.target.value))
-                                }
+                                onChange={(e) => {
+                                  const val = e.target.value
+                                  if (val === "") {
+                                    updateIndicatorParam(indicator.id, "fundamental", "min", "")
+                                  } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") {
+                                    updateIndicatorParam(indicator.id, "fundamental", "min", Number(val))
+                                  } else {
+                                    updateIndicatorParam(indicator.id, "fundamental", "min", val)
+                                  }
+                                }}
                                 className="h-7 font-mono text-xs"
                               />
                             </div>
@@ -1345,9 +1357,16 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
                               <Input
                                 type="number"
                                 value={indicator.params.max}
-                                onChange={(e) =>
-                                  updateIndicatorParam(indicator.id, "fundamental", "max", Number(e.target.value))
-                                }
+                                onChange={(e) => {
+                                  const val = e.target.value
+                                  if (val === "") {
+                                    updateIndicatorParam(indicator.id, "fundamental", "max", "")
+                                  } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") {
+                                    updateIndicatorParam(indicator.id, "fundamental", "max", Number(val))
+                                  } else {
+                                    updateIndicatorParam(indicator.id, "fundamental", "max", val)
+                                  }
+                                }}
                                 className="h-7 font-mono text-xs"
                               />
                             </div>
@@ -1440,9 +1459,16 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
                                 <Input
                                   type="number"
                                   value={value}
-                                  onChange={(e) =>
-                                    updateIndicatorParam(indicator.id, "technical", key, Number(e.target.value))
-                                  }
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    if (val === "") {
+                                      updateIndicatorParam(indicator.id, "technical", key, "")
+                                    } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") {
+                                      updateIndicatorParam(indicator.id, "technical", key, Number(val))
+                                    } else {
+                                      updateIndicatorParam(indicator.id, "technical", key, val)
+                                    }
+                                  }}
                                   className="h-7 font-mono text-xs"
                                 />
                               </div>

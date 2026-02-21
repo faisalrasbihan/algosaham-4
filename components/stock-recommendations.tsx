@@ -1,7 +1,9 @@
 "use client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-import { TrendingUp, TrendingDown, Sparkles, BarChart3 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { TrendingUp, TrendingDown, Sparkles, BarChart3, ArrowRight } from "lucide-react"
 import Image from "next/image"
 import {
   Tooltip,
@@ -327,6 +329,15 @@ export function StockRecommendations({ signals = [], trades = [] }: StockRecomme
                             </div>
                           )}
                         </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <div className="p-3 pt-0 border-t border-slate-100 mt-2">
+                        <Button className="w-full text-xs h-8 bg-[#d07225] hover:bg-[#a65b1d] text-white" asChild>
+                          <Link href={`/analyze?ticker=${stock.ticker}`}>
+                            Analisis Saham <ArrowRight className="w-3 h-3 ml-1" />
+                          </Link>
+                        </Button>
                       </div>
                     </div>
                   </TooltipContent>
