@@ -610,7 +610,6 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
       "MORNING_STAR": "Morning Star",
       "THREE_WHITE_SOLDIERS": "Three White Soldiers",
       "THREE_INSIDE_UP": "Three Inside Up",
-      "RISING_THREE_METHODS": "Rising Three Methods",
       "FALLING_WEDGE": "Falling Wedge",
       "DOUBLE_BOTTOM": "Double Bottom",
       "BULL_FLAG": "Bull Flag",
@@ -627,6 +626,9 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
       "ARA_RECOVERY": "ARA Recovery",
       "ARB_RECOVERY": "ARB Recovery",
       "ARA_BREAKOUT": "ARA Breakout",
+      "VOLATILITY_REGIME": "Volatility Regime",
+      "CALENDAR_EFFECT": "Calendar Effect",
+      "SECTOR_RELATIVE_STRENGTH": "Sector Relative Strength",
     }
     return map[type] || type
   }
