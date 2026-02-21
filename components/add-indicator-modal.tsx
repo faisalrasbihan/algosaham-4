@@ -319,7 +319,7 @@ export function AddIndicatorModal({ open, onOpenChange, type, onAddIndicator }: 
                       onClick={() => toggleCategory(category.id)}
                       className="w-full flex items-center gap-3 py-2.5 px-3 rounded-md hover:bg-secondary/80 transition-colors"
                     >
-                      <Icon className="h-4 w-4 flex-shrink-0" style={{ color: "#d07225" }} />
+                      <Icon className="h-4 w-4 flex-shrink-0 text-[#d07225]" />
                       <span className="text-sm font-medium text-foreground font-mono flex-1 text-left">
                         {category.name}
                       </span>
