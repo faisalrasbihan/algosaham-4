@@ -1,8 +1,8 @@
 "use client"
 
 import React from "react"
-
 import { useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
@@ -13,7 +13,8 @@ interface StockSearchProps {
 }
 
 export function StockSearch({ onSearch, loading }: StockSearchProps) {
-  const [ticker, setTicker] = useState("")
+  const searchParams = useSearchParams()
+  const [ticker, setTicker] = useState(() => searchParams?.get("ticker") || "")
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,6 +22,8 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
       onSearch(ticker.trim().toUpperCase())
     }
   }
+
+  const currentTickerDisplay = ticker.trim().toUpperCase()
 
   return (
     <div className="w-full max-w-3xl mx-auto px-6 py-12">
@@ -50,12 +53,12 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
           type="submit"
           size="lg"
           disabled={loading || !ticker.trim()}
-          className={`h-14 text-base bg-ochre hover:bg-ochre/90 text-white transition-all duration-500 ${loading ? "w-full max-w-md px-12" : "px-8"
+          className={`h-14 text-base bg-ochre hover:bg-ochre/90 text-white transition-all duration-500 disabled:opacity-100 disabled:cursor-not-allowed ${loading ? "w-full max-w-md px-12" : "px-8"
             }`}
         >
           {loading ? (
             <>
-              <span className="mr-2">Analyze</span>
+              <span className="mr-2">Analyzing {currentTickerDisplay}</span>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             </>
           ) : (

@@ -283,31 +283,33 @@ function PricingMatrixInner() {
             <p className="text-lg text-muted-foreground font-mono max-w-2xl mx-auto mb-8">
               Pilih level sesuai gaya trading kamu. Naik level kapan aja!
             </p>
-            <div className={`inline-flex items-center gap-1 p-1 rounded-full border transition-all ${isYearly ? "bg-slate-200 border-slate-300" : "bg-slate-200 border-slate-300"
-              }`}>
-              <button
-                onClick={() => setIsYearly(false)}
-                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${!isYearly
-                  ? "bg-slate-500 text-white shadow-md"
-                  : "text-slate-500 hover:text-slate-700"
-                  }`}
-              >
-                Bulanan
-              </button>
-              <button
-                onClick={() => setIsYearly(true)}
-                className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${isYearly
-                  ? "bg-[#d07225] text-white shadow-md"
-                  : "text-slate-500 hover:text-slate-700"
-                  }`}
-              >
-                Tahunan
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isYearly ? "bg-white/20 text-white" : "bg-[#d07225] text-white"
-                  }`}>
-                  -50%
-                </span>
-              </button>
-            </div>
+            {!isPaidUser && (
+              <div className={`inline-flex items-center gap-1 p-1 rounded-full border transition-all ${isYearly ? "bg-slate-200 border-slate-300" : "bg-slate-200 border-slate-300"
+                }`}>
+                <button
+                  onClick={() => setIsYearly(false)}
+                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${!isYearly
+                    ? "bg-slate-500 text-white shadow-md"
+                    : "text-slate-500 hover:text-slate-700"
+                    }`}
+                >
+                  Bulanan
+                </button>
+                <button
+                  onClick={() => setIsYearly(true)}
+                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${isYearly
+                    ? "bg-[#d07225] text-white shadow-md"
+                    : "text-slate-500 hover:text-slate-700"
+                    }`}
+                >
+                  Tahunan
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isYearly ? "bg-white/20 text-white" : "bg-[#d07225] text-white"
+                    }`}>
+                    -50%
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
