@@ -33,32 +33,35 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-3">
-        <div className="flex-1 relative">
-          <Input
-            type="text"
-            placeholder="Masukkan kode ticker (contoh: BBCA, TLKM, ASII)"
-            value={ticker}
-            onChange={(e) => setTicker(e.target.value)}
-            className="h-14 text-lg pl-5 pr-5 bg-white"
-            disabled={loading}
-          />
-        </div>
+      <form onSubmit={handleSubmit} className="flex gap-3 justify-center w-full transition-all">
+        {!loading && (
+          <div className="flex-1 relative transition-all duration-500">
+            <Input
+              type="text"
+              placeholder="Masukkan kode ticker (contoh: BBCA, TLKM, ASII)"
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value)}
+              className="h-14 text-lg pl-5 pr-5 bg-white"
+              disabled={loading}
+            />
+          </div>
+        )}
         <Button
           type="submit"
           size="lg"
           disabled={loading || !ticker.trim()}
-          className="h-14 px-8 text-base bg-[#305250] hover:bg-[#305250]/90 text-white"
+          className={`h-14 text-base bg-ochre hover:bg-ochre/90 text-white transition-all duration-500 ${loading ? "w-full max-w-md px-12" : "px-8"
+            }`}
         >
           {loading ? (
             <>
-              <span className="mr-2">Menganalisis...</span>
+              <span className="mr-2">Analyze</span>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             </>
           ) : (
             <>
               <Search className="mr-2 h-5 w-5" />
-              Analisis
+              Analyze
             </>
           )}
         </Button>

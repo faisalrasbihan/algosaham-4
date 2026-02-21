@@ -138,77 +138,79 @@ export function RegularStrategyCard({ strategy, onEdit, onDelete, onRerun, onSub
                         </div>
                     )}
 
-                    <div className={`flex items-center gap-2 ${strategy.lastRunDate ? 'pt-1' : 'pt-2 border-t border-border'}`}>
+                    <div className={`flex flex-col gap-2 ${strategy.lastRunDate ? 'pt-1' : 'pt-2 border-t border-border'}`}>
                         <TooltipProvider delayDuration={300}>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
                                         variant="outline"
-                                        size="icon"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (!isRerunning) onRerun?.(strategy.id);
-                                        }}
-                                        disabled={isRerunning}
-                                        className="h-9 flex-1 hover:bg-[#d07225] hover:text-white hover:border-[#d07225] transition-colors"
-                                    >
-                                        {isRerunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Jalankan ulang backtest</TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             if (!isSubscribing) onSubscribe?.(strategy.id);
                                         }}
                                         disabled={isSubscribing}
-                                        className="h-9 flex-1 hover:bg-[#d07225] hover:text-white hover:border-[#d07225] transition-colors"
+                                        className="w-full bg-ochre hover:bg-ochre/90 text-white border-none transition-colors h-9 shadow-sm"
                                     >
-                                        {isSubscribing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className="w-4 h-4" />}
+                                        {isSubscribing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Heart className="w-4 h-4 mr-2" />}
+                                        <span className="text-sm font-medium">Subscribe</span>
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>Berlangganan strategi ini</TooltipContent>
                             </Tooltip>
 
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onEdit?.(strategy.id);
-                                        }}
-                                        className="h-9 flex-1 hover:bg-[#d07225] hover:text-white hover:border-[#d07225] transition-colors"
-                                    >
-                                        <Edit className="w-4 h-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Edit strategi</TooltipContent>
-                            </Tooltip>
+                            <div className="flex items-center gap-2">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (!isRerunning) onRerun?.(strategy.id);
+                                            }}
+                                            disabled={isRerunning}
+                                            className="h-9 flex-1 hover:bg-[#d07225] hover:text-white hover:border-[#d07225] transition-colors"
+                                        >
+                                            {isRerunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Jalankan ulang backtest</TooltipContent>
+                                </Tooltip>
 
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onDelete?.(strategy.id);
-                                        }}
-                                        className="h-9 flex-1 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Hapus strategi</TooltipContent>
-                            </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onEdit?.(strategy.id);
+                                            }}
+                                            className="h-9 flex-1 hover:bg-[#d07225] hover:text-white hover:border-[#d07225] transition-colors"
+                                        >
+                                            <Edit className="w-4 h-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Edit strategi</TooltipContent>
+                                </Tooltip>
+
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDelete?.(strategy.id);
+                                            }}
+                                            className="h-9 flex-1 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Hapus strategi</TooltipContent>
+                                </Tooltip>
+                            </div>
                         </TooltipProvider>
                     </div>
                 </div>

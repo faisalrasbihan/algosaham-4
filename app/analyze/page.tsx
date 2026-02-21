@@ -11,17 +11,14 @@ import { IndicatorPanels } from "@/components/indicator-panels"
 import { Navbar } from "@/components/navbar"
 
 import { TickerTape } from "@/components/ticker-tape"
-
+import { toast } from "sonner"
 function AnalyzeContent() {
     const searchParams = useSearchParams()
     const urlTicker = searchParams.get('ticker')
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-
     const handleSearch = async (ticker: string) => {
         setLoading(true)
-        setError(null)
 
         try {
             const res = await fetch('/api/analyze', {
@@ -33,13 +30,13 @@ function AnalyzeContent() {
             const result = await res.json()
 
             if (!res.ok || !result.success) {
-                throw new Error(result.error || result.message || 'Gagal mengambil analisis. Silakan coba lagi.')
+                throw new Error('kode saham tidak ditemukan')
             }
 
             setData(result.data)
         } catch (err) {
             console.error(err)
-            setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
+            toast.error('kode saham tidak ditemukan')
         } finally {
             setLoading(false)
         }
@@ -47,7 +44,7 @@ function AnalyzeContent() {
 
     useEffect(() => {
         // Automatically search if there's a ticker in the URL, and we haven't loaded data yet
-        if (urlTicker && !data && !loading && !error) {
+        if (urlTicker && !data && !loading) {
             handleSearch(urlTicker)
         }
     }, [urlTicker])
@@ -60,11 +57,6 @@ function AnalyzeContent() {
             {!data ? (
                 <div className="flex-1 flex flex-col items-center justify-center -mt-20">
                     <StockSearch onSearch={handleSearch} loading={loading} />
-                    {error && (
-                        <div className="mt-4 text-red-500 bg-red-50 px-4 py-2 rounded-md border border-red-200">
-                            {error}
-                        </div>
-                    )}
                 </div>
             ) : (
                 <div className="flex-1 overflow-y-auto mt-8 pb-8">

@@ -47,9 +47,9 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedSt
                     </div>
 
                     <div className="flex items-center justify-between py-2 border-t border-border mt-1">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Signals</span>
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent Signals</span>
                         <TooltipProvider delayDuration={200}>
-                            <div className="flex -space-x-2 overflow-hidden py-1">
+                            <div className="flex -space-x-2 py-1 px-1">
                                 {recommendedStocks.slice(0, 3).map((stock: any, idx: number) => (
                                     <Tooltip key={idx}>
                                         <TooltipTrigger asChild>

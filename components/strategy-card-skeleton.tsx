@@ -21,7 +21,7 @@ export function StrategyCardSkeleton({ type = "regular" }: { type?: "subscribed"
             {type === "subscribed" && (
               <div className="flex items-center justify-between py-2 border-t border-border mt-1">
                 <div className="h-3 bg-gradient-to-r from-muted to-muted/50 rounded w-20" />
-                <div className="flex -space-x-2 overflow-hidden py-1">
+                <div className="flex -space-x-2 py-1 px-1">
                   <div className="h-7 w-7 rounded-full bg-gradient-to-r from-muted to-muted/50 border-2 border-background" />
                   <div className="h-7 w-7 rounded-full bg-gradient-to-r from-muted to-muted/50 border-2 border-background" />
                   <div className="h-7 w-7 rounded-full bg-gradient-to-r from-muted to-muted/50 border-2 border-background" />
