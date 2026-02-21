@@ -3,12 +3,14 @@ import { genkiClient } from "@/db/genki";
 
 export async function GET() {
   try {
-    // Query dim_stock table for current stocks and market cap
     const result = await genkiClient`
       SELECT 
         s.stock_code, 
-        s.stock_name
+        s.stock_name,
+        dfr.sector
       FROM dim_stock s
+      LEFT JOIN dim_financial_ratio dfr 
+        ON s.stock_code = dfr.stock_code AND dfr.is_current = true
       WHERE s.is_current = true
       ORDER BY s.stock_code ASC
     `;
@@ -16,8 +18,8 @@ export async function GET() {
     const tickers = result.map((row) => ({
       value: row.stock_code,
       label: `${row.stock_code} - ${row.stock_name}`,
-      sector: row.sector,
-      marketCap: row.market_cap ? Number(row.market_cap) : 0,
+      sector: row.sector || 'Unknown',
+      marketCap: 0,
     }));
 
     return NextResponse.json({ tickers });

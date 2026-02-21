@@ -135,23 +135,16 @@ export async function POST(request: NextRequest) {
 
     log('🔄 [API ROUTE] Calling Railway endpoint...')
 
-    // Call Railway backend with 30s timeout
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30_000) // 30s
+    // Call Railway backend
     let response: Response;
 
-    try {
-      response = await fetch(`${RAILWAY_URL}/run_backtest`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(fastApiRequest),
-        signal: controller.signal,
-      })
-    } finally {
-      clearTimeout(timeout)
-    }
+    response = await fetch(`${RAILWAY_URL}/run_backtest`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(fastApiRequest),
+    })
 
     log('📡 [API ROUTE] Railway response status:', response.status)
 

@@ -1164,6 +1164,8 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
                                   // Values in DB are likely in full IDR units
 
                                   const mc = t.marketCap || 0
+                                  if (mc === 0) return true // Allow stocks with unknown market cap to bypass the filter so they are selectable
+
                                   const isSmall = mc < 2_000_000_000_000
                                   const isMid = mc >= 2_000_000_000_000 && mc < 10_000_000_000_000
                                   const isLarge = mc >= 10_000_000_000_000

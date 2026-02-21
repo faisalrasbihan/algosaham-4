@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Tooltip,
@@ -26,6 +26,20 @@ interface ResultsPanelProps {
 export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelProps) {
   const { results } = useBacktest()
   const [selectedBenchmark, setSelectedBenchmark] = useState<BenchmarkType>("ihsg")
+  const [elapsedTime, setElapsedTime] = useState("0.0")
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (loading) {
+      const startTime = Date.now()
+      setElapsedTime("0.0")
+      interval = setInterval(() => {
+        const ms = Date.now() - startTime
+        setElapsedTime((ms / 1000).toFixed(1))
+      }, 100)
+    }
+    return () => clearInterval(interval)
+  }, [loading])
 
   console.log('📊 [RESULTS PANEL] Component rendered with props:', {
     hasBacktestResults: !!backtestResults,
@@ -116,7 +130,7 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
           <CardContent className="flex items-center justify-center py-12">
             <div className="flex flex-col items-center space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-muted-foreground font-mono">Running backtest...</p>
+              <p className="text-muted-foreground font-mono">Running backtest... ({elapsedTime}s)</p>
             </div>
           </CardContent>
         </Card>

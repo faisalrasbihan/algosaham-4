@@ -65,7 +65,7 @@ export function StockHeaderCard({ tickerData, scoreData, ohlcvData }: StockHeade
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-border flex-shrink-0 relative overflow-hidden">
               <Image
-                src={`/icons/stocks/${tickerData.ticker}.svg`}
+                src={`/stock_icons/${tickerData.ticker}.png`}
                 alt={`${tickerData.ticker} logo`}
                 fill
                 sizes="40px"
