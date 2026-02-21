@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, AlertCircle, Zap, Heart, BookMarked, Wallet, Calendar, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Loader2, AlertCircle, Zap, Heart, BookMarked, Wallet, Calendar, ShieldAlert, TrendingUp, Crown, ArrowUpRight } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { PaymentMethodDialog } from "@/components/payment-method-dialog";
 
 interface SubscriptionManagementData {
@@ -34,13 +33,12 @@ export function AccountManagementPage() {
     const [isCanceling, setIsCanceling] = useState(false);
     const [showCancelDialog, setShowCancelDialog] = useState(false);
 
-    // Upgrade state
     const [isYearly, setIsYearly] = useState(false);
     const [upgradePlan, setUpgradePlan] = useState<{
-        type: 'suhu' | 'bandar',
-        name: string,
-        amount: number,
-        interval: 'monthly' | 'yearly'
+        type: 'suhu' | 'bandar';
+        name: string;
+        amount: number;
+        interval: 'monthly' | 'yearly';
     } | null>(null);
 
     useEffect(() => {
@@ -53,7 +51,7 @@ export function AccountManagementPage() {
                 } else {
                     setError("Gagal memuat data langganan.");
                 }
-            } catch (err) {
+            } catch {
                 setError("Terjadi kesalahan.");
             } finally {
                 setIsLoading(false);
@@ -73,7 +71,7 @@ export function AccountManagementPage() {
             } else {
                 alert("Gagal membatalkan langganan.");
             }
-        } catch (err) {
+        } catch {
             alert("Terjadi kesalahan.");
         } finally {
             setIsCanceling(false);
@@ -83,16 +81,16 @@ export function AccountManagementPage() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center p-8 h-full">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
         );
     }
 
     if (error || !data) {
         return (
-            <div className="flex flex-col items-center justify-center p-8 h-full gap-4 text-center">
-                <AlertCircle className="h-10 w-10 text-destructive" />
-                <div className="text-lg font-medium">{error || "Data tidak ditemukan."}</div>
+            <div className="flex flex-col items-center justify-center p-8 h-full gap-3 text-center">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+                <p className="text-sm text-muted-foreground">{error || "Data tidak ditemukan."}</p>
             </div>
         );
     }
@@ -101,220 +99,321 @@ export function AccountManagementPage() {
     const isFree = tier === "ritel";
     const isActive = subscriptionStatus === "active";
 
-    const getTierColor = () => {
-        if (tier === "suhu") return "#487b78";
-        if (tier === "bandar") return "#d4af37";
-        return "#71717a"; // ritel
-    };
+    const tierColor = tier === "suhu" ? "#487b78" : tier === "bandar" ? "#d4af37" : "#71717a";
+    const tierBg = tier === "suhu" ? "rgba(72,123,120,0.07)" : tier === "bandar" ? "rgba(212,175,55,0.07)" : "rgba(113,113,122,0.06)";
+    const tierBorder = tier === "suhu" ? "rgba(72,123,120,0.18)" : tier === "bandar" ? "rgba(212,175,55,0.22)" : "rgba(113,113,122,0.14)";
 
     const formatDate = (dateStr: string | null) => {
-        if (!dateStr) return "-";
-        return format(new Date(dateStr), "dd MMMM yyyy", { locale: id });
+        if (!dateStr) return "—";
+        return format(new Date(dateStr), "d MMM yyyy", { locale: id });
     };
 
-    const getProgressColor = () => getTierColor();
+    const getUsagePercent = (used: number, limit: number) =>
+        limit === -1 ? 100 : Math.min((used / limit) * 100, 100);
+
+    const quotaItems = [
+        { icon: Zap, label: "Backtest Harian", used: usage.backtest, limit: limits.backtest, note: "reset tiap hari" },
+        { icon: Heart, label: "Langganan Strategi", used: usage.subscriptions, limit: limits.subscriptions, note: null },
+        { icon: BookMarked, label: "Strategi Disimpan", used: usage.savedStrategies, limit: limits.savedStrategies, note: null },
+    ];
 
     return (
-        <div className="p-6 md:p-8 max-w-3xl mx-auto space-y-8 h-full overflow-y-auto">
-            <div className="space-y-1">
-                <h1 className="text-2xl font-bold font-ibm-plex-mono text-foreground">Subscriptions</h1>
-                <p className="text-sm text-muted-foreground">Kelola detail paket, pembayaran, dan lihat kuota penggunaan Anda.</p>
-            </div>
-
-            {/* Plan Details */}
-            <div className="space-y-4">
-                <h2 className="text-lg font-semibold border-b pb-2">Detail Paket</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl border bg-card/50 space-y-3">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                            <ShieldCheck className="w-4 h-4" /> Paket Saat Ini
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div
-                                className="px-3 py-1 text-sm font-semibold text-white rounded-[3px] font-ibm-plex-mono uppercase"
-                                style={{ backgroundColor: getTierColor() }}
-                            >
-                                {tier}
-                            </div>
-                            {!isFree && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                    {isActive ? 'Aktif' : 'Dibatalkan'}
-                                </span>
-                            )}
-                        </div>
+        <div className="relative flex flex-col h-full">
+            {/* Tinted header — reflects current tier */}
+            <div
+                className="px-5 py-4 border-b flex-shrink-0"
+                style={{ background: tierBg, borderColor: tierBorder }}
+            >
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <h1 className="text-sm font-semibold font-ibm-plex-mono text-foreground tracking-tight">
+                            Langganan
+                        </h1>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            Kelola paket, pembayaran, dan kuota Anda.
+                        </p>
                     </div>
 
-                    {!isFree && (
-                        <div className="p-4 rounded-xl border bg-card/50 space-y-3">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                                <Calendar className="w-4 h-4" /> Berlaku Sampai
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        <div
+                            className="px-2.5 py-0.5 text-[11px] font-bold text-white rounded-[3px] font-ibm-plex-mono uppercase tracking-widest"
+                            style={{ backgroundColor: tierColor }}
+                        >
+                            {tier}
+                        </div>
+                        {!isFree && (
+                            <span
+                                className={`text-[11px] px-2 py-0.5 rounded-full font-medium border ${
+                                    isActive
+                                        ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                                        : "bg-red-50 text-red-500 border-red-200"
+                                }`}
+                            >
+                                {isActive ? "Aktif" : "Dibatalkan"}
+                            </span>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto scrollbar-hide p-5 space-y-4">
+                {/* Billing dates — only for paid plans */}
+                {!isFree && (
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3.5 rounded-lg border bg-card space-y-1.5">
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                <Calendar className="w-3 h-3" />
+                                Berlaku Sampai
                             </div>
-                            <div className="text-sm font-medium">
+                            <div className="text-sm font-medium text-foreground tabular-nums">
                                 {formatDate(nextDue)}
                             </div>
                         </div>
-                    )}
 
-                    {!isFree && (
-                        <div className="p-4 rounded-xl border bg-card/50 space-y-3">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                                <Wallet className="w-4 h-4" /> Pembayaran Terakhir
+                        <div className="p-3.5 rounded-lg border bg-card space-y-1.5">
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                <Wallet className="w-3 h-3" />
+                                Pembayaran Terakhir
                             </div>
-                            <div className="text-sm font-medium flex justify-between items-center">
-                                <span>{formatDate(lastPaymentDate)}</span>
-                                <span className="text-[10px] px-2 py-1 bg-muted rounded-md uppercase font-semibold text-muted-foreground">{paymentMethod?.replace(/_/g, " ") || "-"}</span>
+                            <div className="flex items-center justify-between gap-1">
+                                <div className="text-sm font-medium text-foreground tabular-nums">
+                                    {formatDate(lastPaymentDate)}
+                                </div>
+                                {paymentMethod && (
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded font-mono text-muted-foreground uppercase flex-shrink-0">
+                                        {paymentMethod.replace(/_/g, " ")}
+                                    </span>
+                                )}
                             </div>
                         </div>
-                    )}
+                    </div>
+                )}
+
+                {/* Quota usage */}
+                <div className="rounded-lg border bg-card overflow-hidden">
+                    <div className="px-4 py-2.5 border-b bg-muted/30">
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                            Kuota Penggunaan
+                        </span>
+                    </div>
+
+                    <div className="divide-y">
+                        {quotaItems.map(({ icon: Icon, label, used, limit, note }) => (
+                            <div key={label} className="px-4 py-3.5">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <Icon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                        <span className="text-sm text-foreground truncate">{label}</span>
+                                        {note && (
+                                            <span className="text-[10px] text-muted-foreground/60 font-mono hidden sm:block flex-shrink-0">
+                                                · {note}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span className="text-sm font-semibold font-mono text-foreground tabular-nums flex-shrink-0 ml-3">
+                                        {limit === -1 ? "∞" : `${used} / ${limit}`}
+                                    </span>
+                                </div>
+
+                                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full rounded-full transition-all duration-500 ease-out"
+                                        style={{
+                                            width: `${getUsagePercent(used, limit)}%`,
+                                            backgroundColor: limit === -1 ? tierColor : "#d07225",
+                                            opacity: limit === -1 ? 0.35 : 1,
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
-                <div className="pt-4 border-t mt-6 space-y-4">
-                    {(tier === "ritel" || tier === "suhu") && (
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm font-medium text-muted-foreground">Opsi Tagihan:</span>
-                            <div className="inline-flex items-center gap-1 p-1 rounded-full border bg-slate-50 border-slate-200">
+                {/* Upgrade options */}
+                {(tier === "ritel" || tier === "suhu") && (
+                    <div className="rounded-lg border bg-card overflow-hidden">
+                        <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center justify-between">
+                            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                Tingkatkan Paket
+                            </span>
+
+                            {/* Billing period toggle */}
+                            <div className="inline-flex items-center gap-0.5 p-0.5 rounded-full border bg-card">
                                 <button
                                     onClick={() => setIsYearly(false)}
-                                    className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${!isYearly ? "bg-slate-500 text-white shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"}`}
+                                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${
+                                        !isYearly
+                                            ? "bg-muted text-foreground shadow-sm"
+                                            : "text-muted-foreground hover:text-foreground"
+                                    }`}
                                 >
                                     Bulanan
                                 </button>
                                 <button
                                     onClick={() => setIsYearly(true)}
-                                    className={`px-3 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${isYearly ? "bg-[#d07225] text-white shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"}`}
+                                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all flex items-center gap-1 ${
+                                        isYearly
+                                            ? "bg-[#d07225] text-white shadow-sm"
+                                            : "text-muted-foreground hover:text-foreground"
+                                    }`}
                                 >
-                                    Tahunan <span className={`text-[10px] px-1.5 rounded-full ${isYearly ? "bg-white/20 text-white" : "bg-[#d07225]/10 text-[#d07225]"}`}>-50%</span>
+                                    Tahunan
+                                    <span
+                                        className={`text-[10px] font-semibold ${
+                                            isYearly ? "text-white/80" : "text-[#d07225]"
+                                        }`}
+                                    >
+                                        -50%
+                                    </span>
                                 </button>
                             </div>
                         </div>
-                    )}
-                    <div className="flex flex-wrap items-center gap-3">
-                        {tier === "ritel" && (
-                            <Button
-                                onClick={() => setUpgradePlan({ type: 'suhu', name: 'Suhu', amount: isYearly ? 44750 * 12 : 89500, interval: isYearly ? 'yearly' : 'monthly' })}
-                                style={{ backgroundColor: "#487b78" }}
-                                className="hover:opacity-90 text-white font-medium"
-                            >
-                                Upgrade ke Suhu
-                            </Button>
-                        )}
-                        {(tier === "ritel" || tier === "suhu") && (
-                            <Button
-                                onClick={() => setUpgradePlan({ type: 'bandar', name: 'Bandar', amount: isYearly ? 94500 * 12 : 189000, interval: isYearly ? 'yearly' : 'monthly' })}
-                                style={{ backgroundColor: "#d4af37", color: "white" }}
-                                className="hover:opacity-90 font-medium"
-                            >
-                                Upgrade ke Bandar
-                            </Button>
-                        )}
 
-                        {!isFree && isActive && (
+                        <div className="p-3 space-y-2">
+                            {/* Suhu plan — only show if currently on ritel */}
+                            {tier === "ritel" && (
+                                <button
+                                    onClick={() =>
+                                        setUpgradePlan({
+                                            type: "suhu",
+                                            name: "Suhu",
+                                            amount: isYearly ? 44750 * 12 : 89500,
+                                            interval: isYearly ? "yearly" : "monthly",
+                                        })
+                                    }
+                                    className="w-full flex items-center justify-between p-3.5 rounded-lg border transition-all duration-150 hover:shadow-sm group text-left"
+                                    style={{
+                                        borderColor: "rgba(72,123,120,0.25)",
+                                        background: "rgba(72,123,120,0.04)",
+                                    }}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div
+                                            className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
+                                            style={{ backgroundColor: "rgba(72,123,120,0.14)" }}
+                                        >
+                                            <TrendingUp className="w-4 h-4" style={{ color: "#487b78" }} />
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-semibold" style={{ color: "#3b6663" }}>
+                                                Suhu
+                                            </div>
+                                            <div className="text-[11px] text-muted-foreground mt-0.5">
+                                                {isYearly
+                                                    ? `Rp 44.750/bln · ditagih Rp ${(44750 * 12).toLocaleString("id-ID")}/thn`
+                                                    : "Rp 89.500 / bulan"}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div
+                                        className="flex items-center gap-1 text-[11px] font-medium transition-all group-hover:gap-1.5"
+                                        style={{ color: "#487b78" }}
+                                    >
+                                        Upgrade
+                                        <ArrowUpRight className="w-3.5 h-3.5" />
+                                    </div>
+                                </button>
+                            )}
+
+                            {/* Bandar plan */}
+                            <button
+                                onClick={() =>
+                                    setUpgradePlan({
+                                        type: "bandar",
+                                        name: "Bandar",
+                                        amount: isYearly ? 94500 * 12 : 189000,
+                                        interval: isYearly ? "yearly" : "monthly",
+                                    })
+                                }
+                                className="w-full flex items-center justify-between p-3.5 rounded-lg border transition-all duration-150 hover:shadow-sm group text-left"
+                                style={{
+                                    borderColor: "rgba(212,175,55,0.3)",
+                                    background: "rgba(212,175,55,0.04)",
+                                }}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
+                                        style={{ backgroundColor: "rgba(212,175,55,0.15)" }}
+                                    >
+                                        <Crown className="w-4 h-4" style={{ color: "#c9a227" }} />
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-semibold" style={{ color: "#a08020" }}>
+                                            Bandar
+                                        </div>
+                                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                                            {isYearly
+                                                ? `Rp 94.500/bln · ditagih Rp ${(94500 * 12).toLocaleString("id-ID")}/thn`
+                                                : "Rp 189.000 / bulan"}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    className="flex items-center gap-1 text-[11px] font-medium transition-all group-hover:gap-1.5"
+                                    style={{ color: "#c9a227" }}
+                                >
+                                    Upgrade
+                                    <ArrowUpRight className="w-3.5 h-3.5" />
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Cancel — subtle, at the bottom */}
+                {!isFree && isActive && (
+                    <div className="flex justify-center pt-1 pb-2">
+                        <button
+                            onClick={() => setShowCancelDialog(true)}
+                            className="text-xs text-muted-foreground/70 hover:text-destructive transition-colors hover:underline underline-offset-2"
+                        >
+                            Batalkan langganan
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Cancel confirmation overlay */}
+            {showCancelDialog && (
+                <div className="absolute inset-0 z-[200] bg-black/30 backdrop-blur-[2px] flex items-center justify-center p-5">
+                    <div className="bg-card border rounded-xl shadow-2xl max-w-sm w-full p-5 space-y-4">
+                        <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                                <ShieldAlert className="w-4 h-4 text-destructive" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-semibold text-foreground">Batalkan Langganan?</h3>
+                                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                                    Anda tetap dapat menikmati paket{" "}
+                                    <span className="font-semibold uppercase text-foreground">{tier}</span>{" "}
+                                    hingga{" "}
+                                    <span className="font-medium text-foreground">{formatDate(nextDue)}</span>.
+                                    Setelah itu akun akan kembali ke paket RITEL.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2">
                             <Button
                                 variant="outline"
-                                className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors ml-auto"
-                                onClick={() => setShowCancelDialog(true)}
+                                size="sm"
+                                className="flex-1 text-xs h-8"
+                                onClick={() => setShowCancelDialog(false)}
+                                disabled={isCanceling}
                             >
-                                Batalkan Langganan
-                            </Button>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Quota Usage */}
-            <div className="space-y-4">
-                <h2 className="text-lg font-semibold border-b pb-2">Penggunaan Kuota</h2>
-
-                <div className="space-y-5 p-5 rounded-xl border bg-card/50">
-                    {/* Backtest */}
-                    <div>
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                                <Zap className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm font-medium">Jumlah Backtest Harian</span>
-                            </div>
-                            <span className="text-sm font-semibold font-mono">
-                                {limits.backtest === -1 ? '∞' : `${usage.backtest} / ${limits.backtest}`}
-                            </span>
-                        </div>
-                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                                className="h-full rounded-full transition-all duration-500 ease-out"
-                                style={{
-                                    width: limits.backtest === -1 ? '100%' : `${Math.min((usage.backtest / limits.backtest) * 100, 100)}%`,
-                                    backgroundColor: getProgressColor(),
-                                }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Subscriptions */}
-                    <div>
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                                <Heart className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm font-medium">Jumlah Langganan Strategi</span>
-                            </div>
-                            <span className="text-sm font-semibold font-mono">
-                                {limits.subscriptions === -1 ? '∞' : `${usage.subscriptions} / ${limits.subscriptions}`}
-                            </span>
-                        </div>
-                        {limits.subscriptions !== -1 && (
-                            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full rounded-full transition-all duration-500 ease-out"
-                                    style={{
-                                        width: `${Math.min((usage.subscriptions / limits.subscriptions) * 100, 100)}%`,
-                                        backgroundColor: getProgressColor(),
-                                    }}
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Saved Strategies */}
-                    <div>
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                                <BookMarked className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm font-medium">Jumlah Strategi Disimpan</span>
-                            </div>
-                            <span className="text-sm font-semibold font-mono">
-                                {limits.savedStrategies === -1 ? '∞' : `${usage.savedStrategies} / ${limits.savedStrategies}`}
-                            </span>
-                        </div>
-                        {limits.savedStrategies !== -1 && (
-                            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full rounded-full transition-all duration-500 ease-out"
-                                    style={{
-                                        width: `${Math.min((usage.savedStrategies / limits.savedStrategies) * 100, 100)}%`,
-                                        backgroundColor: getProgressColor(),
-                                    }}
-                                />
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* In-page Cancel Confirmation Dialog */}
-            {showCancelDialog && (
-                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4 relative">
-                        <div className="flex items-center gap-3 text-destructive">
-                            <ShieldAlert className="w-6 h-6" />
-                            <h3 className="text-xl font-semibold">Batalkan Langganan?</h3>
-                        </div>
-                        <p className="text-sm text-slate-600 leading-relaxed">
-                            Apakah Anda yakin ingin membatalkan langganan ini? Anda akan tetap dapat menikmati fitur paket <span className="font-semibold uppercase">{tier}</span> hingga tanggal <strong className="font-medium text-foreground">{formatDate(nextDue)}</strong>, setelah itu akun Anda akan kembali ke paket RITEL.
-                        </p>
-                        <div className="flex justify-end gap-3 pt-4 border-t">
-                            <Button variant="outline" onClick={() => setShowCancelDialog(false)} disabled={isCanceling}>
                                 Kembali
                             </Button>
-                            <Button variant="destructive" onClick={handleCancel} disabled={isCanceling}>
-                                {isCanceling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                className="flex-1 text-xs h-8"
+                                onClick={handleCancel}
+                                disabled={isCanceling}
+                            >
+                                {isCanceling && <Loader2 className="w-3 h-3 animate-spin mr-1.5" />}
                                 Ya, Batalkan
                             </Button>
                         </div>
@@ -322,7 +421,7 @@ export function AccountManagementPage() {
                 </div>
             )}
 
-            {/* Payment Method Dialog for Upgrade */}
+            {/* Payment method dialog for upgrade */}
             {upgradePlan && (
                 <PaymentMethodDialog
                     isOpen={!!upgradePlan}
