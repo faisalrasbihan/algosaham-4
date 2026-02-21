@@ -87,6 +87,9 @@ export function Navbar() {
         <Link href="/strategies" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Strategi
         </Link>
+        <a href="/analyze" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
+          Analisis
+        </a>
         {/* <SignedIn>
           <Link href="/portfolio" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
             Portfolio

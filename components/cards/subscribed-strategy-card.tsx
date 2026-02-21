@@ -190,7 +190,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedSt
 
                     <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
                         <Calendar className="w-3 h-3" />
-                        Subscribed: {new Date(strategy.subscriptionDate || strategy.createdDate).toLocaleDateString()}
+                        Subscribed: {new Date(strategy.subscriptionDate || strategy.createdDate).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':')}
                     </div>
 
                     <div className="flex items-center gap-2 pt-1">

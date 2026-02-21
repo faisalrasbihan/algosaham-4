@@ -1,0 +1,103 @@
+"use client"
+
+import { useState } from "react"
+import { StockSearch } from "@/components/stock-search"
+import { StockHeaderCard } from "@/components/stock-header-card"
+import { OverallScoreCard } from "@/components/overall-score-card"
+import { AnalysisCards } from "@/components/analysis-cards"
+import { RiskPlanCard } from "@/components/risk-plan-card"
+import { IndicatorPanels } from "@/components/indicator-panels"
+import { Navbar } from "@/components/navbar"
+
+import { TickerTape } from "@/components/ticker-tape"
+
+export default function AnalyzePage() {
+    const [data, setData] = useState<any>(null)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const handleSearch = async (ticker: string) => {
+        setLoading(true)
+        setError(null)
+
+        try {
+            const res = await fetch('/api/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticker: ticker.toUpperCase() })
+            })
+
+            const result = await res.json()
+
+            if (!res.ok || !result.success) {
+                throw new Error(result.error || result.message || 'Gagal mengambil analisis. Silakan coba lagi.')
+            }
+
+            setData(result.data)
+        } catch (err) {
+            console.error(err)
+            setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    return (
+        <div className="min-h-screen bg-background dotted-background flex flex-col">
+            <Navbar />
+            <TickerTape />
+
+            {!data ? (
+                <div className="flex-1 flex flex-col items-center justify-center -mt-20">
+                    <StockSearch onSearch={handleSearch} loading={loading} />
+                    {error && (
+                        <div className="mt-4 text-red-500 bg-red-50 px-4 py-2 rounded-md border border-red-200">
+                            {error}
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="flex-1 overflow-y-auto mt-8 pb-8">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h1 className="text-2xl font-bold font-ibm-plex-mono tracking-tight text-foreground">
+                                Hasil Analisis: {data.tickerSummary.ticker}
+                            </h1>
+                            <button
+                                onClick={() => setData(null)}
+                                className="text-sm border border-input bg-card/60 backdrop-blur-sm hover:bg-accent hover:text-accent-foreground px-4 py-2 rounded-md transition-colors shadow-sm"
+                            >
+                                Kembali ke Pencarian
+                            </button>
+                        </div>
+
+                        <StockHeaderCard
+                            tickerData={data.tickerSummary}
+                            scoreData={data.overallScore}
+                            ohlcvData={data.ohlcv}
+                        />
+
+                        <OverallScoreCard data={data.overallScore} />
+
+                        <AnalysisCards
+                            technical={data.technicalAnalysis}
+                            fundamental={data.fundamentalAnalysis}
+                        />
+
+                        <div className="grid lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-2">
+                                <IndicatorPanels
+                                    data={data.indicatorPanels}
+                                    dates={data.ohlcv.dates}
+                                />
+                            </div>
+                            <div className="lg:col-span-1">
+                                <RiskPlanCard data={data.riskPlan} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}

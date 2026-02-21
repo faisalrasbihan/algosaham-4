@@ -397,7 +397,7 @@ export default function Portfolio() {
                             {isLoadingSubscribed ? (
                                 <div className="flex gap-5 overflow-x-auto pt-4 pb-6 scrollbar-hide pl-6 pr-6 -mx-6">
                                     {[1, 2, 3].map((i) => (
-                                        <StrategyCardSkeleton key={i} />
+                                        <StrategyCardSkeleton key={i} type="subscribed" />
                                     ))}
                                 </div>
                             ) : subscribedStrategies.length === 0 ? (
@@ -433,7 +433,7 @@ export default function Portfolio() {
                             {isLoadingStrategies ? (
                                 <div className="flex gap-5 overflow-x-auto pt-4 pb-6 scrollbar-hide pl-6 pr-6 -mx-6">
                                     {[1, 2, 3].map((i) => (
-                                        <StrategyCardSkeleton key={i} />
+                                        <StrategyCardSkeleton key={i} type="regular" />
                                     ))}
                                 </div>
                             ) : savedStrategies.length === 0 ? (
@@ -464,7 +464,7 @@ export default function Portfolio() {
                                                 avgTradeDuration: 0,
                                                 stocksHeld: strategy.totalStocks || 0,
                                                 createdDate: new Date(strategy.createdAt).toLocaleDateString(),
-                                                lastRunDate: new Date(strategy.updatedAt || strategy.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                                                lastRunDate: new Date(strategy.updatedAt || strategy.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':'),
                                                 qualityScore: strategy.qualityScore || 'Unknown',
                                             }}
                                             onEdit={handleEdit}
