@@ -20,7 +20,7 @@ export default function BacktestPage() {
       <TickerTape />
       <div className="flex h-[calc(100vh-104px)]">
         {/* Left Panel - Strategy Builder */}
-        <div className="w-[380px] flex-shrink-0 bg-card border-r border-border overflow-y-auto">
+        <div className="w-[400px] flex-shrink-0 bg-card border-r border-border overflow-hidden flex flex-col">
           <BacktestStrategyBuilder
             onRunBacktest={handleBacktestRun}
             backtestResults={results}

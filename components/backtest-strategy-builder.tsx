@@ -8,6 +8,12 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+} from "@/components/ui/sidebar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -890,20 +896,16 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
 
   return (
     <div className="h-full flex flex-col relative">
-      {/* Blocking overlay when tutorial is active for first-time visitors */}
-      {/* {isTutorialActive && hasVisited === false && (
-        <div className="absolute inset-0 bg-black/5 z-40 pointer-events-none" />
-      )} */}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <div className="border-b px-4 py-2 flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="strategy" className="text-sm gap-2">
-              <Settings className="h-4 w-4" />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+        <div className="px-5 pt-4 pb-3 flex items-center justify-between bg-card">
+          <TabsList className="h-9">
+            <TabsTrigger value="strategy" className="text-xs font-mono font-semibold gap-1.5 data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:shadow-sm">
+              <Settings className="h-3.5 w-3.5" />
               Builder
             </TabsTrigger>
-            <TabsTrigger value="chat" className="text-sm gap-2">
-              <Sparkles className="h-4 w-4" />
+            <TabsTrigger value="chat" className="text-xs font-mono font-semibold gap-1.5 data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:shadow-sm">
+              <Sparkles className="h-3.5 w-3.5" />
               Agent
             </TabsTrigger>
           </TabsList>
@@ -1048,56 +1050,54 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
           </div>
         </TabsContent>
 
-        <TabsContent value="strategy" className="flex-1 flex flex-col m-0 overflow-hidden">
-          <div className="flex-1 p-4 space-y-3 overflow-y-auto" ref={scrollContainerRef}>
+        <TabsContent value="strategy" className="flex-1 flex flex-col m-0 overflow-hidden bg-card">
+          <SidebarContent ref={scrollContainerRef} className="gap-0">
             {/* Stock Filters */}
-            <Card className="border bg-card rounded-none" data-tutorial="stock-filters">
-              <CardHeader className={`flex items-center ${collapsedSections.filters ? "py-2" : "pb-2"}`}>
-                <CardTitle
-                  className="text-sm font-medium text-foreground flex items-center justify-between cursor-pointer hover:text-slate-600 transition-colors w-full"
-                  onClick={() => toggleSection("filters")}
-                >
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4" style={{ color: "#d07225" }} />
-                    <span className="font-mono">Stock Filters</span>
-                  </div>
-                  {collapsedSections.filters ? (
-                    <ChevronRight className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </CardTitle>
-              </CardHeader>
+            <SidebarGroup className="p-0" data-tutorial="stock-filters">
+              <button
+                className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
+                onClick={() => toggleSection("filters")}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Filter className="h-4 w-4 flex-shrink-0" style={{ color: "#d07225" }} />
+                  <span className="text-[13px] font-mono font-semibold text-foreground">Stock Filters</span>
+                </div>
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${collapsedSections.filters ? "-rotate-90" : ""}`} />
+              </button>
               {!collapsedSections.filters && (
-                <CardContent className="pt-0 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                <SidebarGroupContent className="py-4 pl-4 pr-5 space-y-4 border-l border-[#d07225]/50 ml-[27px] my-2 w-auto">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-xs text-muted-foreground mb-2 block">Market Cap</Label>
+                      <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Market Cap</Label>
                       <div className="flex flex-wrap gap-1">
                         {marketCapOptions.map((cap) => (
-                          <Badge
+                          <button
                             key={cap}
-                            variant={marketCaps.includes(cap) ? "default" : "outline"}
-                            className="cursor-pointer hover:bg-accent/20 text-xs font-mono"
                             onClick={() => toggleMarketCap(cap)}
+                            className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium border transition-all ${marketCaps.includes(cap)
+                              ? "bg-[#d07225]/10 border-[#d07225]/40 text-[#d07225]"
+                              : "bg-transparent border-slate-200 text-muted-foreground hover:border-slate-300 hover:text-foreground"
+                              }`}
                           >
                             {cap.charAt(0).toUpperCase() + cap.slice(1)}
-                          </Badge>
+                          </button>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground mb-2 block">Type</Label>
+                      <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Type</Label>
                       <div className="flex flex-wrap gap-1">
                         {["All Stocks", "Syariah Only"].map((type) => (
-                          <Badge
+                          <button
                             key={type}
-                            variant={stockType === type ? "default" : "outline"}
-                            className="cursor-pointer hover:bg-accent/20 text-xs font-mono"
                             onClick={() => setStockType(type)}
+                            className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium border transition-all ${stockType === type
+                              ? "bg-[#d07225]/10 border-[#d07225]/40 text-[#d07225]"
+                              : "bg-transparent border-slate-200 text-muted-foreground hover:border-slate-300 hover:text-foreground"
+                              }`}
                           >
                             {type}
-                          </Badge>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -1106,7 +1106,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
 
 
                   <div ref={tickerDropdownRef}>
-                    <Label className="text-xs text-muted-foreground mb-2 block">Kode Saham</Label>
+                    <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Kode Saham</Label>
                     <div className="relative">
                       <Button
                         variant="outline"
@@ -1227,7 +1227,7 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
                   </div>
 
                   <div ref={sectorDropdownRef}>
-                    <Label className="text-xs text-muted-foreground mb-2 block">Sectors</Label>
+                    <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Sectors</Label>
                     <div className="relative">
                       <Button
                         variant="outline"
@@ -1284,118 +1284,69 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
                       </div>
                     )}
                   </div>
-                </CardContent>
+                </SidebarGroupContent>
               )}
-            </Card>
+            </SidebarGroup>
+            <div className="mx-5 border-b border-border" />
 
             {/* Fundamental Indicators */}
-            <Card className="border bg-card rounded-none" data-tutorial="fundamental-indicators">
-              <CardHeader className={`flex items-center ${collapsedSections.fundamental ? "py-2" : "pb-2"}`}>
-                <CardTitle
-                  className="text-sm font-medium text-foreground flex items-center justify-between cursor-pointer hover:text-slate-600 transition-colors w-full"
-                  onClick={() => toggleSection("fundamental")}
-                >
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4" style={{ color: "#d07225" }} />
-                    <span className="font-mono">Fundamental Indicators</span>
-                  </div>
-                  {collapsedSections.fundamental ? (
-                    <ChevronRight className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
+            <SidebarGroup className="p-0" data-tutorial="fundamental-indicators">
+              <button
+                className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
+                onClick={() => toggleSection("fundamental")}
+              >
+                <div className="flex items-center gap-2.5">
+                  <TrendingUp className="h-4 w-4 flex-shrink-0" style={{ color: "#d07225" }} />
+                  <span className="text-[13px] font-mono font-semibold text-foreground">Fundamental</span>
+                  {fundamentalIndicators.length > 0 && (
+                    <span className="inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-[#d07225]/10 text-[#d07225] text-[10px] font-mono font-bold">
+                      {fundamentalIndicators.length}
+                    </span>
                   )}
-                </CardTitle>
-              </CardHeader>
+                </div>
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${collapsedSections.fundamental ? "-rotate-90" : ""}`} />
+              </button>
               {!collapsedSections.fundamental && (
-                <CardContent className="pt-0 space-y-2">
+                <SidebarGroupContent className="py-4 pl-4 pr-5 space-y-2 border-l border-[#d07225]/50 ml-[27px] my-2 w-auto">
                   {fundamentalIndicators.map((indicator) => (
-                    <div key={indicator.id} className="bg-secondary rounded border-l-2 border-chart-2">
+                    <div key={indicator.id} className="rounded-md border border-slate-200 bg-slate-50/80">
                       {editingIndicators[indicator.id] ? (
-                        <div className="p-2">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium">{indicator.name}</span>
+                        <div className="p-2.5">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-mono font-semibold text-foreground">{indicator.name}</span>
                             <div className="flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-5 w-5 p-0 hover:bg-green-100"
-                                onClick={() => toggleEditMode(indicator.id)}
-                              >
+                              <Button variant="ghost" size="sm" className="h-5 w-5 p-0 hover:bg-green-100" onClick={() => toggleEditMode(indicator.id)}>
                                 <Check className="h-3 w-3 text-green-600" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-5 w-5 p-0 hover:bg-destructive/20"
-                                onClick={() => removeIndicator(indicator.id, "fundamental")}
-                              >
-                                <X className="h-3 w-3" />
+                              <Button variant="ghost" size="sm" className="h-5 w-5 p-0 hover:bg-red-100" onClick={() => removeIndicator(indicator.id, "fundamental")}>
+                                <X className="h-3 w-3 text-red-500" />
                               </Button>
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <Label className="text-xs text-muted-foreground">Min</Label>
-                              <Input
-                                type="number"
-                                value={indicator.params.min}
-                                onChange={(e) => {
-                                  const val = e.target.value
-                                  if (val === "") {
-                                    updateIndicatorParam(indicator.id, "fundamental", "min", "")
-                                  } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") {
-                                    updateIndicatorParam(indicator.id, "fundamental", "min", Number(val))
-                                  } else {
-                                    updateIndicatorParam(indicator.id, "fundamental", "min", val)
-                                  }
-                                }}
-                                className="h-7 font-mono text-xs"
-                              />
+                              <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Min</Label>
+                              <Input type="number" value={indicator.params.min} onChange={(e) => { const val = e.target.value; if (val === "") { updateIndicatorParam(indicator.id, "fundamental", "min", "") } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") { updateIndicatorParam(indicator.id, "fundamental", "min", Number(val)) } else { updateIndicatorParam(indicator.id, "fundamental", "min", val) } }} className="h-7 font-mono text-xs bg-white" />
                             </div>
                             <div>
-                              <Label className="text-xs text-muted-foreground">Max</Label>
-                              <Input
-                                type="number"
-                                value={indicator.params.max}
-                                onChange={(e) => {
-                                  const val = e.target.value
-                                  if (val === "") {
-                                    updateIndicatorParam(indicator.id, "fundamental", "max", "")
-                                  } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") {
-                                    updateIndicatorParam(indicator.id, "fundamental", "max", Number(val))
-                                  } else {
-                                    updateIndicatorParam(indicator.id, "fundamental", "max", val)
-                                  }
-                                }}
-                                className="h-7 font-mono text-xs"
-                              />
+                              <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Max</Label>
+                              <Input type="number" value={indicator.params.max} onChange={(e) => { const val = e.target.value; if (val === "") { updateIndicatorParam(indicator.id, "fundamental", "max", "") } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") { updateIndicatorParam(indicator.id, "fundamental", "max", Number(val)) } else { updateIndicatorParam(indicator.id, "fundamental", "max", val) } }} className="h-7 font-mono text-xs bg-white" />
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <div className="p-2 flex items-center justify-between">
-                          <div className="flex-1">
-                            <span className="text-sm font-medium font-mono">{indicator.name}</span>
-                            <span className="text-xs text-muted-foreground ml-2 font-mono">
-                              ({formatIndicatorParams(indicator.params)})
-                            </span>
+                        <div className="px-3 py-2 flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#d07225] flex-shrink-0" />
+                            <span className="text-xs font-mono font-semibold text-foreground">{indicator.name}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono truncate">({formatIndicatorParams(indicator.params)})</span>
                           </div>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-5 w-5 p-0 hover:bg-blue-100"
-                              onClick={() => toggleEditMode(indicator.id)}
-                            >
-                              <Edit className="h-3 w-3 text-blue-600" />
+                          <div className="flex gap-0.5 flex-shrink-0">
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-slate-200" onClick={() => toggleEditMode(indicator.id)}>
+                              <Edit className="h-3 w-3 text-muted-foreground" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-5 w-5 p-0 hover:bg-destructive/20"
-                              onClick={() => removeIndicator(indicator.id, "fundamental")}
-                            >
-                              <X className="h-3 w-3" />
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-red-100" onClick={() => removeIndicator(indicator.id, "fundamental")}>
+                              <X className="h-3 w-3 text-red-400" />
                             </Button>
                           </div>
                         </div>
@@ -1403,403 +1354,243 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
                     </div>
                   ))}
                   <FundamentalIndicatorDropdown onAddIndicator={addIndicator} />
-                </CardContent>
+                </SidebarGroupContent>
               )}
-            </Card>
+            </SidebarGroup>
+            <div className="mx-5 border-b border-border" />
 
             {/* Technical Indicators */}
-            <Card className="border bg-card rounded-none" data-tutorial="technical-indicators">
-              <CardHeader className={`flex items-center ${collapsedSections.technical ? "py-2" : "pb-2"}`}>
-                <CardTitle
-                  className="text-sm font-medium text-foreground flex items-center justify-between cursor-pointer hover:text-slate-600 transition-colors w-full"
-                  onClick={() => toggleSection("technical")}
-                >
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" style={{ color: "#d07225" }} />
-                    <span className="font-mono">Technical Indicators</span>
-                  </div>
-                  {collapsedSections.technical ? (
-                    <ChevronRight className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
+            <SidebarGroup className="p-0" data-tutorial="technical-indicators">
+              <button
+                className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
+                onClick={() => toggleSection("technical")}
+              >
+                <div className="flex items-center gap-2.5">
+                  <BarChart3 className="h-4 w-4 flex-shrink-0" style={{ color: "#d07225" }} />
+                  <span className="text-[13px] font-mono font-semibold text-foreground">Technical</span>
+                  {technicalIndicators.length > 0 && (
+                    <span className="inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-[#d07225]/10 text-[#d07225] text-[10px] font-mono font-bold">
+                      {technicalIndicators.length}
+                    </span>
                   )}
-                </CardTitle>
-              </CardHeader>
+                </div>
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${collapsedSections.technical ? "-rotate-90" : ""}`} />
+              </button>
               {!collapsedSections.technical && (
-                <CardContent className="pt-0 space-y-2">
+                <SidebarGroupContent className="py-4 pl-4 pr-5 space-y-2 border-l border-[#d07225]/50 ml-[27px] my-2 w-auto">
                   {technicalIndicators.map((indicator) => (
-                    <div key={indicator.id} className="bg-secondary rounded border-l-2 border-chart-3">
+                    <div key={indicator.id} className="rounded-md border border-slate-200 bg-slate-50/80">
                       {editingIndicators[indicator.id] ? (
-                        <div className="p-2">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium">{indicator.name}</span>
+                        <div className="p-2.5">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-mono font-semibold text-foreground">{indicator.name}</span>
                             <div className="flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-5 w-5 p-0 hover:bg-green-100"
-                                onClick={() => toggleEditMode(indicator.id)}
-                              >
+                              <Button variant="ghost" size="sm" className="h-5 w-5 p-0 hover:bg-green-100" onClick={() => toggleEditMode(indicator.id)}>
                                 <Check className="h-3 w-3 text-green-600" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-5 w-5 p-0 hover:bg-destructive/20"
-                                onClick={() => removeIndicator(indicator.id, "technical")}
-                              >
-                                <X className="h-3 w-3" />
+                              <Button variant="ghost" size="sm" className="h-5 w-5 p-0 hover:bg-red-100" onClick={() => removeIndicator(indicator.id, "technical")}>
+                                <X className="h-3 w-3 text-red-500" />
                               </Button>
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             {Object.entries(indicator.params).map(([key, value]) => (
                               <div key={key}>
-                                <Label className="text-xs text-muted-foreground capitalize">{key}</Label>
-                                <Input
-                                  type="number"
-                                  value={value}
-                                  onChange={(e) => {
-                                    const val = e.target.value
-                                    if (val === "") {
-                                      updateIndicatorParam(indicator.id, "technical", key, "")
-                                    } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") {
-                                      updateIndicatorParam(indicator.id, "technical", key, Number(val))
-                                    } else {
-                                      updateIndicatorParam(indicator.id, "technical", key, val)
-                                    }
-                                  }}
-                                  className="h-7 font-mono text-xs"
-                                />
+                                <Label className="text-[10px] text-muted-foreground uppercase tracking-wide capitalize">{key}</Label>
+                                <Input type="number" value={value} onChange={(e) => { const val = e.target.value; if (val === "") { updateIndicatorParam(indicator.id, "technical", key, "") } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") { updateIndicatorParam(indicator.id, "technical", key, Number(val)) } else { updateIndicatorParam(indicator.id, "technical", key, val) } }} className="h-7 font-mono text-xs bg-white" />
                               </div>
                             ))}
                           </div>
                         </div>
                       ) : (
-                        <div className="p-2 flex items-center justify-between">
-                          <div className="flex-1">
-                            <span className="text-sm font-medium font-mono">{indicator.name}</span>
-                            <span className="text-xs text-muted-foreground ml-2 font-mono">
-                              ({formatIndicatorParams(indicator.params)})
-                            </span>
+                        <div className="px-3 py-2 flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#d07225] flex-shrink-0" />
+                            <span className="text-xs font-mono font-semibold text-foreground">{indicator.name}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono truncate">({formatIndicatorParams(indicator.params)})</span>
                           </div>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-5 w-5 p-0 hover:bg-blue-100"
-                              onClick={() => toggleEditMode(indicator.id)}
-                            >
-                              <Edit className="h-3 w-3 text-blue-600" />
+                          <div className="flex gap-0.5 flex-shrink-0">
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-slate-200" onClick={() => toggleEditMode(indicator.id)}>
+                              <Edit className="h-3 w-3 text-muted-foreground" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-5 w-5 p-0 hover:bg-destructive/20"
-                              onClick={() => removeIndicator(indicator.id, "technical")}
-                            >
-                              <X className="h-3 w-3" />
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-red-100" onClick={() => removeIndicator(indicator.id, "technical")}>
+                              <X className="h-3 w-3 text-red-400" />
                             </Button>
                           </div>
                         </div>
                       )}
                     </div>
                   ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full bg-transparent font-mono hover:text-foreground border-slate-300 hover:border-[#d07225]"
-                    style={
-                      {
-                        "--hover-bg": "#d072251a",
-                        "--hover-text": "#d07225",
-                        "--hover-border": "#d07225",
-                      } as React.CSSProperties
-                    }
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "#d0722510"
-                      e.currentTarget.style.color = "#d07225"
-                      e.currentTarget.style.borderColor = "#d07225"
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent"
-                      e.currentTarget.style.color = ""
-                      e.currentTarget.style.borderColor = "#cbd5e1"
-                    }}
-                    onClick={() => {
-                      setModalType("technical")
-                      setShowModal(true)
-                    }}
+                  <button
+                    className="w-full flex items-center justify-center gap-1.5 h-8 rounded-md border border-dashed border-slate-300 text-xs font-mono text-muted-foreground hover:border-[#d07225] hover:text-[#d07225] hover:bg-[#d07225]/5 transition-all"
+                    onClick={() => { setModalType("technical"); setShowModal(true) }}
                   >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Technical Indicator
-                  </Button>
-                </CardContent>
+                    <Plus className="h-3.5 w-3.5" />
+                    Add Indicator
+                  </button>
+                </SidebarGroupContent>
               )}
-            </Card>
+            </SidebarGroup>
+            <div className="mx-5 border-b border-border" />
 
             {/* Risk Management */}
-            <Card className="border bg-card rounded-none" data-tutorial="risk-management">
-              <CardHeader className={`flex items-center ${collapsedSections.risk ? "py-2" : "pb-2"}`}>
-                <CardTitle
-                  className="text-sm font-medium text-foreground flex items-center justify-between cursor-pointer hover:text-slate-600 transition-colors w-full"
-                  onClick={() => toggleSection("risk")}
-                >
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4" style={{ color: "#d07225" }} />
-                    <span className="font-mono">Risk Management</span>
-                  </div>
-                  {collapsedSections.risk ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </CardTitle>
-              </CardHeader>
+            <SidebarGroup className="p-0" data-tutorial="risk-management">
+              <button
+                className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
+                onClick={() => toggleSection("risk")}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Shield className="h-4 w-4 flex-shrink-0" style={{ color: "#d07225" }} />
+                  <span className="text-[13px] font-mono font-semibold text-foreground">Risk Management</span>
+                </div>
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${collapsedSections.risk ? "-rotate-90" : ""}`} />
+              </button>
               {!collapsedSections.risk && (
-                <CardContent className="pt-0 space-y-3">
+                <SidebarGroupContent className="py-4 pl-4 pr-5 space-y-3 border-l border-[#d07225]/50 ml-[27px] my-2 w-auto">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs text-muted-foreground">Stop Loss (%)</Label>
+                      <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5 block">Stop Loss</Label>
                       <div className="relative">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={stopLoss}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            if (val === "") {
-                              setStopLoss("")
-                            } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") {
-                              setStopLoss(Number(val))
-                            } else {
-                              setStopLoss(val)
-                            }
-                          }}
-                          placeholder="0"
-                          className="font-mono border-slate-300 bg-white pr-8"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                        <Input type="number" step="0.1" value={stopLoss} onChange={(e) => { const val = e.target.value; if (val === "") { setStopLoss("") } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") { setStopLoss(Number(val)) } else { setStopLoss(val) } }} placeholder="0" className="font-mono border-slate-300 bg-white pr-7 h-9 text-sm" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono">%</span>
                       </div>
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">Take Profit (%)</Label>
+                      <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5 block">Take Profit</Label>
                       <div className="relative">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={takeProfit}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            if (val === "") {
-                              setTakeProfit("")
-                            } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") {
-                              setTakeProfit(Number(val))
-                            } else {
-                              setTakeProfit(val)
-                            }
-                          }}
-                          placeholder="0"
-                          className="font-mono border-slate-300 bg-white pr-8"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                        <Input type="number" step="0.1" value={takeProfit} onChange={(e) => { const val = e.target.value; if (val === "") { setTakeProfit("") } else if (val.length > 1 && val.startsWith("0") && val[1] !== ".") { setTakeProfit(Number(val)) } else { setTakeProfit(val) } }} placeholder="0" className="font-mono border-slate-300 bg-white pr-7 h-9 text-sm" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono">%</span>
                       </div>
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-2 block">Min Daily Value (IDR)</Label>
-                    <div className="relative mb-3">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">Rp</span>
-                      <Input
-                        type="text"
-                        value={minDailyValue.toLocaleString()}
-                        onChange={(e) => {
-                          const value = Number(e.target.value.replace(/,/g, ""))
-                          if (!isNaN(value)) setMinDailyValue(value)
-                        }}
-                        className="pl-8 h-9 font-mono text-sm border-slate-300 bg-white"
-                      />
+                    <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5 block">Min Daily Value</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono">Rp</span>
+                      <Input type="text" value={minDailyValue.toLocaleString()} onChange={(e) => { const value = Number(e.target.value.replace(/,/g, "")); if (!isNaN(value)) setMinDailyValue(value) }} className="pl-8 h-9 font-mono text-sm border-slate-300 bg-white" />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Max Holding Period</Label>
+                    <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5 block">Max Holding Period</Label>
                     <Select value={maxHoldingPeriod} onValueChange={setMaxHoldingPeriod}>
-                      <SelectTrigger className="bg-white border-slate-300">
+                      <SelectTrigger className="bg-white border-slate-300 h-9 text-sm font-mono">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="no-limit">No limit</SelectItem>
                         <SelectItem value="7">7 days</SelectItem>
                         <SelectItem value="14">14 days</SelectItem>
+                        <SelectItem value="21">21 days</SelectItem>
                         <SelectItem value="30">30 days</SelectItem>
                         <SelectItem value="60">60 days</SelectItem>
                         <SelectItem value="90">90 days</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </CardContent>
+                </SidebarGroupContent>
               )}
-            </Card>
+            </SidebarGroup>
+            <div className="mx-5 border-b border-border" />
 
             {/* Backtest Period */}
-            <Card className="border bg-card rounded-none" data-tutorial="backtest-period">
-              <CardHeader className={`flex items-center ${collapsedSections.backtest ? "py-2" : "pb-2"}`}>
-                <CardTitle
-                  className="text-sm font-medium text-foreground flex items-center justify-between cursor-pointer hover:text-slate-600 transition-colors w-full"
-                  onClick={() => toggleSection("backtest")}
-                >
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" style={{ color: "#d07225" }} />
-                    <span className="font-mono">Backtest Period</span>
-                  </div>
-                  {collapsedSections.backtest ? (
-                    <ChevronRight className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </CardTitle>
-              </CardHeader>
+            <SidebarGroup className="p-0" data-tutorial="backtest-period">
+              <button
+                className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
+                onClick={() => toggleSection("backtest")}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Calendar className="h-4 w-4 flex-shrink-0" style={{ color: "#d07225" }} />
+                  <span className="text-[13px] font-mono font-semibold text-foreground">Backtest Period</span>
+                </div>
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${collapsedSections.backtest ? "-rotate-90" : ""}`} />
+              </button>
               {!collapsedSections.backtest && (
-                <CardContent className="pt-0 space-y-3">
-                  {/* Initial Capital - Moved to top */}
-                  <div className="mb-4">
-                    <Label className="text-xs text-muted-foreground mb-2 block">Initial Capital</Label>
+                <SidebarGroupContent className="py-4 pl-4 pr-5 space-y-3 border-l border-[#d07225]/50 ml-[27px] my-2 w-auto">
+                  <div>
+                    <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5 block">Initial Capital</Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">Rp</span>
-                      <Input
-                        type="text"
-                        placeholder="100,000,000"
-                        className="pl-8 font-mono border-slate-300 bg-white"
-                        value={initialCapital.toLocaleString()}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/,/g, "")
-                          if (!isNaN(Number(value))) {
-                            setInitialCapital(Number(value))
-                          }
-                        }}
-                      />
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono">Rp</span>
+                      <Input type="text" placeholder="100,000,000" className="pl-8 font-mono border-slate-300 bg-white h-9 text-sm" value={initialCapital.toLocaleString()} onChange={(e) => { const value = e.target.value.replace(/,/g, ""); if (!isNaN(Number(value))) { setInitialCapital(Number(value)) } }} />
                     </div>
                   </div>
 
                   <Tabs defaultValue="preset" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 h-9">
-                      <TabsTrigger value="preset" className="text-xs">
-                        Preset
-                      </TabsTrigger>
-                      <TabsTrigger value="custom" className="text-xs">
-                        Custom
-                      </TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-2 h-8">
+                      <TabsTrigger value="preset" className="text-xs font-mono">Preset</TabsTrigger>
+                      <TabsTrigger value="custom" className="text-xs font-mono">Custom</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="preset" className="mt-3 space-y-2">
+                    <TabsContent value="preset" className="mt-2.5">
                       <Select value={backtestPeriod} onValueChange={applyPreset}>
                         <SelectTrigger className="w-full h-9 font-mono text-xs bg-white border-slate-300">
                           <SelectValue placeholder="Select period" />
                         </SelectTrigger>
                         <SelectContent>
                           {backtestPeriodOptions.map((period) => (
-                            <SelectItem key={period} value={period} className="font-mono text-xs">
-                              {period}
-                            </SelectItem>
+                            <SelectItem key={period} value={period} className="font-mono text-xs">{period}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </TabsContent>
 
-                    <TabsContent value="custom" className="mt-3 space-y-3">
+                    <TabsContent value="custom" className="mt-2.5 space-y-2.5">
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <Label className="text-xs text-muted-foreground mb-1.5 block">Start Date</Label>
-                          <Input
-                            type="date"
-                            value={startDate}
-                            onChange={(e) => {
-                              setStartDate(e.target.value)
-                              setBacktestPeriod("") // Clear preset when custom date is modified
-                            }}
-                            className="border-slate-300 h-9 bg-white"
-                          />
+                          <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5 block">Start</Label>
+                          <Input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setBacktestPeriod("") }} className="border-slate-300 h-9 bg-white text-xs font-mono" />
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground mb-1.5 block">End Date</Label>
-                          <Input
-                            type="date"
-                            value={endDate}
-                            onChange={(e) => {
-                              setEndDate(e.target.value)
-                              setBacktestPeriod("") // Clear preset when custom date is modified
-                            }}
-                            className="border-slate-300 h-9 bg-white"
-                          />
+                          <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5 block">End</Label>
+                          <Input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setBacktestPeriod("") }} className="border-slate-300 h-9 bg-white text-xs font-mono" />
                         </div>
                       </div>
                     </TabsContent>
                   </Tabs>
-                </CardContent>
+                </SidebarGroupContent>
               )}
-            </Card>
-          </div>
+            </SidebarGroup>
+          </SidebarContent>
 
-          <div className="p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <SidebarFooter className="p-3 border-t bg-card">
             <div className="flex w-full gap-2">
               <div className="flex flex-1">
                 <Button
-                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-base font-medium font-mono rounded-r-none border-r border-primary-foreground/20"
+                  className="flex-1 bg-[#d07225] hover:bg-[#a65b1d] text-white h-10 text-sm font-mono font-semibold rounded-r-none border-r border-white/20"
                   onClick={() => handleRunBacktest(false)}
                   data-tutorial="run-backtest"
                 >
-                  <Play className="h-5 w-5 mr-2" />
+                  <Play className="h-4 w-4 mr-2" />
                   Run Backtest
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-3 rounded-l-none">
-                      <ChevronDown className="h-4 w-4" />
+                    <Button className="bg-[#d07225] hover:bg-[#a65b1d] text-white h-10 px-2.5 rounded-l-none">
+                      <ChevronDown className="h-3.5 w-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56" align="end">
-                    <DropdownMenuItem onClick={() => {
-                      if (isLoaded && !isSignedIn) {
-                        setSaveWithBacktest(true)
-                        setShowLoginPrompt(true)
-                      } else {
-                        setSaveWithBacktest(true)
-                        setShowSaveModal(true)
-                      }
-                    }} className="font-mono">
-                      <Play className="h-4 w-4 mr-2" />
+                  <DropdownMenuContent className="w-52" align="end">
+                    <DropdownMenuItem onClick={() => { if (isLoaded && !isSignedIn) { setSaveWithBacktest(true); setShowLoginPrompt(true) } else { setSaveWithBacktest(true); setShowSaveModal(true) } }} className="font-mono text-xs">
+                      <Play className="h-3.5 w-3.5 mr-2" />
                       Save & Run
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleCopyConfig} className="font-mono">
-                      {copied ? (
-                        <>
-                          <CheckCheck className="h-4 w-4 mr-2 text-green-600" />
-                          <span className="text-green-600">Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy Config JSON
-                        </>
-                      )}
+                    <DropdownMenuItem onClick={handleCopyConfig} className="font-mono text-xs">
+                      {copied ? (<><CheckCheck className="h-3.5 w-3.5 mr-2 text-green-600" /><span className="text-green-600">Copied!</span></>) : (<><Copy className="h-3.5 w-3.5 mr-2" />Copy Config JSON</>)}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
               <Button
-                className="bg-secondary text-secondary-foreground hover:bg-secondary/80 h-12 px-4 border border-border"
-                onClick={() => {
-                  if (isLoaded && !isSignedIn) {
-                    setSaveWithBacktest(false)
-                    setShowLoginPrompt(true)
-                  } else {
-                    setSaveWithBacktest(false)
-                    setShowSaveModal(true)
-                  }
-                }}
+                variant="outline"
+                size="sm"
+                className="h-10 px-3 border-slate-300 hover:bg-slate-50"
+                onClick={() => { if (isLoaded && !isSignedIn) { setSaveWithBacktest(false); setShowLoginPrompt(true) } else { setSaveWithBacktest(false); setShowSaveModal(true) } }}
               >
-                <Save className="h-5 w-5" />
+                <Save className="h-4 w-4 text-muted-foreground" />
               </Button>
             </div>
-          </div>
-        </TabsContent >
-      </Tabs >
+          </SidebarFooter>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={showSaveModal} onOpenChange={setShowSaveModal}>
         <DialogContent className="sm:max-w-md">

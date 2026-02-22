@@ -255,6 +255,7 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
           <StockRecommendations
             signals={currentResults?.recentSignals?.signals || currentResults?.signals}
             trades={currentResults?.trades}
+            currentPortfolio={currentResults?.currentPortfolio}
           />
         </div>
       </div>
