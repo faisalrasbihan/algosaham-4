@@ -154,6 +154,7 @@ export function PopularStrategiesShowcase() {
                 strategy={strategy}
                 className="w-[300px] md:w-[340px]"
                 onSubscribe={() => handleSubscribe(strategy.id)}
+                onCardClick={() => router.push('/strategies')}
               />
             ))}
           </CardCarousel>

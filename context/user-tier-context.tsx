@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useUser } from "@clerk/nextjs";
 
-type UserTier = "ritel" | "suhu" | "bandar";
+type UserTier = "ritel" | "suhu" | "bandar" | "admin";
 
 interface UserLimits {
     backtest: number;

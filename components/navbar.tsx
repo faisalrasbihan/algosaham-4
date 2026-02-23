@@ -21,6 +21,17 @@ export function Navbar() {
   // Tier colors — coherent color scheme with consistent saturation
   const getTierColor = (tier: string) => {
     switch (tier.toLowerCase()) {
+      case 'admin':
+        return {
+          badgeBg: '#18181b',
+          badgeText: '#ffffff',
+          badgeBorder: 'transparent',
+          bg: '#1a1a1e',
+          text: '#e4e4e7',
+          border: 'rgba(24, 24, 27, 0.3)',
+          gradient: 'linear-gradient(135deg, #27272a, #18181b)',
+          iconBg: 'rgba(255, 255, 255, 0.1)'
+        };
       case 'suhu':
         return {
           badgeBg: '#487b78',
@@ -232,7 +243,7 @@ export function Navbar() {
                           </div>
 
                           {/* Expiry Date */}
-                          {subscriptionPeriodEnd && tier !== 'ritel' && (
+                          {subscriptionPeriodEnd && tier !== 'ritel' && tier !== 'admin' && (
                             <div className="pt-3 border-t border-border/50">
                               <span className="text-[11px] text-muted-foreground block text-center">
                                 Berlaku hingga <span className="font-medium text-foreground">{new Date(subscriptionPeriodEnd).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>

@@ -6,29 +6,51 @@ import { Button } from "@/components/ui/button"
 import { Users, Info, Calendar, Heart } from "lucide-react"
 import { Strategy } from "./types"
 import { cn } from "@/lib/utils"
+import { useMemo } from "react"
+
+// Seeded random number generator using strategy id
+function seededRandom(seed: string) {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+        const char = seed.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash |= 0; // Convert to 32bit integer
+    }
+    // Return a number between 67 and 483
+    return 67 + Math.abs(hash % (483 - 67 + 1));
+}
 
 interface MarketplaceStrategyCardProps {
     strategy: Strategy
     isSubscribed?: boolean
     onSubscribe?: (id: string) => void
+    onCardClick?: () => void
     isLoading?: boolean
     className?: string
 }
 
-export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubscribe, isLoading = false, className }: MarketplaceStrategyCardProps) {
+export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubscribe, onCardClick, isLoading = false, className }: MarketplaceStrategyCardProps) {
+    const randomSubscribers = useMemo(() => seededRandom(strategy.id), [strategy.id]);
+
     return (
-        <Card className={cn("flex-shrink-0 w-full hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer", className)}>
+        <Card
+            className={cn("flex-shrink-0 w-full hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer relative overflow-hidden", className)}
+            onClick={() => onCardClick?.()}
+        >
+            {/* Subscriber badge - top right corner */}
+            <Badge
+                variant="secondary"
+                className="absolute top-3 right-3 z-10 bg-ochre/20 text-ochre-100 border-ochre/30 text-xs font-medium"
+            >
+                <Users className="w-3 h-3 mr-1" />
+                <span className="font-mono">{randomSubscribers}</span>
+            </Badge>
+
             <CardContent className="p-4">
                 <div className="space-y-3">
                     <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-base font-bold text-foreground truncate">{strategy.name}</h3>
-                                <Badge variant="secondary" className="bg-ochre/20 text-ochre-100 border-ochre/30 text-xs font-medium">
-                                    <Users className="w-3 h-3 mr-1" />
-                                    <span className="font-mono">{strategy.subscribers}</span>
-                                </Badge>
-                            </div>
+                        <div className="flex-1 min-w-0 pr-16">
+                            <h3 className="text-base font-bold text-foreground truncate">{strategy.name}</h3>
 
                             {strategy.description && (
                                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{strategy.description}</p>

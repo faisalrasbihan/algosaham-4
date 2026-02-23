@@ -14,6 +14,7 @@ import { useUserTier } from "@/context/user-tier-context"
 import { Loader2, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { StrategyPreviewDialog } from "@/components/strategy-preview-dialog"
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,11 @@ export default function Strategies() {
   const [strategyToSubscribe, setStrategyToSubscribe] = useState<string | null>(null)
   const [dialogState, setDialogState] = useState<SubscribeDialogState>('confirm')
   const [subscribedStrategyName, setSubscribedStrategyName] = useState("")
+
+  // Strategy Preview dialog state
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false)
+  const [previewStrategyId, setPreviewStrategyId] = useState<string | null>(null)
+  const [previewStrategyName, setPreviewStrategyName] = useState<string | undefined>(undefined)
 
   const { tier, limits, usage, refreshTier } = useUserTier()
 
@@ -176,6 +182,13 @@ export default function Strategies() {
   const subscriptionQuotaReached = limits.subscriptions !== -1 && usage.subscriptions >= limits.subscriptions
   const subscriptionsRemaining = limits.subscriptions === -1 ? '∞' : (limits.subscriptions - usage.subscriptions)
 
+  // Handler for opening strategy preview
+  const handleCardClick = (strategy: Strategy) => {
+    setPreviewStrategyId(strategy.id)
+    setPreviewStrategyName(strategy.name)
+    setPreviewDialogOpen(true)
+  }
+
   return (
     <div className="min-h-screen bg-background dotted-background">
       <Navbar />
@@ -191,7 +204,7 @@ export default function Strategies() {
               </div>
               <div className="flex gap-4 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-6 -mx-6">
                 {popularStrategies.map((strategy) => (
-                  <ShowcaseStrategyCard key={strategy.id} strategy={strategy} userTier={tier} />
+                  <ShowcaseStrategyCard key={strategy.id} strategy={strategy} userTier={tier} onCardClick={() => handleCardClick(strategy)} />
                 ))}
               </div>
             </div>
@@ -223,6 +236,7 @@ export default function Strategies() {
                       isSubscribed={subscribedIds.includes(strategy.id)}
                       isLoading={subscriptionLoading[strategy.id]}
                       onSubscribe={handleSubscribeClick}
+                      onCardClick={() => handleCardClick(strategy)}
                     />
                   ))}
                 </div>
@@ -368,6 +382,14 @@ export default function Strategies() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Strategy Preview Dialog */}
+      <StrategyPreviewDialog
+        open={previewDialogOpen}
+        onOpenChange={setPreviewDialogOpen}
+        strategyId={previewStrategyId}
+        strategyName={previewStrategyName}
+      />
     </div>
   )
 }

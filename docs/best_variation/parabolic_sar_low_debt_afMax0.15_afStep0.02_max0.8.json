@@ -1,0 +1,51 @@
+{
+  "backtestConfig": {
+    "endDate": "2026-02-13",
+    "initialCapital": 100000000,
+    "portfolio": {
+      "maxPositions": 5,
+      "minPositionPercent": 5,
+      "positionSizePercent": 20
+    },
+    "riskManagement": {
+      "maxHoldingDays": 21,
+      "stopLoss": {
+        "method": "FIXED",
+        "percent": 7
+      },
+      "takeProfit": {
+        "method": "FIXED",
+        "percent": 15
+      }
+    },
+    "startDate": "2025-02-25",
+    "tradingCosts": {
+      "brokerFee": 0.15,
+      "minimumFee": 1000,
+      "sellFee": 0.15,
+      "slippageBps": 0.0,
+      "spreadBps": 0.0
+    }
+  },
+  "backtestId": "parabolic_sar_low_debt_afMax0.15_afStep0.02_max0.8",
+  "filters": {
+    "marketCap": [
+      "large",
+      "mid"
+    ]
+  },
+  "fundamentalIndicators": [
+    {
+      "max": 0.8,
+      "type": "DE_RATIO"
+    }
+  ],
+  "technicalIndicators": [
+    {
+      "afMax": 0.15,
+      "afStart": 0.02,
+      "afStep": 0.02,
+      "type": "PARABOLIC_SAR"
+    }
+  ]
+}

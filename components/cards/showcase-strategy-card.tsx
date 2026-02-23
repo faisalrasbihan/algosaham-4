@@ -31,12 +31,13 @@ const BANDAR_COLORS = {
 interface ShowcaseStrategyCardProps {
     strategy: Strategy
     onSubscribe?: (id: string) => void
+    onCardClick?: () => void
     isSubscribed?: boolean
     isLoading?: boolean
     userTier?: string
 }
 
-export function ShowcaseStrategyCard({ strategy, onSubscribe, isSubscribed = false, isLoading = false, userTier = 'ritel' }: ShowcaseStrategyCardProps) {
+export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSubscribed = false, isLoading = false, userTier = 'ritel' }: ShowcaseStrategyCardProps) {
     const [hoveredBar, setHoveredBar] = useState<number | null>(null)
 
     // Memoize the data so it doesn't regenerate on hover
@@ -50,7 +51,10 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, isSubscribed = fal
     const isBandarUser = userTier?.toLowerCase() === 'bandar'
 
     return (
-        <Card className="min-w-[520px] flex-shrink-0 border border-border/60 hover:border-border transition-all duration-200 bg-gradient-to-br from-amber-50/40 to-card relative overflow-hidden">
+        <Card
+            className="min-w-[520px] flex-shrink-0 border border-border/60 hover:border-border transition-all duration-200 bg-gradient-to-br from-amber-50/40 to-card relative overflow-hidden cursor-pointer hover:shadow-lg hover:scale-[1.01]"
+            onClick={() => onCardClick?.()}
+        >
             <CardContent className="p-5 relative z-10">
                 <div className="space-y-3">
                     {/* Header: Title + Bandar Badge */}
@@ -200,7 +204,7 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, isSubscribed = fal
                     </div>
 
                     {/* Subscribe button */}
-                    <div className="pt-2">
+                    <div className="pt-2" onClick={(e) => e.stopPropagation()}>
                         {isBandarUser ? (
                             <Button
                                 size="sm"
