@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { strategies } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { strategies, users } from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
 
 const rawUrl = process.env.RAILWAY_URL || "";
 const RAILWAY_URL = rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`;
@@ -10,6 +11,15 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { strategyId } = body;
+
+        const { userId } = await auth();
+
+        if (!userId) {
+            return NextResponse.json(
+                { success: false, error: "Unauthorized. Please log in to preview strategies." },
+                { status: 401 }
+            );
+        }
 
         if (!strategyId) {
             return NextResponse.json(
@@ -61,6 +71,25 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Check user quota for backtesting
+        const user = await db.query.users.findFirst({
+            where: eq(users.clerkId, userId),
+        });
+
+        if (!user) {
+            return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
+        }
+
+        const limit = user.backtestLimit;
+        const used = user.backtestUsedToday || 0;
+
+        if (limit !== -1 && used >= limit) {
+            return NextResponse.json(
+                { success: false, error: "Daily backtest limit reached. Please upgrade your plan." },
+                { status: 403 }
+            );
+        }
+
         // Run the backtest with the stored config
         const config = strategy.config as any;
 
@@ -80,6 +109,13 @@ export async function POST(request: NextRequest) {
         }
 
         const backtestResults = await response.json();
+
+        // Increment user's backtest usage
+        await db.update(users)
+            .set({
+                backtestUsedToday: sql`${users.backtestUsedToday} + 1`
+            })
+            .where(eq(users.clerkId, userId));
 
         return NextResponse.json({
             success: true,

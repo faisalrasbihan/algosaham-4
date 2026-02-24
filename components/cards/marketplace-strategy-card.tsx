@@ -4,6 +4,12 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Users, Info, Calendar, Heart } from "lucide-react"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Strategy } from "./types"
 import { cn } from "@/lib/utils"
 import { useMemo } from "react"
@@ -52,15 +58,33 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                         <div className="flex-1 min-w-0 pr-16">
                             <h3 className="text-base font-bold text-foreground truncate">{strategy.name}</h3>
 
-                            {strategy.description && (
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{strategy.description}</p>
-                            )}
+                            <div className="h-8 mt-1">
+                                {strategy.description ? (
+                                    <TooltipProvider delayDuration={300}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <p className="text-xs text-muted-foreground line-clamp-2 text-left cursor-help hover:text-foreground/80 transition-colors">
+                                                    {strategy.description}
+                                                    {/* Tailwind line-clamp automatically adds "...", hover shows full description */}
+                                                </p>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom" className="max-w-[280px]">
+                                                <p className="text-xs leading-relaxed">{strategy.description}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground opacity-50 italic">No description</p>
+                                )}
+                            </div>
 
-                            {strategy.creator && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    by <span className="text-ochre font-medium">{strategy.creator}</span>
-                                </p>
-                            )}
+                            <div className="h-4 mt-1.5">
+                                {strategy.creator ? (
+                                    <p className="text-xs text-muted-foreground truncate">
+                                        by <span className="text-ochre font-medium">{strategy.creator}</span>
+                                    </p>
+                                ) : null}
+                            </div>
                         </div>
                     </div>
 

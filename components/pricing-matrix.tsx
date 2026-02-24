@@ -284,26 +284,25 @@ function PricingMatrixInner() {
               Pilih level sesuai gaya trading kamu. Naik level kapan aja!
             </p>
             {!isPaidUser && (
-              <div className={`inline-flex items-center gap-1 p-1 rounded-full border transition-all ${isYearly ? "bg-slate-200 border-slate-300" : "bg-slate-200 border-slate-300"
-                }`}>
+              <div className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-100 p-1 text-muted-foreground border border-slate-200/60">
                 <button
                   onClick={() => setIsYearly(false)}
-                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${!isYearly
-                    ? "bg-slate-500 text-white shadow-md"
-                    : "text-slate-500 hover:text-slate-700"
+                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-mono font-semibold transition-all ${!isYearly
+                    ? "bg-slate-600 text-white shadow-sm"
+                    : "hover:text-foreground"
                     }`}
                 >
                   Bulanan
                 </button>
                 <button
                   onClick={() => setIsYearly(true)}
-                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${isYearly
-                    ? "bg-[#d07225] text-white shadow-md"
-                    : "text-slate-500 hover:text-slate-700"
+                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-mono font-semibold transition-all flex items-center gap-1.5 ${isYearly
+                    ? "bg-slate-600 text-white shadow-sm"
+                    : "hover:text-foreground"
                     }`}
                 >
                   Tahunan
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isYearly ? "bg-white/20 text-white" : "bg-[#d07225] text-white"
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm transition-colors ${isYearly ? "bg-white/20 text-white" : "bg-slate-200 text-slate-500"
                     }`}>
                     -50%
                   </span>

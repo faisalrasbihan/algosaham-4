@@ -1,6 +1,58 @@
 import { Card, CardContent } from "@/components/ui/card"
 
-export function StrategyCardSkeleton({ type = "regular" }: { type?: "subscribed" | "regular" }) {
+export function StrategyCardSkeleton({ type = "regular" }: { type?: "subscribed" | "regular" | "showcase" }) {
+  if (type === "showcase") {
+    return (
+      <div className="py-4">
+        <Card className="min-w-[520px] min-h-[280px] shrink-0 animate-pulse border border-border bg-gradient-to-br from-amber-50/20 to-card">
+          <CardContent className="p-5 h-full flex flex-col">
+            <div className="space-y-4 flex-1 flex flex-col">
+              {/* Header skeleton */}
+              <div className="flex items-start justify-between">
+                <div className="h-5 bg-gradient-to-r from-muted to-muted/50 rounded w-1/3" />
+                <div className="h-5 w-16 bg-gradient-to-r from-amber-100/50 to-amber-100/30 rounded" />
+              </div>
+
+              {/* Return skeleton */}
+              <div className="flex items-center justify-between pt-2 pb-1">
+                <div className="space-y-2">
+                  <div className="h-3 bg-gradient-to-r from-muted to-muted/50 rounded w-16" />
+                  <div className="h-8 bg-gradient-to-r from-muted to-muted/50 rounded w-24" />
+                </div>
+                <div className="h-12 w-[134px] bg-gradient-to-r from-muted to-muted/50 rounded" />
+              </div>
+
+              {/* Metrics skeleton */}
+              <div className="flex items-start gap-4 pt-1">
+                <div className="flex-1 grid grid-cols-3 gap-x-4 gap-y-3">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="space-y-1.5">
+                      <div className="h-3 bg-gradient-to-r from-muted to-muted/50 rounded w-16" />
+                      <div className="h-4 bg-gradient-to-r from-muted to-muted/50 rounded w-12" />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex-shrink-0 space-y-2">
+                  <div className="h-3 bg-gradient-to-r from-muted to-muted/50 rounded w-24" />
+                  <div className="grid grid-cols-6 gap-1 w-[150px]">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div key={i} className="w-5 h-5 rounded-sm bg-gradient-to-r from-muted to-muted/50" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action button */}
+              <div className="pt-2">
+                <div className="h-8 w-full rounded bg-gradient-to-r from-muted to-muted/50" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="py-4">
       <Card className="w-80 min-h-[380px] shrink-0 animate-pulse border border-border">

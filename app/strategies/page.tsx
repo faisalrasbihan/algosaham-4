@@ -5,7 +5,6 @@ import { TickerTape } from "@/components/ticker-tape"
 import { ShowcaseStrategyCard } from "@/components/cards/showcase-strategy-card"
 import { MarketplaceStrategyCard } from "@/components/cards/marketplace-strategy-card"
 import { MinimalStrategyCard } from "@/components/cards/minimal-strategy-card"
-import { popularStrategies } from "@/components/cards/data" // Keep for showcase if needed, or replace
 import { useState, useEffect } from "react"
 import { StrategyCardSkeleton } from "@/components/strategy-card-skeleton"
 import { toast } from "sonner"
@@ -29,7 +28,9 @@ type SubscribeDialogState = 'confirm' | 'loading' | 'success'
 
 export default function Strategies() {
   const [exploreStrategies, setExploreStrategies] = useState<Strategy[]>([])
+  const [showcaseStrategies, setShowcaseStrategies] = useState<Strategy[]>([])
   const [isLoadingExplore, setIsLoadingExplore] = useState(true)
+  const [isLoadingShowcase, setIsLoadingShowcase] = useState(true)
   const [subscribedIds, setSubscribedIds] = useState<string[]>([])
   const [subscriptionLoading, setSubscriptionLoading] = useState<Record<string, boolean>>({})
 
@@ -72,7 +73,26 @@ export default function Strategies() {
           }
         }
 
-        // 2. Fetch User Subscriptions
+        // 2. Fetch Popular (Showcase) Strategies
+        const popResponse = await fetch('/api/strategies/popular')
+        if (popResponse.ok) {
+          const data = await popResponse.json()
+          if (data.success && data.data) {
+            const mappedPop = data.data.map((s: any) => ({
+              ...s,
+              id: s.id.toString(),
+              createdDate: s.createdAt,
+              winRate: parseFloat(s.successRate || 0),
+              totalReturn: parseFloat(s.totalReturn || 0),
+              maxDrawdown: parseFloat(s.maxDrawdown || 0),
+              sharpeRatio: parseFloat(s.sharpeRatio || 0),
+              stocksHeld: s.totalStocks || 0,
+            }))
+            setShowcaseStrategies(mappedPop)
+          }
+        }
+
+        // 3. Fetch User Subscriptions
         const subResponse = await fetch('/api/subscriptions/list')
         if (subResponse.ok) {
           const data = await subResponse.json()
@@ -86,6 +106,7 @@ export default function Strategies() {
         toast.error("Failed to load strategies")
       } finally {
         setIsLoadingExplore(false)
+        setIsLoadingShowcase(false)
       }
     }
 
@@ -203,9 +224,15 @@ export default function Strategies() {
                 <p className="text-muted-foreground">Top-performing strategies we curated for you</p>
               </div>
               <div className="flex gap-4 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-6 -mx-6">
-                {popularStrategies.map((strategy) => (
-                  <ShowcaseStrategyCard key={strategy.id} strategy={strategy} userTier={tier} onCardClick={() => handleCardClick(strategy)} />
-                ))}
+                {isLoadingShowcase ? (
+                  [1, 2, 3].map((i) => <StrategyCardSkeleton key={i} type="showcase" />)
+                ) : showcaseStrategies.length === 0 ? (
+                  <div className="text-muted-foreground w-full text-center py-4">No showcase strategies available.</div>
+                ) : (
+                  showcaseStrategies.map((strategy) => (
+                    <ShowcaseStrategyCard key={strategy.id} strategy={strategy} userTier={tier} onCardClick={() => handleCardClick(strategy)} />
+                  ))
+                )}
               </div>
             </div>
           </section>
@@ -252,7 +279,7 @@ export default function Strategies() {
                 <p className="text-muted-foreground">At a glance strategy performance</p>
               </div>
               <div className="flex gap-4 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-6 -mx-6">
-                {popularStrategies.map((strategy) => (
+                {showcaseStrategies.map((strategy) => (
                   <MinimalStrategyCard key={strategy.id} strategy={strategy} />
                 ))}
               </div>

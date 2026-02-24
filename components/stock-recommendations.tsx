@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { TrendingUp, TrendingDown, Sparkles, BarChart3, ArrowRight, Wallet } from "lucide-react"
+import { TrendingUp, TrendingDown, Sparkles, BarChart3, ArrowRight, ArrowUpRight, Wallet } from "lucide-react"
 import Image from "next/image"
 import {
   Tooltip,
@@ -411,7 +411,7 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
                       <div className="p-3 pt-0 border-t border-slate-100 mt-2">
                         <Button className="w-full text-xs h-8 bg-[#d07225] hover:bg-[#a65b1d] text-white" asChild>
                           <Link href={`/analyze?ticker=${stock.ticker}`}>
-                            Analisis Saham <ArrowRight className="w-3 h-3 ml-1" />
+                            Analisis Saham <ArrowUpRight className="w-3 h-3 ml-1" />
                           </Link>
                         </Button>
                       </div>
@@ -599,7 +599,7 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
                         <div className="p-3 pt-0 border-t border-slate-100 mt-2">
                           <Button className="w-full text-xs h-8 bg-[#d07225] hover:bg-[#a65b1d] text-white" asChild>
                             <Link href={`/analyze?ticker=${pos.ticker}`}>
-                              Analisis Saham <ArrowRight className="w-3 h-3 ml-1" />
+                              Analisis Saham <ArrowUpRight className="w-3 h-3 ml-1" />
                             </Link>
                           </Button>
                         </div>

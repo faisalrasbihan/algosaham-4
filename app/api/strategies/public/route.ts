@@ -25,7 +25,8 @@ export async function GET() {
             .where(
                 and(
                     eq(strategies.isActive, true),
-                    eq(strategies.isPublic, true)
+                    eq(strategies.isPublic, true),
+                    eq(strategies.isShowcase, false) // Exclude showcase strategies from explore
                 )
             )
             .orderBy(desc(strategies.subscribers)); // Order by popularity

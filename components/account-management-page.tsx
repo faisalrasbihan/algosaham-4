@@ -374,36 +374,26 @@ export function AccountManagementPage() {
                             {/* Billing toggle */}
                             <div className="flex items-center gap-3">
                                 <span className="text-[13px] text-muted-foreground">Opsi tagihan:</span>
-                                <div
-                                    className="inline-flex items-center gap-0.5 p-1 rounded-full border"
-                                    style={{ backgroundColor: "#f4f4f5", borderColor: "#e4e4e7" }}
-                                >
+                                <div className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-100 p-1 text-muted-foreground border border-slate-200/60">
                                     <button
                                         onClick={() => setIsYearly(false)}
-                                        className="px-3 py-1 rounded-full text-xs font-medium transition-all"
-                                        style={{
-                                            backgroundColor: !isYearly ? "#71717a" : "transparent",
-                                            color: !isYearly ? "#fff" : "#71717a",
-                                        }}
+                                        className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-mono font-semibold transition-all ${!isYearly
+                                            ? "bg-slate-600 text-white shadow-sm"
+                                            : "hover:text-foreground"
+                                            }`}
                                     >
                                         Bulanan
                                     </button>
                                     <button
                                         onClick={() => setIsYearly(true)}
-                                        className="px-3 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1.5"
-                                        style={{
-                                            backgroundColor: isYearly ? "#d07225" : "transparent",
-                                            color: isYearly ? "#fff" : "#71717a",
-                                        }}
+                                        className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-mono font-semibold transition-all flex items-center gap-1.5 ${isYearly
+                                            ? "bg-slate-600 text-white shadow-sm"
+                                            : "hover:text-foreground"
+                                            }`}
                                     >
                                         Tahunan
-                                        <span
-                                            className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
-                                            style={{
-                                                backgroundColor: isYearly ? "rgba(255,255,255,0.2)" : "rgba(208,114,37,0.12)",
-                                                color: isYearly ? "#fff" : "#d07225",
-                                            }}
-                                        >
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm transition-colors ${isYearly ? "bg-white/20 text-white" : "bg-slate-200 text-slate-500"
+                                            }`}>
                                             −50%
                                         </span>
                                     </button>

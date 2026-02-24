@@ -22,6 +22,10 @@ import { MonthlyPerformanceHeatmap } from "@/components/monthly-performance-heat
 import { TradeHistoryTable } from "@/components/trade-history-table"
 import { Loader2, AlertCircle, TrendingUp, BarChart3, Activity, Target, Zap, Clock, Trophy, TrendingDown } from "lucide-react"
 import { BacktestResult } from "@/lib/api"
+import { useUser, SignInButton } from "@clerk/nextjs"
+import { useUserTier } from "@/context/user-tier-context"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 interface StrategyPreviewDialogProps {
     open: boolean
@@ -42,6 +46,10 @@ export function StrategyPreviewDialog({
     const [strategy, setStrategy] = useState<{ id: number; name: string; description?: string } | null>(null)
     const [selectedBenchmark, setSelectedBenchmark] = useState<BenchmarkType>("ihsg")
     const [elapsedTime, setElapsedTime] = useState("0.0")
+    const [previewState, setPreviewState] = useState<'confirm' | 'showing'>('confirm')
+
+    const { isSignedIn, isLoaded } = useUser()
+    const { limits, usage, refreshTier } = useUserTier()
 
     // Elapsed time ticker
     useEffect(() => {
@@ -79,6 +87,11 @@ export function StrategyPreviewDialog({
 
             setResults(data.results)
             setStrategy(data.strategy)
+
+            // Refresh user tier context to update the consumed backtest quota
+            if (isSignedIn) {
+                refreshTier()
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to load preview")
         } finally {
@@ -87,17 +100,21 @@ export function StrategyPreviewDialog({
     }, [])
 
     useEffect(() => {
-        if (open && strategyId) {
-            fetchPreview(strategyId)
-        }
         if (!open) {
             // Reset state on close
             setResults(null)
             setError(null)
             setStrategy(null)
             setLoading(false)
+            setPreviewState('confirm')
         }
-    }, [open, strategyId, fetchPreview])
+    }, [open])
+
+    const handleConfirmPreview = () => {
+        if (!strategyId) return
+        setPreviewState('showing')
+        fetchPreview(strategyId)
+    }
 
     const displayName = strategy?.name || strategyName || "Strategy Preview"
 
@@ -167,207 +184,295 @@ export function StrategyPreviewDialog({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="max-w-5xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden"
+                className={previewState === 'confirm'
+                    ? "sm:max-w-md"
+                    : "max-w-5xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col"
+                }
                 onPointerDownOutside={(e) => {
                     if (loading) e.preventDefault()
                 }}
             >
-                {/* Fixed Header */}
-                <div className="border-b border-border px-6 py-4  flex-shrink-0">
-                    <DialogHeader>
-                        <DialogTitle className="font-mono text-lg font-bold flex items-center gap-2">
-                            <div
-                                className="w-2 h-2 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: '#d07225' }}
-                            />
-                            {displayName}
-                        </DialogTitle>
-                        {strategy?.description && (
-                            <DialogDescription className="text-sm text-muted-foreground mt-1">
-                                {strategy.description}
-                            </DialogDescription>
+                {previewState === 'confirm' ? (
+                    <>
+                        {!isLoaded ? (
+                            <div className="flex justify-center p-6"><Loader2 className="w-6 h-6 animate-spin" /></div>
+                        ) : !isSignedIn ? (
+                            <>
+                                <DialogHeader>
+                                    <DialogTitle>Login Dibutuhkan</DialogTitle>
+                                    <DialogDescription>
+                                        Silakan login untuk melihat preview strategi.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="flex justify-end pt-4 gap-2">
+                                    <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
+                                    <SignInButton mode="modal">
+                                        <Button className="bg-[#d07225] text-white hover:bg-[#a65b1d]">Login</Button>
+                                    </SignInButton>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <DialogHeader>
+                                    <DialogTitle>Preview Strategi</DialogTitle>
+                                    <DialogDescription asChild>
+                                        <div className="space-y-3">
+                                            {limits.backtest !== -1 && usage.backtest >= limits.backtest ? (
+                                                <>
+                                                    <p>Kuota backtest kamu sudah habis.</p>
+                                                    <p className="text-sm">
+                                                        Kamu telah menggunakan{' '}
+                                                        <span
+                                                            className="inline-block px-2 py-0.5 rounded-md font-semibold text-xs text-red-700"
+                                                            style={{ fontFamily: "'IBM Plex Mono', monospace", backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+                                                        >
+                                                            {usage.backtest}/{limits.backtest}
+                                                        </span>{' '}
+                                                        kuota backtest. Upgrade plan untuk menambah kuota.
+                                                    </p>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p>Apakah kamu yakin ingin membuka preview strategi ini?</p>
+                                                    <p className="text-sm">
+                                                        Sisa kuota backtest kamu:{' '}
+                                                        <span
+                                                            className="inline-block px-2 py-0.5 rounded-md font-semibold text-xs text-foreground"
+                                                            style={{ fontFamily: "'IBM Plex Mono', monospace", backgroundColor: 'rgba(140, 188, 185, 0.15)' }}
+                                                        >
+                                                            {limits.backtest === -1 ? '∞' : (limits.backtest - usage.backtest)}
+                                                        </span>
+                                                        {limits.backtest !== -1 && (
+                                                            <span className="text-muted-foreground"> dari {limits.backtest} slot</span>
+                                                        )}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Membuka preview akan memotong kuota backtest kamu.
+                                                    </p>
+                                                </>
+                                            )}
+                                        </div>
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="flex justify-end gap-2 pt-4">
+                                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                                        Batal
+                                    </Button>
+                                    {limits.backtest !== -1 && usage.backtest >= limits.backtest ? (
+                                        <Link href="/harga" onClick={() => onOpenChange(false)}>
+                                            <Button className="font-medium hover:opacity-90" style={{ backgroundColor: '#d07225', color: '#fff' }}>
+                                                Upgrade Plan
+                                            </Button>
+                                        </Link>
+                                    ) : (
+                                        <Button onClick={handleConfirmPreview}>
+                                            Ya, Lanjutkan
+                                        </Button>
+                                    )}
+                                </div>
+                            </>
                         )}
-                    </DialogHeader>
-                </div>
-
-                {/* Scrollable Content */}
-                <ScrollArea className="flex-1 h-[calc(90vh-80px)]">
-                    <div className="p-6">
-                        {/* Loading State */}
-                        {loading && (
-                            <div className="flex flex-col items-center justify-center py-32">
-                                <div className="relative">
+                    </>
+                ) : (
+                    <>
+                        {/* Fixed Header */}
+                        <div className="border-b border-border px-6 py-4  flex-shrink-0">
+                            <DialogHeader>
+                                <DialogTitle className="font-mono text-lg font-bold flex items-center gap-2">
                                     <div
-                                        className="absolute inset-0 rounded-full blur-xl opacity-20 animate-pulse"
+                                        className="w-2 h-2 rounded-full flex-shrink-0"
                                         style={{ backgroundColor: '#d07225' }}
                                     />
-                                    <Loader2
-                                        className="h-12 w-12 animate-spin relative z-10"
-                                        style={{ color: '#d07225' }}
-                                    />
-                                </div>
-                                <p className="text-muted-foreground font-mono text-sm mt-6">
-                                    Memuat preview strategi...
-                                </p>
-                                <p className="text-muted-foreground/60 font-mono text-xs mt-1">
-                                    {elapsedTime}s
-                                </p>
-                                <div className="flex items-center gap-2 mt-4">
-                                    {[0, 1, 2].map((i) => (
-                                        <div
-                                            key={i}
-                                            className="w-1.5 h-1.5 rounded-full animate-bounce"
-                                            style={{
-                                                backgroundColor: '#d07225',
-                                                animationDelay: `${i * 0.15}s`,
-                                                opacity: 0.4 + (i * 0.2),
-                                            }}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                                    {displayName}
+                                </DialogTitle>
+                                {strategy?.description && (
+                                    <DialogDescription className="text-sm text-muted-foreground mt-1">
+                                        {strategy.description}
+                                    </DialogDescription>
+                                )}
+                            </DialogHeader>
+                        </div>
 
-                        {/* Error State */}
-                        {error && !loading && (
-                            <div className="flex flex-col items-center justify-center py-32">
-                                <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
-                                    <AlertCircle className="w-6 h-6 text-red-500" />
-                                </div>
-                                <h3 className="text-base font-semibold text-foreground mb-2">
-                                    Gagal Memuat Preview
-                                </h3>
-                                <p className="text-sm text-muted-foreground text-center max-w-sm">
-                                    {error}
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Results */}
-                        {results && !loading && (
-                            <div className="space-y-6">
-                                {/* === SECTION 1: Performance Chart === */}
-                                <Card className="rounded-md">
-                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                        <CardTitle className="text-foreground font-mono font-bold text-base">
-                                            Performance Chart
-                                        </CardTitle>
-                                        {/* Benchmark Toggle */}
-                                        <div className="inline-flex items-center bg-slate-100 rounded-lg p-0.5 text-xs font-mono">
-                                            <button
-                                                onClick={() => setSelectedBenchmark("ihsg")}
-                                                className={`px-3 py-1.5 rounded-md transition-all ${selectedBenchmark === "ihsg"
-                                                    ? "bg-white text-slate-900 shadow-sm"
-                                                    : "text-slate-500 hover:text-slate-700"
-                                                    }`}
-                                            >
-                                                IHSG
-                                            </button>
-                                            <button
-                                                onClick={() => setSelectedBenchmark("lq45")}
-                                                className={`px-3 py-1.5 rounded-md transition-all ${selectedBenchmark === "lq45"
-                                                    ? "bg-white text-slate-900 shadow-sm"
-                                                    : "text-slate-500 hover:text-slate-700"
-                                                    }`}
-                                            >
-                                                LQ45
-                                            </button>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="h-[350px]">
-                                            <PerformanceChart
-                                                data={results?.dailyPortfolio}
-                                                selectedBenchmark={selectedBenchmark}
+                        {/* Scrollable Content */}
+                        <ScrollArea className="flex-1 h-[calc(90vh-80px)]">
+                            <div className="p-6">
+                                {/* Loading State */}
+                                {loading && (
+                                    <div className="flex flex-col items-center justify-center py-32">
+                                        <div className="relative">
+                                            <div
+                                                className="absolute inset-0 rounded-full blur-xl opacity-20 animate-pulse"
+                                                style={{ backgroundColor: '#d07225' }}
+                                            />
+                                            <Loader2
+                                                className="h-12 w-12 animate-spin relative z-10"
+                                                style={{ color: '#d07225' }}
                                             />
                                         </div>
-                                    </CardContent>
-                                </Card>
-
-                                {/* === SECTION 2: Key Statistics === */}
-                                <Card className="rounded-md">
-                                    <CardHeader>
-                                        <CardTitle className="text-foreground font-mono font-bold text-base">
-                                            Key Statistics
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                            <TooltipProvider>
-                                                {performanceStats.map((stat, index) => (
-                                                    <Tooltip key={index}>
-                                                        <TooltipTrigger asChild>
-                                                            <div className="text-center p-4 bg-secondary/50 rounded-lg border border-border/50 hover:bg-secondary/70 transition-colors">
-                                                                <div className="flex items-center justify-center gap-1.5 mb-2">
-                                                                    <stat.icon className="w-3 h-3 text-muted-foreground" />
-                                                                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                                                                        {stat.label}
-                                                                    </span>
-                                                                </div>
-                                                                {'subValue' in stat && stat.subValue ? (
-                                                                    <div className="flex items-baseline justify-center gap-2">
-                                                                        <span className="font-mono text-xl font-bold text-foreground">
-                                                                            {stat.value}
-                                                                        </span>
-                                                                        <span
-                                                                            className={`font-mono text-sm font-semibold ${stat.subPositive ? "text-green-600" : "text-red-500"}`}
-                                                                        >
-                                                                            {stat.subValue}
-                                                                        </span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <div
-                                                                        className={`font-mono text-xl font-bold ${('neutral' in stat && stat.neutral)
-                                                                            ? "text-foreground"
-                                                                            : stat.positive
-                                                                                ? "text-green-700"
-                                                                                : "text-red-600"
-                                                                            }`}
-                                                                    >
-                                                                        {stat.value}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p className="max-w-xs text-sm">{stat.tooltip}</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                ))}
-                                            </TooltipProvider>
+                                        <p className="text-muted-foreground font-mono text-sm mt-6">
+                                            Memuat preview strategi...
+                                        </p>
+                                        <p className="text-muted-foreground/60 font-mono text-xs mt-1">
+                                            {elapsedTime}s
+                                        </p>
+                                        <div className="flex items-center gap-2 mt-4">
+                                            {[0, 1, 2].map((i) => (
+                                                <div
+                                                    key={i}
+                                                    className="w-1.5 h-1.5 rounded-full animate-bounce"
+                                                    style={{
+                                                        backgroundColor: '#d07225',
+                                                        animationDelay: `${i * 0.15}s`,
+                                                        opacity: 0.4 + (i * 0.2),
+                                                    }}
+                                                />
+                                            ))}
                                         </div>
-                                    </CardContent>
-                                </Card>
+                                    </div>
+                                )}
 
-                                {/* === SECTION 3: Current Portfolio / Stock Recommendations === */}
-                                <div>
-                                    <StockRecommendations
-                                        signals={results?.recentSignals?.signals || results?.signals}
-                                        trades={results?.trades}
-                                        currentPortfolio={(results as any)?.currentPortfolio}
-                                    />
-                                </div>
+                                {/* Error State */}
+                                {error && !loading && (
+                                    <div className="flex flex-col items-center justify-center py-32">
+                                        <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
+                                            <AlertCircle className="w-6 h-6 text-red-500" />
+                                        </div>
+                                        <h3 className="text-base font-semibold text-foreground mb-2">
+                                            Gagal Memuat Preview
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground text-center max-w-sm">
+                                            {error}
+                                        </p>
+                                    </div>
+                                )}
 
-                                {/* === SECTION 4: Monthly Performance Heatmap === */}
-                                <MonthlyPerformanceHeatmap
-                                    monthlyPerformance={results?.monthlyPerformance}
-                                />
+                                {/* Results */}
+                                {results && !loading && (
+                                    <div className="space-y-6">
+                                        {/* === SECTION 1: Performance Chart === */}
+                                        <Card className="rounded-md">
+                                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                                <CardTitle className="text-foreground font-mono font-bold text-base">
+                                                    Performance Chart
+                                                </CardTitle>
+                                                {/* Benchmark Toggle */}
+                                                <div className="inline-flex items-center bg-slate-100 rounded-lg p-0.5 text-xs font-mono">
+                                                    <button
+                                                        onClick={() => setSelectedBenchmark("ihsg")}
+                                                        className={`px-3 py-1.5 rounded-md transition-all ${selectedBenchmark === "ihsg"
+                                                            ? "bg-white text-slate-900 shadow-sm"
+                                                            : "text-slate-500 hover:text-slate-700"
+                                                            }`}
+                                                    >
+                                                        IHSG
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setSelectedBenchmark("lq45")}
+                                                        className={`px-3 py-1.5 rounded-md transition-all ${selectedBenchmark === "lq45"
+                                                            ? "bg-white text-slate-900 shadow-sm"
+                                                            : "text-slate-500 hover:text-slate-700"
+                                                            }`}
+                                                    >
+                                                        LQ45
+                                                    </button>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="h-[350px]">
+                                                    <PerformanceChart
+                                                        data={results?.dailyPortfolio}
+                                                        selectedBenchmark={selectedBenchmark}
+                                                    />
+                                                </div>
+                                            </CardContent>
+                                        </Card>
 
-                                {/* === SECTION 5: Trade History === */}
-                                <Card className="rounded-md">
-                                    <CardHeader>
-                                        <CardTitle className="text-foreground font-mono font-bold text-base">
-                                            Trade History
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <TradeHistoryTable trades={results?.trades} />
-                                    </CardContent>
-                                </Card>
+                                        {/* === SECTION 2: Key Statistics === */}
+                                        <Card className="rounded-md">
+                                            <CardHeader>
+                                                <CardTitle className="text-foreground font-mono font-bold text-base">
+                                                    Key Statistics
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                                    <TooltipProvider>
+                                                        {performanceStats.map((stat, index) => (
+                                                            <Tooltip key={index}>
+                                                                <TooltipTrigger asChild>
+                                                                    <div className="text-center p-4 bg-secondary/50 rounded-lg border border-border/50 hover:bg-secondary/70 transition-colors">
+                                                                        <div className="flex items-center justify-center gap-1.5 mb-2">
+                                                                            <stat.icon className="w-3 h-3 text-muted-foreground" />
+                                                                            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                                                                                {stat.label}
+                                                                            </span>
+                                                                        </div>
+                                                                        {'subValue' in stat && stat.subValue ? (
+                                                                            <div className="flex items-baseline justify-center gap-2">
+                                                                                <span className="font-mono text-xl font-bold text-foreground">
+                                                                                    {stat.value}
+                                                                                </span>
+                                                                                <span
+                                                                                    className={`font-mono text-sm font-semibold ${stat.subPositive ? "text-green-600" : "text-red-500"}`}
+                                                                                >
+                                                                                    {stat.subValue}
+                                                                                </span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div
+                                                                                className={`font-mono text-xl font-bold ${('neutral' in stat && stat.neutral)
+                                                                                    ? "text-foreground"
+                                                                                    : stat.positive
+                                                                                        ? "text-green-700"
+                                                                                        : "text-red-600"
+                                                                                    }`}
+                                                                            >
+                                                                                {stat.value}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p className="max-w-xs text-sm">{stat.tooltip}</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        ))}
+                                                    </TooltipProvider>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+
+                                        {/* === SECTION 3: Current Portfolio / Stock Recommendations === */}
+                                        <div>
+                                            <StockRecommendations
+                                                signals={results?.recentSignals?.signals || results?.signals}
+                                                trades={results?.trades}
+                                                currentPortfolio={(results as any)?.currentPortfolio}
+                                            />
+                                        </div>
+
+                                        {/* === SECTION 4: Monthly Performance Heatmap === */}
+                                        <MonthlyPerformanceHeatmap
+                                            monthlyPerformance={results?.monthlyPerformance}
+                                        />
+
+                                        {/* === SECTION 5: Trade History === */}
+                                        <Card className="rounded-md">
+                                            <CardHeader>
+                                                <CardTitle className="text-foreground font-mono font-bold text-base">
+                                                    Trade History
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <TradeHistoryTable trades={results?.trades} />
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                </ScrollArea>
+                        </ScrollArea>
+                    </>
+                )}
             </DialogContent>
         </Dialog>
     )
