@@ -50,10 +50,12 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
 
     const isBandarUser = userTier?.toLowerCase() === 'bandar'
 
-    return (
+    const cardContent = (
         <Card
             className="min-w-[520px] flex-shrink-0 border border-border/60 hover:border-border transition-all duration-200 bg-gradient-to-br from-amber-50/40 to-card relative overflow-hidden cursor-pointer hover:shadow-lg hover:scale-[1.01]"
-            onClick={() => onCardClick?.()}
+            onClick={() => {
+                if (isBandarUser) onCardClick?.()
+            }}
         >
             <CardContent className="p-5 relative z-10">
                 <div className="space-y-3">
@@ -204,7 +206,7 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
                     </div>
 
                     {/* Subscribe button */}
-                    <div className="pt-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="pt-2" onClick={(e) => { if (isBandarUser) e.stopPropagation() }}>
                         {isBandarUser ? (
                             <Button
                                 size="sm"
@@ -216,62 +218,74 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
                                 {isSubscribed ? 'Subscribed' : 'Subscribe'}
                             </Button>
                         ) : (
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="w-full font-medium transition-all cursor-pointer hover:text-white"
-                                        style={{
-                                            borderColor: BANDAR_COLORS.bg,
-                                            color: BANDAR_COLORS.text,
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.backgroundColor = '#d07225'
-                                            e.currentTarget.style.borderColor = '#d07225'
-                                            e.currentTarget.style.color = '#ffffff'
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.backgroundColor = ''
-                                            e.currentTarget.style.borderColor = BANDAR_COLORS.bg
-                                            e.currentTarget.style.color = BANDAR_COLORS.text
-                                        }}
-                                    >
-                                        <Lock className="w-3.5 h-3.5 mr-1.5" />
-                                        Upgrade untuk berlangganan
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent side="bottom" className="w-[260px] p-4">
-                                    <div className="space-y-3">
-                                        <div className="flex items-center gap-2">
-                                            <div
-                                                className="w-6 h-6 rounded-full flex items-center justify-center"
-                                                style={{ background: BANDAR_COLORS.gradient }}
-                                            >
-                                                <Crown className="w-3.5 h-3.5 text-white" />
-                                            </div>
-                                            <span className="text-sm font-semibold text-foreground">Bandar Exclusive</span>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground leading-relaxed">
-                                            Strategi showcase eksklusif ini hanya tersedia untuk pengguna <strong className="text-foreground">Bandar Plan</strong>. Upgrade sekarang untuk akses penuh.
-                                        </p>
-                                        <Link href="/harga">
-                                            <Button
-                                                size="sm"
-                                                className="w-full text-white font-medium hover:opacity-90 transition-all group"
-                                                style={{ background: BANDAR_COLORS.gradient }}
-                                            >
-                                                Upgrade Plan
-                                                <ArrowUpRight className="w-3.5 h-3.5 ml-1.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                                            </Button>
-                                        </Link>
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full font-medium transition-all cursor-pointer hover:text-white"
+                                style={{
+                                    borderColor: BANDAR_COLORS.bg,
+                                    color: BANDAR_COLORS.text,
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#d07225'
+                                    e.currentTarget.style.borderColor = '#d07225'
+                                    e.currentTarget.style.color = '#ffffff'
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = ''
+                                    e.currentTarget.style.borderColor = BANDAR_COLORS.bg
+                                    e.currentTarget.style.color = BANDAR_COLORS.text
+                                }}
+                            >
+                                <Lock className="w-3.5 h-3.5 mr-1.5" />
+                                Upgrade untuk berlangganan
+                            </Button>
                         )}
                     </div>
                 </div>
             </CardContent>
         </Card>
     )
+
+    const popoverContent = (
+        <PopoverContent side="bottom" className="w-[260px] p-4 z-50" onClick={(e) => e.stopPropagation()}>
+            <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                    <div
+                        className="w-6 h-6 rounded-full flex items-center justify-center"
+                        style={{ background: BANDAR_COLORS.gradient }}
+                    >
+                        <Crown className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">Bandar Exclusive</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                    Strategi showcase eksklusif ini hanya tersedia untuk pengguna <strong className="text-foreground">Bandar Plan</strong>. Upgrade sekarang untuk akses penuh.
+                </p>
+                <Link href="/harga">
+                    <Button
+                        size="sm"
+                        className="w-full text-white font-medium hover:opacity-90 transition-all group"
+                        style={{ background: BANDAR_COLORS.gradient }}
+                    >
+                        Upgrade Plan
+                        <ArrowUpRight className="w-3.5 h-3.5 ml-1.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    </Button>
+                </Link>
+            </div>
+        </PopoverContent>
+    )
+
+    if (!isBandarUser) {
+        return (
+            <Popover>
+                <PopoverTrigger asChild>
+                    {cardContent}
+                </PopoverTrigger>
+                {popoverContent}
+            </Popover>
+        )
+    }
+
+    return cardContent
 }

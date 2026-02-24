@@ -176,8 +176,8 @@ export function FAQSection() {
           <div className="text-center mt-8">
             <p className="text-sm text-muted-foreground font-mono mb-4">
               Masih punya pertanyaan? Hubungi kami di{" "}
-              <a href="mailto:support@algosaham.ai" className="text-primary hover:underline">
-                support@algosaham.ai
+              <a href="mailto:algosaham.ai@gmail.com" className="text-primary hover:underline">
+                algosaham.ai@gmail.com
               </a>
             </p>
           </div>
