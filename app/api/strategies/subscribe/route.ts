@@ -95,7 +95,7 @@ export async function POST(req: Request) {
                 snapshotValue: null, // Can be set if we track portfolio value
                 snapshotHoldings: strategy.topHoldings, // Top 3 stocks when subscribed
                 snapshotDate: new Date(),
-                currentReturn: strategy.totalReturn,
+                currentReturn: "0", // Starts at 0, tracking return since subscription
                 isActive: true,
             });
 

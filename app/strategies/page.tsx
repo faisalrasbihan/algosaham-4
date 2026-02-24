@@ -247,7 +247,7 @@ export default function Strategies() {
 
               {isLoadingExplore ? (
                 <div className="flex gap-5 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-6 -mx-6">
-                  {[1, 2, 3, 4].map((i) => (
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
                     <StrategyCardSkeleton key={i} />
                   ))}
                 </div>

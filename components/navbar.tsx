@@ -85,7 +85,12 @@ export function Navbar() {
             className="object-contain"
           />
         </div>
-        <span className="text-black">algosaham.ai</span>
+        <div className="flex items-center gap-2">
+          <span className="text-black">algosaham.ai</span>
+          <span className="px-1.5 py-0.5 rounded-md bg-[#d07225]/10 border border-[#d07225]/20 text-[#d07225] text-xs font-bold leading-none tracking-wider">
+            BETA
+          </span>
+        </div>
       </Link>
 
       <div className="hidden md:flex items-center space-x-2 text-sm text-muted-foreground">
