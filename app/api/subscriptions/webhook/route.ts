@@ -77,7 +77,7 @@ function getBillingInterval(amount: string, planType: string): 'monthly' | 'year
     const numAmount = parseInt(amount, 10);
 
     // Monthly prices
-    const monthlyPrices = { suhu: 99000, bandar: 189000 };
+    const monthlyPrices = { suhu: 89500, bandar: 189000 };
 
     // If the amount matches monthly price, it's monthly
     if (planType === 'suhu' && numAmount === monthlyPrices.suhu) return 'monthly';

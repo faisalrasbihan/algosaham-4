@@ -22,16 +22,16 @@ export const users = pgTable("users", {
   analyzeLastReset: timestamp("analyze_last_reset", { withTimezone: true }).defaultNow(),
 
   // BACKTEST - Daily quota & usage
-  backtestLimit: integer("backtest_limit").notNull().default(5), // ritel: 5, bandar: 25, suhu: -1
+  backtestLimit: integer("backtest_limit").notNull().default(5), // ritel: 5, suhu: 50, bandar: -1
   backtestUsedToday: integer("backtest_used_today").default(0),
   backtestLastReset: timestamp("backtest_last_reset", { withTimezone: true }).defaultNow(),
 
   // SAVED STRATEGIES - Total limit & current count
-  savedStrategiesLimit: integer("saved_strategies_limit").notNull().default(1), // ritel: 1, bandar: 10, suhu: 50
+  savedStrategiesLimit: integer("saved_strategies_limit").notNull().default(1), // ritel: 1, suhu: 20, bandar: 50
   savedStrategiesCount: integer("saved_strategies_count").default(0),
 
   // SUBSCRIPTIONS - Total limit & current count (following other users' strategies)
-  subscriptionsLimit: integer("subscriptions_limit").notNull().default(0), // ritel: 0, bandar: 10, suhu: 100
+  subscriptionsLimit: integer("subscriptions_limit").notNull().default(0), // ritel: 0, suhu: 10, bandar: 20
   subscriptionsCount: integer("subscriptions_count").default(0),
 
   // AI CHAT - Daily quota & usage

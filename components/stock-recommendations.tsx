@@ -259,7 +259,7 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
                                 target.style.display = 'none'
                                 const parent = target.parentElement
                                 if (parent) {
-                                  parent.className = `w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${stock.return > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`
+                                  parent.className = `w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${stock.return > 0 ? "bg-[#00B853]/10 text-[#00B853]" : "bg-red-100 text-red-700"}`
                                   parent.textContent = stock.ticker.substring(0, 2)
                                 }
                               }}
@@ -280,7 +280,7 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
                       <td className="py-3 px-2 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <span
-                            className={`font-mono text-sm font-semibold ${stock.return > 0 ? "text-green-700" : stock.return < 0 ? "text-red-600" : "text-muted-foreground"
+                            className={`font-mono text-sm font-semibold ${stock.return > 0 ? "text-[#00B853]" : stock.return < 0 ? "text-red-600" : "text-muted-foreground"
                               }`}
                           >
                             {stock.return === 0 ? "0.0%" : `${stock.return.toFixed(1)}%`}
@@ -348,7 +348,7 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
                             {stock.takeProfit && (
                               <div className="flex justify-between">
                                 <span className="text-xs text-muted-foreground">Take Profit:</span>
-                                <span className="text-xs font-semibold text-green-600 font-mono">
+                                <span className="text-xs font-semibold text-[#00B853] font-mono">
                                   Rp {stock.takeProfit.toLocaleString()}
                                 </span>
                               </div>
@@ -506,7 +506,7 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
                                   target.style.display = 'none'
                                   const parent = target.parentElement
                                   if (parent) {
-                                    parent.className = `w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${isPositive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`
+                                    parent.className = `w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${isPositive ? "bg-[#00B853]/10 text-[#00B853]" : "bg-red-100 text-red-700"}`
                                     parent.textContent = pos.ticker.substring(0, 2)
                                   }
                                 }}
@@ -523,10 +523,10 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
                         </td>
                         <td className="py-3 px-2 text-right">
                           <div className="flex flex-col items-end gap-0.5">
-                            <span className={`font-mono text-sm font-semibold ${isPositive ? "text-green-700" : "text-red-600"}`}>
+                            <span className={`font-mono text-sm font-semibold ${isPositive ? "text-[#00B853]" : "text-red-600"}`}>
                               {isPositive ? "+" : ""}Rp {formatShortNumber(pos.unrealizedPnL)}
                             </span>
-                            <span className={`font-mono text-xs ${isPositive ? "text-green-600" : "text-red-500"}`}>
+                            <span className={`font-mono text-xs ${isPositive ? "text-[#00B853]" : "text-red-500"}`}>
                               {isPositive ? "+" : ""}{pos.unrealizedPnLPercent.toFixed(1)}%
                             </span>
                           </div>
@@ -574,13 +574,13 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
                           <div className="pt-2 border-t border-slate-200 space-y-1.5">
                             <div className="flex justify-between items-center">
                               <span className="text-xs font-medium text-muted-foreground">Unrealized PnL:</span>
-                              <span className={`text-sm font-bold font-mono ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                              <span className={`text-sm font-bold font-mono ${isPositive ? 'text-[#00B853]' : 'text-red-600'}`}>
                                 {isPositive ? '+' : ''}Rp {pos.unrealizedPnL.toLocaleString()}
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-xs font-medium text-muted-foreground">Return:</span>
-                              <span className={`text-sm font-bold font-mono ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                              <span className={`text-sm font-bold font-mono ${isPositive ? 'text-[#00B853]' : 'text-red-600'}`}>
                                 {isPositive ? '+' : ''}{pos.unrealizedPnLPercent.toFixed(2)}%
                               </span>
                             </div>
@@ -617,17 +617,9 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
 
   return (
     <Card className="rounded-md h-full flex flex-col">
-      <Tabs defaultValue="signals" className="flex flex-col flex-1 min-h-0">
+      <Tabs defaultValue="portfolio" className="flex flex-col flex-1 min-h-0">
         <CardHeader className="pb-0 flex-shrink-0">
           <TabsList variant="line" className="mb-0 gap-5">
-            <TabsTrigger value="signals" className="group text-sm font-mono font-bold data-[state=active]:border-[#d07225] data-[state=active]:text-[#d07225] pb-3">
-              Signal
-              {signalStocks.length > 0 && (
-                <span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-slate-100 text-muted-foreground text-[10px] font-mono font-bold group-data-[state=active]:bg-[#d07225]/10 group-data-[state=active]:text-[#d07225]">
-                  {signalStocks.length}
-                </span>
-              )}
-            </TabsTrigger>
             <TabsTrigger value="portfolio" className="group text-sm font-mono font-bold data-[state=active]:border-[#d07225] data-[state=active]:text-[#d07225] pb-3">
               Portfolio
               {positions.length > 0 && (
@@ -636,14 +628,22 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="signals" className="group text-sm font-mono font-bold data-[state=active]:border-[#d07225] data-[state=active]:text-[#d07225] pb-3">
+              Signal
+              {signalStocks.length > 0 && (
+                <span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-slate-100 text-muted-foreground text-[10px] font-mono font-bold group-data-[state=active]:bg-[#d07225]/10 group-data-[state=active]:text-[#d07225]">
+                  {signalStocks.length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
         </CardHeader>
         <CardContent className="flex-1 overflow-auto p-4 pt-2 min-h-0">
-          <TabsContent value="signals" className="mt-0 h-full">
-            {renderSignalsTable(signalStocks)}
-          </TabsContent>
           <TabsContent value="portfolio" className="mt-0 h-full">
             {renderPortfolioTable(positions)}
+          </TabsContent>
+          <TabsContent value="signals" className="mt-0 h-full">
+            {renderSignalsTable(signalStocks)}
           </TabsContent>
         </CardContent>
       </Tabs>

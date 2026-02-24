@@ -106,6 +106,12 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
         timeVisible: true,
         secondsVisible: false,
       },
+      handleScroll: false,
+      handleScale: false,
+      kineticScroll: {
+        touch: false,
+        mouse: false,
+      },
     })
 
     chartRef.current = chart

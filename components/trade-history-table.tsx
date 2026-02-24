@@ -84,11 +84,10 @@ export function TradeHistoryTable({ trades }: TradeHistoryTableProps) {
               <TableCell>
                 <Badge
                   variant="outline"
-                  className={`font-mono text-xs ${
-                    trade.action === "BUY"
+                  className={`font-mono text-xs ${trade.action === "BUY"
                       ? "bg-blue-100 text-blue-700 border-blue-200"
                       : "bg-slate-100 text-slate-700 border-slate-200"
-                  }`}
+                    }`}
                 >
                   {trade.action}
                 </Badge>
@@ -96,9 +95,8 @@ export function TradeHistoryTable({ trades }: TradeHistoryTableProps) {
               <TableCell className="font-mono text-xs">{trade.quantity.toLocaleString()}</TableCell>
               <TableCell className="font-mono text-xs">{trade.price.toLocaleString()}</TableCell>
               <TableCell
-                className={`font-mono text-xs font-bold ${
-                  trade.pnl > 0 ? "text-accent" : trade.pnl < 0 ? "text-destructive" : "text-muted-foreground"
-                }`}
+                className={`font-mono text-xs font-bold ${trade.pnl > 0 ? "text-[#00B853]" : trade.pnl < 0 ? "text-destructive" : "text-muted-foreground"
+                  }`}
               >
                 {trade.pnl === 0 ? "-" : trade.pnl > 0 ? `+${trade.pnl.toLocaleString()}` : trade.pnl.toLocaleString()}
               </TableCell>

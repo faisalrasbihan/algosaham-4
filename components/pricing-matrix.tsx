@@ -44,8 +44,8 @@ const pricingData: FeatureCategory[] = [
     features: [
       {
         name: "Quota",
-        ritel: "1x / month",
-        suhu: "25x / month",
+        ritel: "5x / day",
+        suhu: "50x / day",
         bandar: "Unlimited"
       },
       {
@@ -65,7 +65,7 @@ const pricingData: FeatureCategory[] = [
       {
         name: "Saved Strategies",
         ritel: 1,
-        suhu: 10,
+        suhu: 20,
         bandar: 50,
         tooltip: "Jumlah strategi yang dapat disimpan di akun Anda.",
       },
@@ -97,7 +97,7 @@ const pricingData: FeatureCategory[] = [
         bandar: "Full Access",
         tooltip: "Akses eksklusif ke strategi pilihan The Master Vault.",
       },
-      { name: "Subscribe", ritel: 1, suhu: "up to 5", bandar: "up to 20" },
+      { name: "Subscribe", ritel: 1, suhu: "up to 10", bandar: "up to 20" },
       {
         name: "Notification",
         ritel: "None",

@@ -22,16 +22,16 @@ async function applyTriggers() {
             
           WHEN 'bandar' THEN
             NEW.analyze_limit := -1;
-            NEW.backtest_limit := 25;
-            NEW.saved_strategies_limit := 10;
-            NEW.subscriptions_limit := 10;
+            NEW.backtest_limit := -1;
+            NEW.saved_strategies_limit := 50;
+            NEW.subscriptions_limit := 20;
             NEW.ai_chat_limit := -1;
             
           WHEN 'suhu' THEN
             NEW.analyze_limit := -1;
-            NEW.backtest_limit := -1;
-            NEW.saved_strategies_limit := 50;
-            NEW.subscriptions_limit := 100;
+            NEW.backtest_limit := 50;
+            NEW.saved_strategies_limit := 20;
+            NEW.subscriptions_limit := 10;
             NEW.ai_chat_limit := -1;
         END CASE;
         
