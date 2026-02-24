@@ -18,14 +18,14 @@ async function main() {
 
     console.log("\nFetching recent users with non-ritel tier...");
     const premiumUsers = await db.select({
-        id: users.id,
+        id: users.clerkId,
         email: users.email,
         tier: users.subscriptionTier,
         status: users.subscriptionStatus,
         updated: users.updatedAt
     }).from(users).orderBy(desc(users.updatedAt)).limit(5);
     console.log(premiumUsers);
-    
+
     process.exit(0);
 }
 

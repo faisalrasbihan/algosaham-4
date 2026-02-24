@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { TrendingUp, TrendingDown, Sparkles, BarChart3, ArrowRight, ArrowUpRight, Wallet } from "lucide-react"
 import Image from "next/image"
 import {
@@ -116,6 +116,7 @@ function formatShortNumber(value: number): string {
 }
 
 export function StockRecommendations({ signals = [], trades = [], currentPortfolio }: StockRecommendationsProps) {
+  const router = useRouter()
   console.log('🎯 [STOCK RECOMMENDATIONS] Component rendered with:', {
     signalsCount: signals.length,
     tradesCount: trades.length,
@@ -409,10 +410,11 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
 
                       {/* Action Button */}
                       <div className="p-3 pt-0 border-t border-slate-100 mt-2">
-                        <Button className="w-full text-xs h-8 bg-[#d07225] hover:bg-[#a65b1d] text-white" asChild>
-                          <Link href={`/analyze?ticker=${stock.ticker}`}>
-                            Analisis Saham <ArrowUpRight className="w-3 h-3 ml-1" />
-                          </Link>
+                        <Button
+                          className="w-full text-xs h-8 bg-[#d07225] hover:bg-[#a65b1d] text-white"
+                          onClick={() => router.push(`/analyze?ticker=${stock.ticker}`)}
+                        >
+                          Analisis Saham <ArrowUpRight className="w-3 h-3 ml-1" />
                         </Button>
                       </div>
                     </div>
@@ -597,10 +599,11 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
 
                         {/* Action Button */}
                         <div className="p-3 pt-0 border-t border-slate-100 mt-2">
-                          <Button className="w-full text-xs h-8 bg-[#d07225] hover:bg-[#a65b1d] text-white" asChild>
-                            <Link href={`/analyze?ticker=${pos.ticker}`}>
-                              Analisis Saham <ArrowUpRight className="w-3 h-3 ml-1" />
-                            </Link>
+                          <Button
+                            className="w-full text-xs h-8 bg-[#d07225] hover:bg-[#a65b1d] text-white"
+                            onClick={() => router.push(`/analyze?ticker=${pos.ticker}`)}
+                          >
+                            Analisis Saham <ArrowUpRight className="w-3 h-3 ml-1" />
                           </Button>
                         </div>
                       </div>
