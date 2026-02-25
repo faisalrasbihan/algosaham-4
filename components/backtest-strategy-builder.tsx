@@ -1,7 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -94,9 +95,12 @@ interface BacktestStrategyBuilderProps {
   backtestResults?: any | null
 }
 
-export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: BacktestStrategyBuilderProps) {
+export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults }: BacktestStrategyBuilderProps) {
   const { isSignedIn, isLoaded } = useUser()
   const { refreshTier } = useUserTier(); // Added hook usage
+  const searchParams = useSearchParams()
+  const strategyId = searchParams.get('strategyId')
+  const [hasLoadedStrategyParam, setHasLoadedStrategyParam] = useState(false)
   const [marketCaps, setMarketCaps] = useState<string[]>(["large", "mid"])
   const [stockType, setStockType] = useState("All Stocks")
   const [minDailyValue, setMinDailyValue] = useState<number>(1000000000)
@@ -278,8 +282,65 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
 
   // Auto-run backtest on page load without using quota
   useEffect(() => {
-    handleRunBacktest(true)
-  }, []) // Empty dependency array ensures this only runs once on mount
+    // We only want to run initial backtest if we haven't just been forwarded from an edit request
+    if (!strategyId) {
+      handleRunBacktest(true)
+    }
+  }, [strategyId])
+
+  // Fetch specific strategy config if passing strategyId
+  useEffect(() => {
+    async function loadStrategyFromUrl() {
+      if (!strategyId || hasLoadedStrategyParam || !isLoaded || !isSignedIn) return
+
+      try {
+        // 1. Try to load from instantaneous sessionStorage prefetch
+        const prefetchKey = `strategy_prefetch_${strategyId}`
+        const prefetched = sessionStorage.getItem(prefetchKey)
+
+        if (prefetched) {
+          const data = JSON.parse(prefetched)
+          if (data.config) {
+            applyStrategyFromConfig(data.config)
+            toast.success(`Loaded strategy: ${data.name}`)
+            setStrategyName(data.name)
+            setStrategyDescription(data.description || "")
+            setIsPrivate(data.isPrivate || false)
+          }
+          sessionStorage.removeItem(prefetchKey)
+          setHasLoadedStrategyParam(true)
+
+          // trigger backtest run since it loaded instantly
+          setTimeout(() => handleRunBacktest(true), 500)
+          return
+        }
+
+        // 2. Fall back to network fetch if not found in sessionStorage
+        const response = await fetch(`/api/strategies/${strategyId}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.strategy?.config) {
+            applyStrategyFromConfig(data.strategy.config)
+            toast.success(`Loaded strategy: ${data.strategy.name}`)
+
+            // set local strategy metadata so they can save or edit easily
+            setStrategyName(data.strategy.name)
+            setStrategyDescription(data.strategy.description || "")
+            setIsPrivate(data.strategy.isPrivate || false)
+
+            // trigger backtest run after loading config
+            setTimeout(() => handleRunBacktest(true), 500)
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load strategy from URL:", error)
+      } finally {
+        setHasLoadedStrategyParam(true)
+      }
+    }
+
+    loadStrategyFromUrl()
+  }, [strategyId, isLoaded, isSignedIn, hasLoadedStrategyParam])
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -1748,7 +1809,15 @@ export function BacktestStrategyBuilder({ onRunBacktest, backtestResults }: Back
       </Dialog>
 
       <AddIndicatorModal open={showModal} onOpenChange={setShowModal} type={modalType} onAddIndicator={addIndicator} />
-    </div >
+    </div>
+  )
+}
+
+export function BacktestStrategyBuilder(props: BacktestStrategyBuilderProps) {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-4" />Loading builder...</div>}>
+      <BacktestStrategyBuilderContent {...props} />
+    </Suspense>
   )
 }
 

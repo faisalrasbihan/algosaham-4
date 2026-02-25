@@ -14,6 +14,7 @@ import { Loader2, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { StrategyPreviewDialog } from "@/components/strategy-preview-dialog"
+import { CardCarousel } from "@/components/card-carousel"
 import {
   Dialog,
   DialogContent,
@@ -223,7 +224,7 @@ export default function Strategies() {
                 <h2 className="text-2xl font-bold text-foreground mb-1">Strategy Showcase</h2>
                 <p className="text-muted-foreground">Top-performing strategies we curated for you</p>
               </div>
-              <div className="flex gap-4 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-6 -mx-6">
+              <CardCarousel className="-mx-6 pt-1">
                 {isLoadingShowcase ? (
                   [1, 2, 3].map((i) => <StrategyCardSkeleton key={i} type="showcase" />)
                 ) : showcaseStrategies.length === 0 ? (
@@ -233,7 +234,7 @@ export default function Strategies() {
                     <ShowcaseStrategyCard key={strategy.id} strategy={strategy} userTier={tier} onCardClick={() => handleCardClick(strategy)} />
                   ))
                 )}
-              </div>
+              </CardCarousel>
             </div>
           </section>
 
@@ -246,15 +247,15 @@ export default function Strategies() {
               </div>
 
               {isLoadingExplore ? (
-                <div className="flex gap-5 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-6 -mx-6">
+                <CardCarousel className="-mx-6 pt-1">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
                     <StrategyCardSkeleton key={i} />
                   ))}
-                </div>
+                </CardCarousel>
               ) : exploreStrategies.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">No public strategies found.</div>
               ) : (
-                <div className="flex gap-5 overflow-x-auto pb-4 py-1 scrollbar-hide pl-6 pr-6 -mx-6">
+                <CardCarousel className="-mx-6 pt-1">
                   {exploreStrategies.map((strategy) => (
                     <MarketplaceStrategyCard
                       key={strategy.id}
@@ -266,7 +267,7 @@ export default function Strategies() {
                       onCardClick={() => handleCardClick(strategy)}
                     />
                   ))}
-                </div>
+                </CardCarousel>
               )}
             </div>
           </section>

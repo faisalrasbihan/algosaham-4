@@ -20,12 +20,13 @@ import { PerformanceChart, BenchmarkType } from "@/components/performance-chart"
 import { StockRecommendations } from "@/components/stock-recommendations"
 import { MonthlyPerformanceHeatmap } from "@/components/monthly-performance-heatmap"
 import { TradeHistoryTable } from "@/components/trade-history-table"
-import { Loader2, AlertCircle, TrendingUp, BarChart3, Activity, Target, Zap, Clock, Trophy, TrendingDown } from "lucide-react"
+import { Loader2, AlertCircle, TrendingUp, BarChart3, Activity, Target, Zap, Clock, Trophy, TrendingDown, Pencil } from "lucide-react"
 import { BacktestResult } from "@/lib/api"
 import { useUser, SignInButton } from "@clerk/nextjs"
 import { useUserTier } from "@/context/user-tier-context"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 interface StrategyPreviewDialogProps {
     open: boolean
@@ -41,7 +42,10 @@ export function StrategyPreviewDialog({
     strategyName,
 }: StrategyPreviewDialogProps) {
     const [loading, setLoading] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    const router = useRouter()
     const [results, setResults] = useState<BacktestResult | null>(null)
     const [strategy, setStrategy] = useState<{ id: number; name: string; description?: string } | null>(null)
     const [selectedBenchmark, setSelectedBenchmark] = useState<BenchmarkType>("ihsg")
@@ -114,6 +118,27 @@ export function StrategyPreviewDialog({
         if (!strategyId) return
         setPreviewState('showing')
         fetchPreview(strategyId)
+    }
+
+    const handleEditStrategy = async () => {
+        if (!strategyId) return
+        setIsEditing(true)
+        try {
+            // Pre-fetch the strategy config to ensure instant loading on the builder page
+            const response = await fetch(`/api/strategies/${strategyId}`)
+            if (response.ok) {
+                const data = await response.json()
+                if (data.success && data.strategy) {
+                    sessionStorage.setItem(`strategy_prefetch_${strategyId}`, JSON.stringify(data.strategy))
+                }
+            }
+        } catch (error) {
+            console.error("Failed to prefetch strategy:", error)
+        } finally {
+            setIsEditing(false)
+            onOpenChange(false)
+            router.push(`/backtest?strategyId=${strategyId}`)
+        }
     }
 
     const displayName = strategy?.name || strategyName || "Strategy Preview"
@@ -276,7 +301,7 @@ export function StrategyPreviewDialog({
                 ) : (
                     <>
                         {/* Fixed Header */}
-                        <div className="border-b border-border px-6 py-4  flex-shrink-0">
+                        <div className="border-b border-border px-6 py-4 flex-shrink-0 flex items-start justify-between gap-4 pr-12">
                             <DialogHeader>
                                 <DialogTitle className="font-mono text-lg font-bold flex items-center gap-2">
                                     <div
@@ -286,11 +311,27 @@ export function StrategyPreviewDialog({
                                     {displayName}
                                 </DialogTitle>
                                 {strategy?.description && (
-                                    <DialogDescription className="text-sm text-muted-foreground mt-1">
+                                    <DialogDescription className="text-sm text-muted-foreground mt-1 text-left">
                                         {strategy.description}
                                     </DialogDescription>
                                 )}
                             </DialogHeader>
+                            {strategyId && (
+                                <Button
+                                    onClick={handleEditStrategy}
+                                    disabled={isEditing}
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex items-center gap-1.5 border-[#d07225]/30 text-[#d07225] hover:bg-[#d07225] hover:text-white transition-colors"
+                                >
+                                    {isEditing ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                        <Pencil className="w-3.5 h-3.5" />
+                                    )}
+                                    <span className="hidden sm:inline">Edit Strategy</span>
+                                </Button>
+                            )}
                         </div>
 
                         {/* Scrollable Content */}

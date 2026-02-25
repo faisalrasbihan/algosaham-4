@@ -5,8 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
 import { useState } from "react";
-import { WalletCards, Zap, Heart, BookMarked, ArrowUpRight, Loader2, Settings } from "lucide-react";
+import { WalletCards, Zap, Heart, BookMarked, ArrowUpRight, Loader2, Settings, Menu } from "lucide-react";
 import { AccountManagementPage } from "@/components/account-management-page";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 
 import { useUserTier } from "@/context/user-tier-context";
 
@@ -282,33 +283,37 @@ export function Navbar() {
         </SignedIn>
       </div >
 
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-2 md:space-x-3">
         <SignedOut>
-          <SignInButton mode="modal" >
-            <Button variant="outline" size="sm" className="hover:bg-[#487b78] hover:text-white">
-              Sign In
-            </Button>
-          </SignInButton>
-          <SignUpButton mode="modal" >
-            <Button size="sm" style={{ backgroundColor: "#d07225", color: "white" }} className="hover:opacity-90">
-              Sign Up
-            </Button>
-          </SignUpButton>
+          <div className="hidden md:flex space-x-2">
+            <SignInButton mode="modal">
+              <Button variant="outline" size="sm" className="hover:bg-[#487b78] hover:text-white">
+                Sign In
+              </Button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <Button size="sm" style={{ backgroundColor: "#d07225", color: "white" }} className="hover:opacity-90">
+                Sign Up
+              </Button>
+            </SignUpButton>
+          </div>
         </SignedOut>
         <SignedIn>
-          <Link href="/portfolio">
-            <button
-              className="px-3 py-1.5 rounded-md border flex items-center gap-2 text-sm font-medium transition-colors hover:bg-muted mr-3 cursor-pointer"
-              style={{
-                borderColor: "#e5e7eb",
-                backgroundColor: "rgba(245, 245, 245, 0.5)",
-                color: "#1f2937",
-              }}
-            >
-              <WalletCards size={16} />
-              Portfolio
-            </button>
-          </Link>
+          <div className="hidden md:flex items-center gap-3 mr-3">
+            <Link href="/portfolio">
+              <button
+                className="px-3 py-1.5 rounded-md border flex items-center gap-2 text-sm font-medium transition-colors hover:bg-muted cursor-pointer"
+                style={{
+                  borderColor: "#e5e7eb",
+                  backgroundColor: "rgba(245, 245, 245, 0.5)",
+                  color: "#1f2937",
+                }}
+              >
+                <WalletCards size={16} />
+                Portfolio
+              </button>
+            </Link>
+          </div>
           <UserButton>
             <UserButton.UserProfilePage
               label="Subscriptions"
@@ -319,6 +324,57 @@ export function Navbar() {
             </UserButton.UserProfilePage>
           </UserButton>
         </SignedIn>
+
+        {/* Mobile Burger Menu */}
+        <div className="md:hidden flex items-center ml-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9 p-0 hover:bg-muted rounded-md" aria-label="Menu">
+                <Menu className="h-5 w-5 text-foreground" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[85vw] sm:w-[350px] p-6 flex flex-col gap-6">
+              <SheetHeader className="text-left mt-2 border-b border-border/50 pb-4">
+                <SheetTitle className="font-ibm-plex-mono text-xl tracking-tight text-foreground flex items-center gap-2">
+                  <div className="relative w-6 h-6">
+                    <Image src="/icons/logo.svg" alt="Logo" fill className="object-contain" />
+                  </div>
+                  algosaham.ai
+                </SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col gap-1.5">
+                <SheetClose asChild><Link href="/" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Home</Link></SheetClose>
+                <SheetClose asChild><Link href="/backtest" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Simulasi</Link></SheetClose>
+                <SheetClose asChild><Link href="/strategies" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Strategi</Link></SheetClose>
+                <SheetClose asChild><Link href="/analyze" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Analisis</Link></SheetClose>
+                <SheetClose asChild><Link href="/harga" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Harga</Link></SheetClose>
+                <SheetClose asChild><Link href="/about" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Pelajari</Link></SheetClose>
+              </div>
+              <SignedOut>
+                <div className="flex flex-col gap-3 mt-2 border-t border-border/50 pt-6">
+                  <SignInButton mode="modal">
+                    <Button variant="outline" className="w-full justify-center h-10 border-[#487b78]/20 text-[#3b6663] hover:bg-[#eff4f4]">Sign In</Button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <Button className="w-full justify-center h-10 bg-[#d07225] hover:bg-[#a65b1d] text-white">Sign Up</Button>
+                  </SignUpButton>
+                </div>
+              </SignedOut>
+              <SignedIn>
+                <div className="flex flex-col gap-3 mt-2 border-t border-border/50 pt-6">
+                  <SheetClose asChild>
+                    <Link href="/portfolio" className="w-full">
+                      <Button variant="outline" className="w-full justify-center gap-2 h-10">
+                        <WalletCards size={16} />
+                        Portfolio
+                      </Button>
+                    </Link>
+                  </SheetClose>
+                </div>
+              </SignedIn>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </nav >
   );

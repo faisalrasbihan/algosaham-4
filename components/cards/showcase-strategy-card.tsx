@@ -18,6 +18,13 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog"
 
 // Bandar tier colors — consistent with navbar
 const BANDAR_COLORS = {
@@ -39,6 +46,8 @@ interface ShowcaseStrategyCardProps {
 
 export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSubscribed = false, isLoading = false, userTier = 'ritel' }: ShowcaseStrategyCardProps) {
     const [hoveredBar, setHoveredBar] = useState<number | null>(null)
+    const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
 
     // Memoize the data so it doesn't regenerate on hover
     const sparklineData = useMemo(() => generateSparklineData(strategy.totalReturn), [strategy.totalReturn])
@@ -48,7 +57,7 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
     const minSparkline = Math.min(...sparklineData.map((d) => d.value))
     const sparklineRange = maxSparkline - minSparkline
 
-    const isBandarUser = userTier?.toLowerCase() === 'bandar'
+    const isBandarUser = userTier?.toLowerCase() === 'bandar' || userTier?.toLowerCase() === 'admin'
 
     const cardContent = (
         <Card
@@ -248,7 +257,13 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
     )
 
     const popoverContent = (
-        <PopoverContent side="bottom" className="w-[260px] p-4 z-50" onClick={(e) => e.stopPropagation()}>
+        <PopoverContent
+            side="bottom"
+            className="w-[260px] p-4 z-50 pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+            onMouseEnter={() => setIsPopoverOpen(true)}
+            onMouseLeave={() => setIsPopoverOpen(false)}
+        >
             <div className="space-y-3">
                 <div className="flex items-center gap-2">
                     <div
@@ -276,14 +291,54 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
         </PopoverContent>
     )
 
+    const dialogContent = (
+        <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+                <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4 mt-2" style={{ background: BANDAR_COLORS.bgLight }}>
+                    <Crown className="w-6 h-6" style={{ color: BANDAR_COLORS.bg }} />
+                </div>
+                <DialogTitle className="text-center text-xl font-bold font-ibm-plex-mono">Akses Eksklusif Bandar</DialogTitle>
+                <DialogDescription className="text-center pt-2 text-muted-foreground">
+                    Strategi pada The Master Vault ini merupakan fitur premium yang dikurasi khusus untuk pengguna <strong>Bandar Plan</strong>. Masing-masing strategi disempurnakan oleh tim ahli kami. Upgrade ke paket Bandar untuk mendapat performa terbaik.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-center mt-2 pb-2">
+                <Link href="/harga" className="w-full">
+                    <Button className="w-full text-white hover:opacity-90 transition-all font-semibold" style={{ background: BANDAR_COLORS.gradient }}>
+                        Upgrade ke Bandar
+                        <ArrowUpRight className="w-4 h-4 ml-2" />
+                    </Button>
+                </Link>
+            </div>
+        </DialogContent>
+    )
+
     if (!isBandarUser) {
         return (
-            <Popover>
-                <PopoverTrigger asChild>
-                    {cardContent}
-                </PopoverTrigger>
-                {popoverContent}
-            </Popover>
+            <>
+                <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                    <div
+                        onMouseEnter={() => setIsPopoverOpen(true)}
+                        onMouseLeave={() => setIsPopoverOpen(false)}
+                        onClickCapture={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setIsPopoverOpen(false)
+                            setIsDialogOpen(true)
+                        }}
+                        className="inline-block"
+                    >
+                        <PopoverTrigger asChild>
+                            <div>{cardContent}</div>
+                        </PopoverTrigger>
+                    </div>
+                    {popoverContent}
+                </Popover>
+
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    {dialogContent}
+                </Dialog>
+            </>
         )
     }
 
