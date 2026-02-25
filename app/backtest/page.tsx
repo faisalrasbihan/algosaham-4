@@ -30,7 +30,7 @@ export default function BacktestPage() {
             Perlu Akses Desktop
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Halaman Builder & Simulasi memiliki banyak konfigurasi teknikal, chart, dan tabel data yang padat. Silakan buka halaman ini melalui browser Desktop atau layar Tablet untuk pengalaman menggunakan AlgoSaham yang optimal.
+            Halaman Builder & Simulasi memiliki banyak konfigurasi teknikal, chart, dan tabel data yang padat. Silakan buka halaman ini melalui browser Desktop atau layar tablet untuk pengalaman menggunakan Algosaham yang optimal.
           </p>
         </div>
       </div>

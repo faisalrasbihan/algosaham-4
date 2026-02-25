@@ -56,20 +56,20 @@ export const metadata = {
     locale: "id_ID",
     url: "https://algosaham.ai",
     siteName: "algosaham.ai",
-    title: "algosaham.ai - Platform Backtesting Saham Indonesia Berbasis AI",
+    title: "Algosaham.ai - Platform Backtesting Saham Indonesia Berbasis AI",
     description: "Platform backtesting saham berbasis AI terdepan di Indonesia. Eksplorasi strategi kustom, akses strategi top performer, dan nikmati strategi premium berlangganan.",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "algosaham.ai - Platform Backtesting Saham Indonesia",
+        alt: "Algosaham.ai - Platform Backtesting Saham Indonesia",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "algosaham.ai - Platform Backtesting Saham Indonesia Berbasis AI",
+    title: "Algosaham.ai - Platform Backtesting Saham Indonesia Berbasis AI",
     description: "Platform backtesting saham berbasis AI terdepan di Indonesia. Eksplorasi strategi kustom dan akses strategi top performer.",
     images: ["/og-image.jpg"],
   },

@@ -11,14 +11,14 @@ export const metadata: Metadata = {
     "subscription trading saham",
   ],
   openGraph: {
-    title: "Harga & Paket Berlangganan - algosaham.ai",
+    title: "Harga & Paket Berlangganan - Algosaham.ai",
     description: "Pilih paket berlangganan yang sesuai untuk kebutuhan trading Anda. Akses strategi premium dan fitur eksklusif.",
     url: "https://algosaham.ai/harga",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Harga & Paket Berlangganan - algosaham.ai",
+    title: "Harga & Paket Berlangganan - Algosaham.ai",
     description: "Pilih paket berlangganan yang sesuai untuk kebutuhan trading Anda.",
   },
   alternates: {

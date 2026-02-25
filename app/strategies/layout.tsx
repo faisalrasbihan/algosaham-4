@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Strategi Trading Saham - algosaham.ai",
+  title: "Strategi Trading Saham - Algosaham.ai",
   description: "Jelajahi strategi trading saham terbaik dari komunitas. Akses strategi top performer, strategi premium berlangganan, dan buat strategi kustom Anda sendiri.",
   keywords: [
     "strategi trading saham",
@@ -12,14 +12,14 @@ export const metadata: Metadata = {
     "komunitas trading saham",
   ],
   openGraph: {
-    title: "Strategi Trading Saham - algosaham.ai",
+    title: "Strategi Trading Saham - Algosaham.ai",
     description: "Jelajahi strategi trading saham terbaik dari komunitas. Akses strategi top performer dan strategi premium berlangganan.",
     url: "https://algosaham.ai/strategies",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Strategi Trading Saham - algosaham.ai",
+    title: "Strategi Trading Saham - Algosaham.ai",
     description: "Jelajahi strategi trading saham terbaik dari komunitas.",
   },
   alternates: {

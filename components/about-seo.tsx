@@ -2,7 +2,7 @@
 // File ini berisi meta description dan title tag yang SEO-friendly
 
 export const aboutPageSEO = {
-  title: "Tentang algosaham.ai - Platform Strategi Saham Berbasis AI Terdepan di Indonesia",
+  title: "Tentang Algosaham.ai - Platform Strategi Saham Berbasis AI Terdepan di Indonesia",
   description:
     "algosaham.ai adalah platform strategi saham berbasis AI terdepan di Indonesia. Eksplorasi strategi kustom, akses strategi top performer, dan nikmati strategi premium berlangganan. Platform revolusioner dengan backtesting otomatis dan analisis investasi cerdas untuk memaksimalkan keuntungan investor Indonesia.",
   keywords: [
@@ -21,7 +21,7 @@ export const aboutPageSEO = {
     "strategi investasi premium",
     "platform saham AI",
   ],
-  ogTitle: "Tentang algosaham.ai - Platform AI untuk Strategi Investasi Saham",
+  ogTitle: "Tentang Algosaham.ai - Platform AI untuk Strategi Investasi Saham",
   ogDescription: "Platform revolusioner yang menggabungkan AI dengan analisis data mendalam untuk strategi investasi saham yang optimal. Backtesting otomatis dan strategi dipersonalisasi untuk investor Indonesia.",
   twitterTitle: "algosaham.ai - Strategi Saham Berbasis AI untuk Investor Indonesia",
   twitterDescription: "Platform AI terdepan untuk backtesting saham dan strategi investasi cerdas. Analisis otomatis dan strategi dipersonalisasi untuk memaksimalkan keuntungan investasi Anda.",

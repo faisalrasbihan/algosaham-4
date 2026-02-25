@@ -272,9 +272,12 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const hasVisitedBefore = localStorage.getItem("algosaham_has_visited") === "true"
+      const isDesktop = window.innerWidth >= 1024
+
       setHasVisited(hasVisitedBefore)
-      // If first time visitor, set tutorial as active
-      if (!hasVisitedBefore) {
+
+      // If first time visitor AND on desktop, set tutorial as active
+      if (!hasVisitedBefore && isDesktop) {
         setIsTutorialActive(true)
       }
     }
