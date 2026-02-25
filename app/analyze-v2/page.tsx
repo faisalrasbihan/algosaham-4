@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -29,19 +30,15 @@ import {
     PieChart,
 } from "lucide-react"
 import {
-    LineChart,
-    Line,
     XAxis,
     YAxis,
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    Area,
-    AreaChart,
     BarChart,
     Bar,
-    ReferenceLine,
 } from "recharts"
+import { AdvancedMultiChart } from "@/components/advanced-multi-chart"
 
 // ─── MOCK DATA ──────────────────────────────────────────────────────────────
 
@@ -280,28 +277,17 @@ function CustomTooltip({ active, payload, label }: any) {
 
 // ─── PAGE ────────────────────────────────────────────────────────────────────
 
-export default function AnalyzeV2Page() {
-    const [activeIndicator, setActiveIndicator] = useState<"ma" | "rsi" | "foreignFlow">("ma")
-    const d = MOCK
+function AnalyzeV2Content() {
+    const searchParams = useSearchParams()
+    const router = useRouter()
+    const urlTicker = searchParams.get('ticker')
+    const d = { ...MOCK }
+    if (urlTicker) {
+        d.ticker = urlTicker.toUpperCase()
+    }
     const isPositive = d.changePct >= 0
     const potentialLoss = ((d.riskPlan.entryPrice - d.riskPlan.stopLoss) / d.riskPlan.entryPrice) * 100
     const potentialGain = ((d.riskPlan.takeProfit - d.riskPlan.entryPrice) / d.riskPlan.entryPrice) * 100
-
-    const priceChartData = d.ohlcv.dates.map((date, i) => ({
-        date,
-        Harga: d.ohlcv.close[i],
-        MA20: d.ohlcv.ma20[i],
-        MA50: d.ohlcv.ma50[i],
-    }))
-
-    const rsiChartData = d.ohlcv.dates.map((date, i) => ({ date, RSI: d.ohlcv.rsi[i] }))
-    const flowChartData = d.ohlcv.dates.map((date, i) => ({ date, "Net Flow (M)": d.ohlcv.foreignFlowCumulative[i] }))
-
-    const currentIndicator = activeIndicator === "ma"
-        ? d.indicators.movingAverage
-        : activeIndicator === "rsi"
-            ? d.indicators.rsi
-            : d.indicators.foreignFlow
 
     return (
         <div className="min-h-screen bg-background dotted-background flex flex-col">
@@ -313,7 +299,7 @@ export default function AnalyzeV2Page() {
 
                     {/* Back */}
                     <button
-                        onClick={() => window.history.back()}
+                        onClick={() => router.push('/analyze')}
                         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
                     >
                         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
@@ -395,6 +381,11 @@ export default function AnalyzeV2Page() {
 
                         {/* Divider */}
                         <div className="h-px bg-border mb-6" />
+
+                        {/* ━━━ ADVANCED MULTI-CHART ━━━ */}
+                        <div className="mb-8 pt-2">
+                            <AdvancedMultiChart data={d.ohlcv as any} />
+                        </div>
 
                         {/* Row 2: AI Summary */}
                         <div className="mb-7">
@@ -485,33 +476,7 @@ export default function AnalyzeV2Page() {
                         </div>
                     </Card>
 
-                    {/* ━━━ PRICE CHART ━━━ */}
-                    <Card className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <BarChart3 className="w-4 h-4 text-muted-foreground" />
-                                <h3 className="text-sm font-semibold">Grafik Harga · 60 Hari</h3>
-                            </div>
-                            <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-ibm-plex-mono">
-                                <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-0.5 bg-foreground" />Harga</span>
-                                <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-0.5 bg-primary" />MA20</span>
-                                <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-0.5 bg-muted-foreground" />MA50</span>
-                            </div>
-                        </div>
-                        <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={priceChartData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} tickFormatter={(v) => v.slice(5)} />
-                                    <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} domain={["auto", "auto"]} />
-                                    <Tooltip content={<CustomTooltip />} />
-                                    <Line type="monotone" dataKey="Harga" stroke="var(--foreground)" strokeWidth={1.5} dot={false} />
-                                    <Line type="monotone" dataKey="MA20" stroke="#d07225" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
-                                    <Line type="monotone" dataKey="MA50" stroke="var(--muted-foreground)" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </Card>
+
 
                     {/* ━━━ TECHNICAL + FUNDAMENTAL ━━━ */}
                     <div className="grid lg:grid-cols-2 gap-5">
@@ -646,123 +611,7 @@ export default function AnalyzeV2Page() {
                         </Card>
                     </div>
 
-                    {/* ━━━ INDICATOR PANELS ━━━ */}
-                    <Card className="p-6">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                            <div className="flex items-center gap-2">
-                                <Zap className="w-4 h-4 text-muted-foreground" />
-                                <h3 className="text-sm font-semibold">Indikator Detail</h3>
-                            </div>
-                            <div className="flex gap-2">
-                                {(["ma", "rsi", "foreignFlow"] as const).map((key) => {
-                                    const labels = { ma: "Moving Average", rsi: "RSI", foreignFlow: "Foreign Flow" }
-                                    const icons = { ma: Activity, rsi: Zap, foreignFlow: Users }
-                                    const Icon = icons[key]
-                                    return (
-                                        <Button
-                                            key={key}
-                                            variant={activeIndicator === key ? "default" : "outline"}
-                                            size="sm"
-                                            onClick={() => setActiveIndicator(key)}
-                                            className={`text-xs ${activeIndicator === key ? "bg-foreground text-background hover:bg-foreground/90" : "border-border"}`}
-                                        >
-                                            <Icon className="w-3.5 h-3.5 mr-1.5" />
-                                            {labels[key]}
-                                        </Button>
-                                    )
-                                })}
-                            </div>
-                        </div>
 
-                        {/* Indicator header */}
-                        <div className="flex items-start justify-between mb-5">
-                            <div>
-                                <h4 className="text-sm font-medium">
-                                    {activeIndicator === "ma" && "Moving Average (MA20 & MA50)"}
-                                    {activeIndicator === "rsi" && "RSI · Relative Strength Index"}
-                                    {activeIndicator === "foreignFlow" && "Foreign Flow · NBSA Kumulatif"}
-                                </h4>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <Badge variant="secondary" className="capitalize text-[11px]">{currentIndicator.confidence}</Badge>
-                                    {activeIndicator === "foreignFlow" && (
-                                        <span className="text-xs text-muted-foreground font-ibm-plex-mono">
-                                            Flow strength {d.indicators.foreignFlow.flowStrength5d.toFixed(2)}%
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-3xl font-bold font-ibm-plex-mono">{currentIndicator.score}</div>
-                                <div className="w-20 mt-1"><ScoreBar score={currentIndicator.score} /></div>
-                            </div>
-                        </div>
-
-                        {/* Chart */}
-                        <div className="h-56 mb-6">
-                            <ResponsiveContainer width="100%" height="100%">
-                                {activeIndicator === "ma" ? (
-                                    <LineChart data={priceChartData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} tickFormatter={(v) => v.slice(5)} />
-                                        <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} domain={["auto", "auto"]} />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <Line type="monotone" dataKey="Harga" stroke="var(--foreground)" strokeWidth={1.5} dot={false} />
-                                        <Line type="monotone" dataKey="MA20" stroke="#d07225" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
-                                        <Line type="monotone" dataKey="MA50" stroke="var(--muted-foreground)" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
-                                    </LineChart>
-                                ) : activeIndicator === "rsi" ? (
-                                    <AreaChart data={rsiChartData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} tickFormatter={(v) => v.slice(5)} />
-                                        <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} domain={[0, 100]} />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <ReferenceLine y={70} stroke="var(--muted-foreground)" strokeDasharray="5 4" />
-                                        <ReferenceLine y={30} stroke="var(--muted-foreground)" strokeDasharray="5 4" />
-                                        <defs>
-                                            <linearGradient id="rsiGrad" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#d07225" stopOpacity={0.2} />
-                                                <stop offset="100%" stopColor="#d07225" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <Area type="monotone" dataKey="RSI" stroke="#d07225" strokeWidth={1.5} fill="url(#rsiGrad)" dot={false} />
-                                    </AreaChart>
-                                ) : (
-                                    <AreaChart data={flowChartData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} tickFormatter={(v) => v.slice(5)} />
-                                        <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <ReferenceLine y={0} stroke="var(--border)" />
-                                        <defs>
-                                            <linearGradient id="flowGrad" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="var(--foreground)" stopOpacity={0.12} />
-                                                <stop offset="100%" stopColor="var(--foreground)" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <Area type="monotone" dataKey="Net Flow (M)" stroke="var(--foreground)" strokeWidth={1.5} fill="url(#flowGrad)" dot={false} />
-                                    </AreaChart>
-                                )}
-                            </ResponsiveContainer>
-                        </div>
-
-                        {/* Signals + Commentary */}
-                        <div className="grid md:grid-cols-2 gap-6 border-t border-border pt-5">
-                            <div>
-                                <div className="text-xs font-semibold text-muted-foreground mb-3">Sinyal</div>
-                                <ul className="space-y-0.5">
-                                    {currentIndicator.signals.map((s, i) => <SignalItem key={i} text={s} />)}
-                                </ul>
-                            </div>
-                            <div className="p-4 rounded-lg bg-secondary/60 border border-border">
-                                <div className="flex items-center gap-1.5 mb-2">
-                                    <Brain className="w-3.5 h-3.5 text-primary" />
-                                    <span className="text-xs font-semibold text-muted-foreground">Komentar AI</span>
-                                    <AiBadge />
-                                </div>
-                                <p className="text-sm leading-relaxed text-muted-foreground">{currentIndicator.commentary}</p>
-                            </div>
-                        </div>
-                    </Card>
 
                     {/* Footer */}
                     <p className="text-center text-[11px] text-muted-foreground/50 pb-4">
@@ -772,5 +621,13 @@ export default function AnalyzeV2Page() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function AnalyzeV2Page() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+            <AnalyzeV2Content />
+        </Suspense>
     )
 }

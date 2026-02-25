@@ -66,7 +66,7 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
   })
 
   // Only show data if we have real results
-  const performanceStats = currentResults ? [
+  const performanceStats: any[] = currentResults ? [
     {
       label: "Total Return",
       value: `${(currentResults.summary?.totalReturn || 0).toFixed(1)}%`,
@@ -104,22 +104,16 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
       tooltip: "Rata-rata jumlah hari posisi saham ditahan dalam portofolio."
     },
     {
-      label: "Best Stock",
-      value: currentResults.summary?.bestTrade?.ticker || "N/A",
-      subValue: currentResults.summary?.bestTrade?.return != null
-        ? `+${currentResults.summary.bestTrade.return.toFixed(1)}%`
-        : null,
-      subPositive: true,
-      tooltip: "Saham yang menghasilkan persentase keuntungan tertinggi."
+      label: "Profit Factor",
+      value: "1.84",
+      positive: true,
+      tooltip: "Rasio total keuntungan terhadap total kerugian. Mengukur seberapa efisien strategi dalam menghasilkan profit. (Dummy data)"
     },
     {
-      label: "Worst Stock",
-      value: currentResults.summary?.worstTrade?.ticker || "N/A",
-      subValue: currentResults.summary?.worstTrade?.return != null
-        ? `${currentResults.summary.worstTrade.return.toFixed(1)}%`
-        : null,
-      subPositive: false,
-      tooltip: "Saham yang menghasilkan persentase kerugian terbesar."
+      label: "Sharpe Ratio",
+      value: "1.25",
+      positive: true,
+      tooltip: "Ukuran tingkat return tambahan atas setiap unit risiko yang diambil. (Dummy data)"
     },
   ] : []
 
@@ -268,7 +262,7 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             <TooltipProvider>
-              {performanceStats.map((stat, index) => (
+              {performanceStats.map((stat: any, index: number) => (
                 <Tooltip key={index}>
                   <TooltipTrigger asChild>
                     <div

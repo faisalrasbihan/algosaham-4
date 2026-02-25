@@ -20,7 +20,7 @@ import { PerformanceChart, BenchmarkType } from "@/components/performance-chart"
 import { StockRecommendations } from "@/components/stock-recommendations"
 import { MonthlyPerformanceHeatmap } from "@/components/monthly-performance-heatmap"
 import { TradeHistoryTable } from "@/components/trade-history-table"
-import { Loader2, AlertCircle, TrendingUp, BarChart3, Activity, Target, Zap, Clock, Trophy, TrendingDown, Pencil } from "lucide-react"
+import { Loader2, AlertCircle, TrendingUp, BarChart3, Activity, Target, Zap, Clock, Trophy, TrendingDown, Pencil, LogIn } from "lucide-react"
 import { BacktestResult } from "@/lib/api"
 import { useUser, SignInButton } from "@clerk/nextjs"
 import { useUserTier } from "@/context/user-tier-context"
@@ -223,24 +223,35 @@ export function StrategyPreviewDialog({
                             <div className="flex justify-center p-6"><Loader2 className="w-6 h-6 animate-spin" /></div>
                         ) : !isSignedIn ? (
                             <>
-                                <DialogHeader>
-                                    <DialogTitle>Login Dibutuhkan</DialogTitle>
-                                    <DialogDescription>
+                                <DialogHeader className="items-center text-center">
+                                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#d07225]/10">
+                                        <LogIn className="h-8 w-8 text-[#d07225]" />
+                                    </div>
+                                    <DialogTitle className="font-mono text-xl">Login Dibutuhkan</DialogTitle>
+                                    <DialogDescription className="font-mono text-sm text-muted-foreground text-center pt-2">
                                         Silakan login untuk melihat preview strategi.
                                     </DialogDescription>
                                 </DialogHeader>
-                                <div className="flex justify-end pt-4 gap-2">
-                                    <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
+                                <div className="flex flex-col gap-3 pt-4 w-full">
                                     <SignInButton mode="modal">
-                                        <Button className="bg-[#d07225] text-white hover:bg-[#a65b1d]">Login</Button>
+                                        <Button className="w-full font-mono bg-[#d07225] text-white hover:bg-[#a65b1d]">
+                                            <LogIn className="h-4 w-4 mr-2" />
+                                            Login
+                                        </Button>
                                     </SignInButton>
+                                    <Button variant="outline" className="w-full font-mono" onClick={() => onOpenChange(false)}>
+                                        Batal
+                                    </Button>
                                 </div>
                             </>
                         ) : (
                             <>
-                                <DialogHeader>
-                                    <DialogTitle>Preview Strategi</DialogTitle>
-                                    <DialogDescription asChild>
+                                <DialogHeader className="items-center text-center">
+                                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+                                        <BarChart3 className="h-8 w-8 text-slate-600" />
+                                    </div>
+                                    <DialogTitle className="font-mono text-xl">Preview Strategi</DialogTitle>
+                                    <DialogDescription className="font-mono text-sm text-muted-foreground text-center pt-2 w-full" asChild>
                                         <div className="space-y-3">
                                             {limits.backtest !== -1 && usage.backtest >= limits.backtest ? (
                                                 <>
@@ -253,7 +264,7 @@ export function StrategyPreviewDialog({
                                                         >
                                                             {usage.backtest}/{limits.backtest}
                                                         </span>{' '}
-                                                        kuota backtest. Upgrade plan untuk menambah kuota.
+                                                        slot kuota. Upgrade plan untuk menambah kuota.
                                                     </p>
                                                 </>
                                             ) : (
@@ -279,21 +290,21 @@ export function StrategyPreviewDialog({
                                         </div>
                                     </DialogDescription>
                                 </DialogHeader>
-                                <div className="flex justify-end gap-2 pt-4">
-                                    <Button variant="outline" onClick={() => onOpenChange(false)}>
-                                        Batal
-                                    </Button>
+                                <div className="flex flex-col gap-3 pt-4 w-full">
                                     {limits.backtest !== -1 && usage.backtest >= limits.backtest ? (
-                                        <Link href="/harga" onClick={() => onOpenChange(false)}>
-                                            <Button className="font-medium hover:opacity-90" style={{ backgroundColor: '#d07225', color: '#fff' }}>
+                                        <Link href="/harga" onClick={() => onOpenChange(false)} className="w-full block">
+                                            <Button className="w-full font-mono bg-[#d07225] text-white hover:bg-[#a65b1d]">
                                                 Upgrade Plan
                                             </Button>
                                         </Link>
                                     ) : (
-                                        <Button onClick={handleConfirmPreview}>
+                                        <Button className="w-full font-mono bg-[#d07225] text-white hover:bg-[#a65b1d]" onClick={handleConfirmPreview}>
                                             Ya, Lanjutkan
                                         </Button>
                                     )}
+                                    <Button variant="outline" className="w-full font-mono" onClick={() => onOpenChange(false)}>
+                                        Batal
+                                    </Button>
                                 </div>
                             </>
                         )}

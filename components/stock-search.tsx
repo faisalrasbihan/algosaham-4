@@ -1,7 +1,6 @@
 "use client"
 
-import React from "react"
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +14,20 @@ interface StockSearchProps {
 export function StockSearch({ onSearch, loading }: StockSearchProps) {
   const searchParams = useSearchParams()
   const [ticker, setTicker] = useState(() => searchParams?.get("ticker") || "")
+  const [elapsedTime, setElapsedTime] = useState("0.0")
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (loading) {
+      const startTime = Date.now()
+      setElapsedTime("0.0")
+      interval = setInterval(() => {
+        const ms = Date.now() - startTime
+        setElapsedTime((ms / 1000).toFixed(1))
+      }, 100)
+    }
+    return () => clearInterval(interval)
+  }, [loading])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,13 +66,13 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
           type="submit"
           size="lg"
           disabled={loading || !ticker.trim()}
-          className={`h-14 text-base bg-ochre hover:bg-ochre/90 text-white transition-all duration-500 disabled:opacity-100 disabled:cursor-not-allowed ${loading ? "w-full max-w-md px-12" : "px-8"
+          className={`h-14 text-base transition-all duration-500 disabled:opacity-100 disabled:cursor-not-allowed ${loading ? "w-full max-w-md px-12 bg-slate-200 text-slate-500" : "px-8 bg-ochre hover:bg-ochre/90 text-white"
             }`}
         >
           {loading ? (
             <>
-              <span className="mr-2">Analyzing {currentTickerDisplay}</span>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="mr-2">Analyzing {currentTickerDisplay} ({elapsedTime}s)</span>
+              <div className="w-4 h-4 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
             </>
           ) : (
             <>

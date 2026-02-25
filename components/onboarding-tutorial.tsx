@@ -143,8 +143,10 @@ export function OnboardingTutorial({ onComplete, onStart }: OnboardingTutorialPr
       }
     })
 
-    // Auto-start tutorial for new users
-    if (hasVisited === false && driverObj.current) {
+    // Auto-start tutorial for new users (only on desktop where elements are visible)
+    const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+
+    if (hasVisited === false && isDesktop && driverObj.current) {
       // Small delay to ensure DOM is ready
       const timer = setTimeout(() => {
         driverObj.current?.drive()
