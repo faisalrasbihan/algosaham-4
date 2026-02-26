@@ -412,7 +412,7 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
                       <div className="p-3 pt-0 border-t border-slate-100 mt-2">
                         <Button
                           className="w-full text-xs h-8 bg-[#d07225] hover:bg-[#a65b1d] text-white"
-                          onClick={() => router.push(`/analyze?ticker=${stock.ticker}`)}
+                          onClick={() => router.push(`/analyze-v2?ticker=${stock.ticker}`)}
                         >
                           Analisis Saham <ArrowUpRight className="w-3 h-3 ml-1" />
                         </Button>
@@ -601,7 +601,7 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
                         <div className="p-3 pt-0 border-t border-slate-100 mt-2">
                           <Button
                             className="w-full text-xs h-8 bg-[#d07225] hover:bg-[#a65b1d] text-white"
-                            onClick={() => router.push(`/analyze?ticker=${pos.ticker}`)}
+                            onClick={() => router.push(`/analyze-v2?ticker=${pos.ticker}`)}
                           >
                             Analisis Saham <ArrowUpRight className="w-3 h-3 ml-1" />
                           </Button>

@@ -33,6 +33,10 @@ export const metadata = {
   description: "Platform backtesting saham berbasis AI terdepan di Indonesia. Eksplorasi strategi kustom, akses strategi top performer, dan nikmati strategi premium berlangganan untuk memaksimalkan keuntungan investasi Anda.",
   keywords: [
     "backtesting saham",
+    "algotrading",
+    "algo trading",
+    "belajar trading",
+    "technical indicator trading",
     "strategi saham AI",
     "trading saham Indonesia",
     "analisis saham otomatis",

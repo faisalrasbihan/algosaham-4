@@ -1785,9 +1785,9 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#d07225]/10">
               <LogIn className="h-8 w-8 text-[#d07225]" />
             </div>
-            <DialogTitle className="font-mono text-xl">Sign In Required</DialogTitle>
+            <DialogTitle className="font-mono text-xl">Login Dibutuhkan</DialogTitle>
             <DialogDescription className="font-mono text-sm text-muted-foreground text-center pt-2">
-              You need to sign in to use this feature. Would you like to sign in now?
+              Silakan login untuk melihat preview strategi.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 pt-4">

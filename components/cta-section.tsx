@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
+import { SignInButton } from "@clerk/nextjs"
+import Link from "next/link"
 
 export function CTASection() {
   return (
@@ -10,12 +12,16 @@ export function CTASection() {
           Bergabunglah dengan ribuan trader yang mempercayai algosaham.ai untuk memvalidasi strategi trading mereka sebelum mempertaruhkan modal sesungguhnya.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" className="bg-primary hover:bg-primary/90">
-            Start Free Trial
-            <ArrowRight className="ml-2 w-4 h-4" />
-          </Button>
-          <Button size="lg" variant="outline" className="border-border hover:bg-[#487b78] hover:text-white bg-transparent">
-            View Demo
+          <SignInButton mode="modal">
+            <Button size="lg" className="bg-primary hover:bg-primary/90">
+              Start Now
+              <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
+          </SignInButton>
+          <Button size="lg" variant="outline" className="border-border hover:bg-[#487b78] hover:text-white bg-transparent" asChild>
+            <Link href="/backtest">
+              View Demo
+            </Link>
           </Button>
         </div>
       </div>

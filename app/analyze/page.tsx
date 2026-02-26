@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { StockSearch } from "@/components/stock-search"
 import { StockHeaderCard } from "@/components/stock-header-card"
 import { OverallScoreCard } from "@/components/overall-score-card"
@@ -12,34 +12,26 @@ import { Navbar } from "@/components/navbar"
 
 import { TickerTape } from "@/components/ticker-tape"
 import { toast } from "sonner"
+import { useUser, SignInButton } from "@clerk/nextjs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { LogIn } from "lucide-react"
+import { Button } from "@/components/ui/button"
 function AnalyzeContent() {
     const searchParams = useSearchParams()
     const urlTicker = searchParams.get('ticker')
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(false)
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+    const { isSignedIn, isLoaded } = useUser()
+    const router = useRouter()
+
     const handleSearch = async (ticker: string) => {
-        setLoading(true)
-
-        try {
-            const res = await fetch('/api/analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ticker: ticker.toUpperCase() })
-            })
-
-            const result = await res.json()
-
-            if (!res.ok || !result.success) {
-                throw new Error('kode saham tidak ditemukan')
-            }
-
-            setData(result.data)
-        } catch (err) {
-            console.error(err)
-            toast.error('kode saham tidak ditemukan')
-        } finally {
-            setLoading(false)
+        if (isLoaded && !isSignedIn) {
+            setShowLoginPrompt(true)
+            return
         }
+        setLoading(true)
+        router.push(`/analyze-v2?ticker=${ticker.toUpperCase()}`)
     }
 
     useEffect(() => {
@@ -100,6 +92,38 @@ function AnalyzeContent() {
                     </div>
                 </div>
             )}
+
+            <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader className="items-center text-center">
+                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#d07225]/10">
+                            <LogIn className="h-8 w-8 text-[#d07225]" />
+                        </div>
+                        <DialogTitle className="font-mono text-xl">Login Dibutuhkan</DialogTitle>
+                        <DialogDescription className="font-mono text-sm text-muted-foreground text-center pt-2">
+                            Silakan login untuk menganalisis saham.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-3 pt-4">
+                        <SignInButton mode="modal">
+                            <Button
+                                onClick={() => setShowLoginPrompt(false)}
+                                className="w-full font-mono bg-[#d07225] hover:bg-[#a65b1d]"
+                            >
+                                <LogIn className="h-4 w-4 mr-2" />
+                                Sign In
+                            </Button>
+                        </SignInButton>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowLoginPrompt(false)}
+                            className="w-full font-mono"
+                        >
+                            Cancel
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
