@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useState, Suspense, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Navbar } from "@/components/navbar"
 import { TickerTape } from "@/components/ticker-tape"
+import { StockSearch } from "@/components/stock-search"
+import { useUser, SignInButton } from "@clerk/nextjs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import Image from "next/image"
 import {
     Sparkles,
@@ -28,6 +31,7 @@ import {
     AlertTriangle,
     CircleDot,
     PieChart,
+    LogIn,
 } from "lucide-react"
 import {
     XAxis,
@@ -37,6 +41,8 @@ import {
     ResponsiveContainer,
     BarChart,
     Bar,
+    LineChart,
+    Line,
 } from "recharts"
 import { AdvancedMultiChart } from "@/components/advanced-multi-chart"
 
@@ -75,6 +81,27 @@ const MOCK = {
         trend: "uptrend",
         momentum: "bullish",
         volatility: "moderate",
+        indicators: {
+            ma20: 9540,
+            ma20History: [9300, 9350, 9420, 9480, 9510, 9530, 9540],
+            ma50: 9280,
+            ma50History: [9100, 9150, 9200, 9240, 9260, 9270, 9280],
+            ma200: 8900,
+            ma200History: [8840, 8850, 8860, 8870, 8880, 8890, 8900],
+            rsi14: 58.4,
+            rsi14History: [45, 48, 54, 59, 62, 60, 58.4],
+            macd: { text: "Bullish Crossover", value: "0.24" },
+            macdHistory: [-0.1, -0.05, 0.02, 0.1, 0.15, 0.2, 0.24],
+            stochastic: { text: "Neutral", value: "62.5" },
+            stochasticHistory: [30, 45, 60, 75, 80, 70, 62.5],
+            bollingerBands: "Upper Band",
+            atr: 120, // Average True Range
+            volumeAvg: "45.2M",
+            support1: 9450,
+            support2: 9200,
+            resistance1: 9850,
+            resistance2: 10100
+        },
         signals: [
             "Harga di atas MA50 dan MA200 — konfirmasi uptrend",
             "Golden cross terbentuk 12 hari yang lalu",
@@ -259,6 +286,25 @@ function StatRow({ label, value, sub }: { label: string; value: string; sub?: st
     )
 }
 
+function SparklineRow({ label, value, sub, data, dataKey = "value", stroke = "#d07225" }: { label: string; value: string; sub?: string; data: any[]; dataKey?: string; stroke?: string }) {
+    return (
+        <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+            <span className="text-sm text-muted-foreground w-1/3 truncate pr-2">{label}</span>
+            <div className="h-8 w-20 sm:w-24 shrink-0 mx-2">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={data}>
+                        <Line type="monotone" dataKey={dataKey} stroke={stroke} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+            <div className="text-right w-1/3 shrink-0">
+                <span className="text-sm font-semibold font-ibm-plex-mono">{value}</span>
+                {sub && <div className="text-[11px] text-muted-foreground/60">{sub}</div>}
+            </div>
+        </div>
+    )
+}
+
 function CustomTooltip({ active, payload, label }: any) {
     if (!active || !payload?.length) return null
     return (
@@ -281,6 +327,69 @@ function AnalyzeV2Content() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const urlTicker = searchParams.get('ticker')
+
+    const [loading, setLoading] = useState(false)
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+    const { isSignedIn, isLoaded } = useUser()
+
+    const handleSearch = async (ticker: string) => {
+        if (isLoaded && !isSignedIn) {
+            setShowLoginPrompt(true)
+            return
+        }
+        setLoading(true)
+        router.push(`/analyze-v2?ticker=${ticker.toUpperCase()}`)
+    }
+
+    useEffect(() => {
+        setLoading(false)
+    }, [urlTicker])
+
+    if (!urlTicker) {
+        return (
+            <div className="min-h-screen bg-background dotted-background flex flex-col">
+                <Navbar />
+                <TickerTape />
+
+                <div className="flex-1 flex flex-col items-center justify-center -mt-20">
+                    <StockSearch onSearch={handleSearch} loading={loading} />
+                </div>
+
+                <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader className="items-center text-center">
+                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#d07225]/10">
+                                <LogIn className="h-8 w-8 text-[#d07225]" />
+                            </div>
+                            <DialogTitle className="font-mono text-xl">Login Dibutuhkan</DialogTitle>
+                            <DialogDescription className="font-mono text-sm text-muted-foreground text-center pt-2">
+                                Silakan login untuk menganalisis saham.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex flex-col gap-3 pt-4">
+                            <SignInButton mode="modal">
+                                <Button
+                                    onClick={() => setShowLoginPrompt(false)}
+                                    className="w-full font-mono bg-[#d07225] hover:bg-[#a65b1d]"
+                                >
+                                    <LogIn className="h-4 w-4 mr-2" />
+                                    Sign In
+                                </Button>
+                            </SignInButton>
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowLoginPrompt(false)}
+                                className="w-full font-mono"
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            </div>
+        )
+    }
+
     const d = { ...MOCK }
     if (urlTicker) {
         d.ticker = urlTicker.toUpperCase()
@@ -299,7 +408,7 @@ function AnalyzeV2Content() {
 
                     {/* Back */}
                     <button
-                        onClick={() => router.push('/analyze')}
+                        onClick={() => router.push('/analyze-v2')}
                         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
                     >
                         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
@@ -498,22 +607,45 @@ function AnalyzeV2Content() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-2 mb-5">
-                                <div className="p-2.5 rounded-lg bg-secondary/60 border border-border text-center">
-                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Trend</div>
-                                    <div className="text-xs font-semibold capitalize">{d.technical.trend}</div>
-                                </div>
-                                <div className="p-2.5 rounded-lg bg-secondary/60 border border-border text-center">
-                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Momentum</div>
-                                    <div className="text-xs font-semibold capitalize">{d.technical.momentum}</div>
-                                </div>
-                                <div className="p-2.5 rounded-lg bg-secondary/60 border border-border text-center">
-                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Volatilitas</div>
-                                    <div className="text-xs font-semibold capitalize">{d.technical.volatility}</div>
-                                </div>
-                            </div>
+                            <Tabs defaultValue="overview">
+                                <TabsList variant="line" className="mb-4">
+                                    <TabsTrigger value="overview" className="text-xs">Profil Aksi</TabsTrigger>
+                                    <TabsTrigger value="indicators" className="text-xs">Indikator Detail</TabsTrigger>
+                                </TabsList>
 
-                            <div className="border-t border-border pt-4">
+                                <TabsContent value="overview">
+                                    <div className="grid grid-cols-3 gap-2 mb-5">
+                                        <div className="p-2.5 rounded-lg bg-secondary/60 border border-border text-center">
+                                            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Trend</div>
+                                            <div className="text-xs font-semibold capitalize">{d.technical.trend}</div>
+                                        </div>
+                                        <div className="p-2.5 rounded-lg bg-secondary/60 border border-border text-center">
+                                            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Momentum</div>
+                                            <div className="text-xs font-semibold capitalize">{d.technical.momentum}</div>
+                                        </div>
+                                        <div className="p-2.5 rounded-lg bg-secondary/60 border border-border text-center">
+                                            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Volatilitas</div>
+                                            <div className="text-xs font-semibold capitalize">{d.technical.volatility}</div>
+                                        </div>
+                                    </div>
+                                    <StatRow label="Support Terdekat (S1)" value={`Rp ${d.technical.indicators.support1.toLocaleString("id-ID")}`} sub={`Support kuat di S2: Rp ${d.technical.indicators.support2.toLocaleString("id-ID")}`} />
+                                    <StatRow label="Resisten Terdekat (R1)" value={`Rp ${d.technical.indicators.resistance1.toLocaleString("id-ID")}`} sub={`Resisten kuat di R2: Rp ${d.technical.indicators.resistance2.toLocaleString("id-ID")}`} />
+                                    <StatRow label="Avg Volume (30D)" value={d.technical.indicators.volumeAvg} />
+                                    <StatRow label="ATR (Volatility)" value={`Rp ${d.technical.indicators.atr}`} />
+                                </TabsContent>
+
+                                <TabsContent value="indicators">
+                                    <SparklineRow label="Moving Average 20" value={`Rp ${d.technical.indicators.ma20.toLocaleString("id-ID")}`} sub={d.price > d.technical.indicators.ma20 ? "Harga di atas MA20" : "Harga di bawah MA20"} data={d.technical.indicators.ma20History.map((v, i) => ({ i, value: v }))} stroke={d.price > d.technical.indicators.ma20 ? "#16a34a" : "#dc2626"} />
+                                    <SparklineRow label="Moving Average 50" value={`Rp ${d.technical.indicators.ma50.toLocaleString("id-ID")}`} sub={d.price > d.technical.indicators.ma50 ? "Harga di atas MA50" : "Harga di bawah MA50"} data={d.technical.indicators.ma50History.map((v, i) => ({ i, value: v }))} stroke={d.price > d.technical.indicators.ma50 ? "#16a34a" : "#dc2626"} />
+                                    <SparklineRow label="Moving Average 200" value={`Rp ${d.technical.indicators.ma200.toLocaleString("id-ID")}`} sub={d.price > d.technical.indicators.ma200 ? "Harga di atas MA200" : "Harga di bawah MA200"} data={d.technical.indicators.ma200History.map((v, i) => ({ i, value: v }))} stroke={d.price > d.technical.indicators.ma200 ? "#16a34a" : "#dc2626"} />
+                                    <SparklineRow label="RSI (14)" value={d.technical.indicators.rsi14.toString()} sub={d.technical.indicators.rsi14 > 50 ? "Zona Bullish" : "Zona Bearish"} data={d.technical.indicators.rsi14History.map((v, i) => ({ i, value: v }))} stroke="#8b5cf6" />
+                                    <SparklineRow label="MACD" value={d.technical.indicators.macd.value} sub={d.technical.indicators.macd.text} data={d.technical.indicators.macdHistory.map((v, i) => ({ i, value: v }))} stroke="#d07225" />
+                                    <SparklineRow label="Stochastic" value={d.technical.indicators.stochastic.value} sub={d.technical.indicators.stochastic.text} data={d.technical.indicators.stochasticHistory.map((v, i) => ({ i, value: v }))} stroke="#0ea5e9" />
+                                    <StatRow label="Bollinger Bands" value={d.technical.indicators.bollingerBands} />
+                                </TabsContent>
+                            </Tabs>
+
+                            <div className="border-t border-border pt-4 mt-4">
                                 <div className="text-xs font-semibold text-muted-foreground mb-2">Sinyal Teknikal</div>
                                 <ul className="space-y-0.5">
                                     {d.technical.signals.map((s, i) => <SignalItem key={i} text={s} />)}
