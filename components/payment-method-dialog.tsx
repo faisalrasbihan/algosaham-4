@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CreditCard, Smartphone, Loader2, ArrowRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { CreditCard, Smartphone, Landmark, QrCode, Loader2, ArrowRight } from "lucide-react"
 import {
     Dialog,
     DialogContent,
@@ -124,8 +123,8 @@ export function PaymentMethodDialog({
         }
     }
 
-    // Handle GoPay payment
-    const handleGopayPayment = async () => {
+    // Handle Virtual Account payment
+    const handleVirtualAccountPayment = async () => {
         setIsLoading(true)
         setStep('processing')
 
@@ -136,7 +135,60 @@ export function PaymentMethodDialog({
                 body: JSON.stringify({
                     planType,
                     billingInterval,
-                    paymentMethod: 'gopay',
+                    paymentMethod: 'bank_transfer',
+                }),
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.error || "Gagal membuat langganan")
+            }
+
+            if (!window.snap) {
+                window.location.href = data.data.redirectUrl
+                return
+            }
+
+            onClose()
+
+            window.snap.pay(data.data.token, {
+                onSuccess: () => {
+                    toast.success("Pembayaran berhasil! Selamat menikmati paket " + planName)
+                    onPaymentSuccess?.()
+                },
+                onPending: () => {
+                    toast.info("Pembayaran sedang diproses. Silakan selesaikan pembayaran Anda.")
+                },
+                onError: () => {
+                    toast.error("Pembayaran gagal. Silakan coba lagi.")
+                },
+                onClose: () => {
+                    toast.info("Pembayaran dibatalkan")
+                },
+            })
+        } catch (error) {
+            console.error("Payment error:", error)
+            toast.error(error instanceof Error ? error.message : "Terjadi kesalahan")
+            setStep('select')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    // Handle E-Wallet payment
+    const handleEwalletPayment = async () => {
+        setIsLoading(true)
+        setStep('processing')
+
+        try {
+            const response = await fetch("/api/subscriptions/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    planType,
+                    billingInterval,
+                    paymentMethod: 'e_wallet',
                 }),
             })
 
@@ -156,6 +208,59 @@ export function PaymentMethodDialog({
             onClose()
 
             // Open Midtrans Snap payment popup
+            window.snap.pay(data.data.token, {
+                onSuccess: () => {
+                    toast.success("Pembayaran berhasil! Selamat menikmati paket " + planName)
+                    onPaymentSuccess?.()
+                },
+                onPending: () => {
+                    toast.info("Pembayaran sedang diproses. Silakan selesaikan pembayaran Anda.")
+                },
+                onError: () => {
+                    toast.error("Pembayaran gagal. Silakan coba lagi.")
+                },
+                onClose: () => {
+                    toast.info("Pembayaran dibatalkan")
+                },
+            })
+        } catch (error) {
+            console.error("Payment error:", error)
+            toast.error(error instanceof Error ? error.message : "Terjadi kesalahan")
+            setStep('select')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    // Handle QRIS payment
+    const handleQrisPayment = async () => {
+        setIsLoading(true)
+        setStep('processing')
+
+        try {
+            const response = await fetch("/api/subscriptions/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    planType,
+                    billingInterval,
+                    paymentMethod: 'qris',
+                }),
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.error || "Gagal membuat langganan")
+            }
+
+            if (!window.snap) {
+                window.location.href = data.data.redirectUrl
+                return
+            }
+
+            onClose()
+
             window.snap.pay(data.data.token, {
                 onSuccess: () => {
                     toast.success("Pembayaran berhasil! Selamat menikmati paket " + planName)
@@ -209,6 +314,54 @@ export function PaymentMethodDialog({
                         <div className="space-y-3">
                             {/* Virtual Account */}
                             <button
+                                onClick={handleVirtualAccountPayment}
+                                disabled={isLoading}
+                                className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:border-indigo-500 hover:bg-indigo-50 transition-all group cursor-pointer"
+                            >
+                                <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-600 group-hover:bg-indigo-200">
+                                    <Landmark className="w-6 h-6" />
+                                </div>
+                                <div className="flex-1 text-left">
+                                    <div className="font-semibold text-indigo-700">Virtual Account</div>
+                                    <div className="text-sm text-muted-foreground">BCA, BNI, BRI, Permata, Mandiri (Bill Payment)</div>
+                                </div>
+                                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+                            </button>
+
+                            {/* E-Wallet */}
+                            <button
+                                onClick={handleEwalletPayment}
+                                disabled={isLoading}
+                                className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:border-green-500 hover:bg-green-50 transition-all group cursor-pointer"
+                            >
+                                <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-600 group-hover:bg-green-200">
+                                    <Smartphone className="w-6 h-6" />
+                                </div>
+                                <div className="flex-1 text-left">
+                                    <div className="font-semibold text-green-700">E-Wallet</div>
+                                    <div className="text-sm text-muted-foreground">GoPay / GoPay Later, DANA</div>
+                                </div>
+                                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-green-600 group-hover:translate-x-1 transition-all" />
+                            </button>
+
+                            {/* QRIS */}
+                            <button
+                                onClick={handleQrisPayment}
+                                disabled={isLoading}
+                                className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:border-amber-500 hover:bg-amber-50 transition-all group cursor-pointer"
+                            >
+                                <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-amber-100 text-amber-700 group-hover:bg-amber-200">
+                                    <QrCode className="w-6 h-6" />
+                                </div>
+                                <div className="flex-1 text-left">
+                                    <div className="font-semibold text-amber-700">QRIS</div>
+                                    <div className="text-sm text-muted-foreground">Scan QRIS dari aplikasi pembayaran apa pun</div>
+                                </div>
+                                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-amber-700 group-hover:translate-x-1 transition-all" />
+                            </button>
+
+                            {/* Kartu Kredit / Debit */}
+                            <button
                                 onClick={handleCreditCardPayment}
                                 disabled={isLoading}
                                 className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all group cursor-pointer"
@@ -217,26 +370,10 @@ export function PaymentMethodDialog({
                                     <CreditCard className="w-6 h-6" />
                                 </div>
                                 <div className="flex-1 text-left">
-                                    <div className="font-semibold">Virtual Account</div>
-                                    <div className="text-sm text-muted-foreground">Mandiri, BNI, BRI, Permata, CIMB Niaga</div>
+                                    <div className="font-semibold">Kartu Kredit / Debit</div>
+                                    <div className="text-sm text-muted-foreground">Visa, Mastercard, JCB (3DS secure)</div>
                                 </div>
                                 <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                            </button>
-
-                            {/* GoPay */}
-                            <button
-                                onClick={handleGopayPayment}
-                                disabled={isLoading}
-                                className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:border-green-500 hover:bg-green-50 transition-all group cursor-pointer"
-                            >
-                                <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-600 group-hover:bg-green-200">
-                                    <Smartphone className="w-6 h-6" />
-                                </div>
-                                <div className="flex-1 text-left">
-                                    <div className="font-semibold text-green-700">GoPay</div>
-                                    <div className="text-sm text-muted-foreground">Pembayaran QR / Deeplink</div>
-                                </div>
-                                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-green-600 group-hover:translate-x-1 transition-all" />
                             </button>
 
                             <p className="text-xs text-center text-muted-foreground mt-4">

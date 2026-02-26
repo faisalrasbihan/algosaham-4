@@ -54,6 +54,33 @@ interface Strategy {
     isActive?: boolean
 }
 
+function SectionSummary({
+    items,
+}: {
+    items: Array<{ label: string; value: string | number; hint?: string }>
+}) {
+    return (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+            {items.map((item) => (
+                <div
+                    key={item.label}
+                    className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1.5"
+                >
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        {item.label}
+                    </div>
+                    <div className="text-sm font-semibold text-foreground leading-none">
+                        {item.value}
+                    </div>
+                    {item.hint ? (
+                        <div className="text-xs text-muted-foreground leading-none">{item.hint}</div>
+                    ) : null}
+                </div>
+            ))}
+        </div>
+    )
+}
+
 export default function Portfolio() {
     const { isLoaded, isSignedIn } = useUser()
     const router = useRouter()
@@ -378,6 +405,30 @@ export default function Portfolio() {
         return null
     }
 
+    const subscribedCount = subscribedStrategies.length
+    const myStrategiesCount = savedStrategies.length
+
+    const subscriptionLimitReached =
+        limits.subscriptions !== -1 && usage.subscriptions >= limits.subscriptions
+    const subscriptionSlotsValue =
+        limits.subscriptions === -1
+            ? "Unlimited"
+            : `${Math.max(0, limits.subscriptions - usage.subscriptions)} left`
+    const subscriptionSlotsHint =
+        limits.subscriptions === -1
+            ? "No subscription cap"
+            : `${usage.subscriptions}/${limits.subscriptions} used`
+
+    const backtestLimitReached = limits.backtest !== -1 && usage.backtest >= limits.backtest
+    const backtestSlotsValue =
+        limits.backtest === -1
+            ? "Unlimited"
+            : `${Math.max(0, limits.backtest - usage.backtest)} left`
+    const backtestSlotsHint =
+        limits.backtest === -1
+            ? "No rerun cap"
+            : `${usage.backtest}/${limits.backtest} used`
+
     return (
         <div className="min-h-screen bg-background dotted-background">
             <Navbar />
@@ -389,10 +440,26 @@ export default function Portfolio() {
                     <section>
                         <div className="px-6">
                             <div className="mb-6">
-                                <h2 className="text-2xl font-bold text-foreground">Subscribed Strategies</h2>
-                                <p className="text-muted-foreground text-sm max-w-2xl mt-1">
-                                    Strategi yang kamu ikuti dari komunitas. Kami akan mengirimkan notifikasi setiap ada signal baru yang muncul pada strategi-strategi ini. Performa strategi ini <strong className="font-semibold text-ochre">diperbarui secara otomatis setiap hari</strong>.
-                                </p>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-foreground">Subscribed Strategies</h2>
+                                    <p className="text-muted-foreground text-sm max-w-2xl mt-1">
+                                        Strategi yang kamu ikuti dari komunitas. Kami akan mengirimkan notifikasi setiap ada signal baru yang muncul pada strategi-strategi ini. Performa strategi ini <strong className="font-semibold text-ochre">diperbarui secara otomatis setiap hari</strong>.
+                                    </p>
+                                    <SectionSummary
+                                        items={[
+                                            {
+                                                label: "Subscribed",
+                                                value: subscribedCount,
+                                                hint: subscribedCount === 1 ? "strategy" : "strategies",
+                                            },
+                                            {
+                                                label: subscriptionLimitReached ? "Slots Full" : "Slots Left",
+                                                value: subscriptionSlotsValue,
+                                                hint: subscriptionSlotsHint,
+                                            },
+                                        ]}
+                                    />
+                                </div>
                             </div>
                             {isLoadingSubscribed ? (
                                 <div className="flex gap-5 overflow-x-auto pt-4 pb-6 scrollbar-hide pl-6 pr-6 -mx-6">
@@ -425,10 +492,26 @@ export default function Portfolio() {
                     <section>
                         <div className="px-6">
                             <div className="mb-6">
-                                <h2 className="text-2xl font-bold text-foreground">My Strategies</h2>
-                                <p className="text-muted-foreground text-sm max-w-2xl mt-1">
-                                    Strategi yang kamu buat dan simpan. Data yang ditampilkan <strong className="font-semibold text-ochre">bersifat statis</strong>, jalankan ulang (<em>rerun</em>) secara berkala untuk melihat hasil <em>backtest</em> terbaru.
-                                </p>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-foreground">My Strategies</h2>
+                                    <p className="text-muted-foreground text-sm max-w-2xl mt-1">
+                                        Strategi yang kamu buat dan simpan. Data yang ditampilkan <strong className="font-semibold text-ochre">bersifat statis</strong>, jalankan ulang (<em>rerun</em>) secara berkala untuk melihat hasil <em>backtest</em> terbaru.
+                                    </p>
+                                    <SectionSummary
+                                        items={[
+                                            {
+                                                label: "Saved",
+                                                value: myStrategiesCount,
+                                                hint: myStrategiesCount === 1 ? "strategy" : "strategies",
+                                            },
+                                            {
+                                                label: backtestLimitReached ? "Rerun Quota" : "Backtests Left",
+                                                value: backtestSlotsValue,
+                                                hint: backtestSlotsHint,
+                                            },
+                                        ]}
+                                    />
+                                </div>
                             </div>
                             {isLoadingStrategies ? (
                                 <div className="flex gap-5 overflow-x-auto pt-4 pb-6 scrollbar-hide pl-6 pr-6 -mx-6">

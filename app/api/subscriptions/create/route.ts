@@ -17,7 +17,7 @@ const PLAN_PRICING = {
 
 type PlanType = keyof typeof PLAN_PRICING;
 type BillingInterval = 'monthly' | 'yearly';
-type PaymentMethod = 'credit_card' | 'gopay';
+type PaymentMethod = 'credit_card' | 'gopay' | 'bank_transfer' | 'e_wallet' | 'qris';
 
 export async function POST(request: NextRequest) {
     try {
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
                         email: user?.emailAddresses[0]?.emailAddress || undefined,
                         phone: user?.phoneNumbers[0]?.phoneNumber || undefined,
                     },
-                    // enabled_payments: ['gopay', 'qris'],
+                    enabled_payments: ['gopay'],
                     callbacks: {
                         finish: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=success`,
                         error: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=error`,
@@ -165,6 +165,119 @@ export async function POST(request: NextRequest) {
         }
 
         // =====================================================
+        // E-WALLET (GoPay / GoPayLater / DANA) - USE SNAP
+        // =====================================================
+        if (method === 'e_wallet') {
+            const snapResponse = await getSnapToken({
+                transaction_details: {
+                    order_id: orderId,
+                    gross_amount: amount,
+                },
+                customer_details: {
+                    first_name: user?.firstName || undefined,
+                    last_name: user?.lastName || undefined,
+                    email: user?.emailAddresses[0]?.emailAddress || undefined,
+                    phone: user?.phoneNumbers[0]?.phoneNumber || undefined,
+                },
+                enabled_payments: ['gopay', 'dana'],
+                callbacks: {
+                    finish: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=success`,
+                    error: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=error`,
+                    pending: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=pending`,
+                },
+            });
+
+            return NextResponse.json({
+                success: true,
+                data: {
+                    token: snapResponse.token,
+                    redirectUrl: snapResponse.redirect_url,
+                    paymentMethod: 'e_wallet',
+                    orderId,
+                    amount,
+                    planType,
+                    billingInterval,
+                },
+            });
+        }
+
+        // =====================================================
+        // QRIS (GENERIC / OTHER QRIS) - USE SNAP
+        // =====================================================
+        if (method === 'qris') {
+            const snapResponse = await getSnapToken({
+                transaction_details: {
+                    order_id: orderId,
+                    gross_amount: amount,
+                },
+                customer_details: {
+                    first_name: user?.firstName || undefined,
+                    last_name: user?.lastName || undefined,
+                    email: user?.emailAddresses[0]?.emailAddress || undefined,
+                    phone: user?.phoneNumbers[0]?.phoneNumber || undefined,
+                },
+                // Midtrans generic QRIS channel in Snap ("Other QRIS")
+                enabled_payments: ['other_qris'],
+                callbacks: {
+                    finish: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=success`,
+                    error: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=error`,
+                    pending: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=pending`,
+                },
+            });
+
+            return NextResponse.json({
+                success: true,
+                data: {
+                    token: snapResponse.token,
+                    redirectUrl: snapResponse.redirect_url,
+                    paymentMethod: 'qris',
+                    orderId,
+                    amount,
+                    planType,
+                    billingInterval,
+                },
+            });
+        }
+
+        // =====================================================
+        // VIRTUAL ACCOUNT (BANK TRANSFER) - USE SNAP
+        // =====================================================
+        if (method === 'bank_transfer') {
+            const snapResponse = await getSnapToken({
+                transaction_details: {
+                    order_id: orderId,
+                    gross_amount: amount,
+                },
+                customer_details: {
+                    first_name: user?.firstName || undefined,
+                    last_name: user?.lastName || undefined,
+                    email: user?.emailAddresses[0]?.emailAddress || undefined,
+                    phone: user?.phoneNumbers[0]?.phoneNumber || undefined,
+                },
+                // Midtrans Snap alias for VA channels: permata_va, bca_va, bni_va, bri_va, echannel
+                enabled_payments: ['bank_transfer'],
+                callbacks: {
+                    finish: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=success`,
+                    error: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=error`,
+                    pending: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/harga?status=pending`,
+                },
+            });
+
+            return NextResponse.json({
+                success: true,
+                data: {
+                    token: snapResponse.token,
+                    redirectUrl: snapResponse.redirect_url,
+                    paymentMethod: 'bank_transfer',
+                    orderId,
+                    amount,
+                    planType,
+                    billingInterval,
+                },
+            });
+        }
+
+        // =====================================================
         // CREDIT CARD - USE SNAP FOR INITIAL PAYMENT
         // After successful payment, we'll create the recurring subscription
         // using the saved_token_id from the webhook
@@ -176,6 +289,7 @@ export async function POST(request: NextRequest) {
                 order_id: orderId,
                 gross_amount: amount,
             },
+            enabled_payments: ['credit_card'],
             credit_card: {
                 secure: true,
                 save_card: true, // Enable card saving for subscription
