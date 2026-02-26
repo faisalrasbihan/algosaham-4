@@ -14,7 +14,7 @@ export function Footer() {
                             </span>
                         </Link>
                         <p className="text-sm text-muted-foreground font-mono">
-                            Trading anti FOMO
+                            Platform algotrading #1 di Indonesia
                         </p>
                     </div>
 

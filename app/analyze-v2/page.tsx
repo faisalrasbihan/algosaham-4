@@ -351,12 +351,12 @@ function AnalyzeV2Content() {
                 <Navbar />
                 <TickerTape />
 
-                <div className="flex-1 flex flex-col items-center justify-center -mt-20">
+                <div className="flex-1 flex flex-col items-center justify-center -mt-10 md:-mt-16">
                     <StockSearch onSearch={handleSearch} loading={loading} />
                 </div>
 
                 <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
-                    <DialogContent className="sm:max-w-md">
+                    <DialogContent className="sm:max-w-md border-border/70 bg-card/95 backdrop-blur-md shadow-[0_18px_50px_rgba(0,0,0,0.22)]">
                         <DialogHeader className="items-center text-center">
                             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#d07225]/10">
                                 <LogIn className="h-8 w-8 text-[#d07225]" />
@@ -404,22 +404,20 @@ function AnalyzeV2Content() {
             <TickerTape />
 
             <div className="flex-1 pb-12">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-5">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-5 md:mt-7 space-y-5">
 
                     {/* Back */}
                     <button
                         onClick={() => router.push('/analyze-v2')}
-                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card/70 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-[#d07225]/30 hover:bg-card transition-colors group shadow-sm"
                     >
                         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
                         Kembali ke Pencarian
                     </button>
 
                     {/* ━━━ HERO CARD ━━━ */}
-                    <Card className="p-6 sm:p-8">
-                        {/* Thin ochre top line */}
-                        <div className="-mx-6 sm:-mx-8 -mt-6 sm:-mt-8 mb-6 h-px" style={{ background: "linear-gradient(90deg, #d07225 0%, transparent 60%)" }} />
-
+                    <Card className="p-6 sm:p-8 border-border/70 bg-card shadow-sm overflow-hidden">
+                        <div className="-mx-6 sm:-mx-8 -mt-6 sm:-mt-8 mb-6 h-1 bg-gradient-to-r from-[#487b78] via-[#d07225] to-transparent" />
                         {/* Row 1: Stock info + Price + Score */}
                         <div className="flex flex-col lg:flex-row lg:items-start gap-6 mb-7">
 
@@ -461,7 +459,7 @@ function AnalyzeV2Content() {
                             </div>
 
                             {/* Price */}
-                            <div className="flex-shrink-0 lg:text-right">
+                            <div className="flex-shrink-0 lg:text-right rounded-xl border border-border/70 bg-background/70 px-4 py-3">
                                 <div className="text-3xl sm:text-4xl font-bold font-ibm-plex-mono">
                                     Rp {d.price.toLocaleString("id-ID")}
                                 </div>
@@ -477,7 +475,7 @@ function AnalyzeV2Content() {
                             </div>
 
                             {/* Overall Score */}
-                            <div className="flex-shrink-0 text-center lg:text-right">
+                            <div className="flex-shrink-0 text-center lg:text-right rounded-xl border border-border/70 bg-background/70 px-4 py-3 min-w-[150px]">
                                 <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Skor Keseluruhan</div>
                                 <div className="text-5xl font-bold font-ibm-plex-mono text-foreground">{d.overallScore}</div>
                                 <div className="mt-2 mb-1"><ScoreBar score={d.overallScore} /></div>
@@ -493,11 +491,11 @@ function AnalyzeV2Content() {
 
                         {/* ━━━ ADVANCED MULTI-CHART ━━━ */}
                         <div className="mb-8 pt-2">
-                            <AdvancedMultiChart data={d.ohlcv as any} />
+                            <AdvancedMultiChart data={d.ohlcv as any} symbol={d.ticker} />
                         </div>
 
                         {/* Row 2: AI Summary */}
-                        <div className="mb-7">
+                        <div className="mb-7 rounded-xl border border-border/70 bg-background/60 p-4 sm:p-5">
                             <div className="flex items-center gap-2 mb-2">
                                 <Brain className="w-4 h-4 text-primary" />
                                 <span className="text-sm font-semibold">Ringkasan AI</span>
@@ -510,7 +508,7 @@ function AnalyzeV2Content() {
                                     {d.marketBias}
                                 </Badge>
                                 {d.drivers.map((driver, i) => (
-                                    <span key={i} className="text-xs px-2.5 py-1 rounded-md bg-secondary text-muted-foreground border border-border">
+                                    <span key={i} className="text-xs px-2.5 py-1 rounded-md bg-card text-muted-foreground border border-border/70">
                                         {driver}
                                     </span>
                                 ))}
@@ -530,44 +528,44 @@ function AnalyzeV2Content() {
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
                                 {/* Entry */}
-                                <div className="p-3 rounded-lg border border-border bg-secondary/40">
+                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Entry</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono">{d.riskPlan.entryPrice.toLocaleString("id-ID")}</div>
                                     <div className="text-[10px] text-muted-foreground capitalize mt-0.5">{d.riskPlan.entryReference}</div>
                                 </div>
                                 {/* Stop Loss */}
-                                <div className="p-3 rounded-lg border border-border bg-secondary/40">
+                                <div className="p-3 rounded-lg border border-red-200/70 bg-red-50/60 dark:border-red-900/40 dark:bg-red-950/20">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Stop Loss</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono text-red-600">{d.riskPlan.stopLoss.toLocaleString("id-ID")}</div>
                                     <div className="text-[10px] text-red-600 mt-0.5 font-ibm-plex-mono">-{potentialLoss.toFixed(2)}%</div>
                                 </div>
                                 {/* Take Profit */}
-                                <div className="p-3 rounded-lg border border-border bg-secondary/40">
+                                <div className="p-3 rounded-lg border border-emerald-200/70 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/20">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Take Profit</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono text-green-600">{d.riskPlan.takeProfit.toLocaleString("id-ID")}</div>
                                     <div className="text-[10px] text-green-600 mt-0.5 font-ibm-plex-mono">+{potentialGain.toFixed(2)}%</div>
                                 </div>
                                 {/* R/R */}
-                                <div className="p-3 rounded-lg border border-border bg-secondary/40">
+                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">R/R Ratio</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono">1:{d.riskPlan.riskReward.toFixed(1)}</div>
                                 </div>
                                 {/* Holding */}
-                                <div className="p-3 rounded-lg border border-border bg-secondary/40">
+                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Holding</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono">{d.riskPlan.holdingWindowDays}
                                         <span className="text-sm font-normal text-muted-foreground ml-1">hari</span>
                                     </div>
                                 </div>
                                 {/* Confidence */}
-                                <div className="p-3 rounded-lg border border-border bg-secondary/40">
+                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Confidence</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono capitalize">{d.riskPlan.holdingWindowDays > 10 ? "Medium" : "High"}</div>
                                 </div>
                             </div>
 
                             {/* Notes */}
-                            <div className="p-3 rounded-lg bg-secondary/60 border border-border">
+                            <div className="p-3 rounded-lg bg-background/70 border border-border/70">
                                 <div className="flex items-center gap-1.5 mb-2">
                                     <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />
                                     <span className="text-xs font-semibold text-muted-foreground">Catatan Penting</span>
@@ -591,7 +589,8 @@ function AnalyzeV2Content() {
                     <div className="grid lg:grid-cols-2 gap-5">
 
                         {/* Technical */}
-                        <Card className="p-6">
+                        <Card className="p-6 border-border/70 bg-card shadow-sm overflow-hidden">
+                            <div className="-mx-6 -mt-6 mb-5 h-1 bg-gradient-to-r from-[#487b78] to-transparent" />
                             <div className="flex items-start justify-between mb-5">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
@@ -615,15 +614,15 @@ function AnalyzeV2Content() {
 
                                 <TabsContent value="overview">
                                     <div className="grid grid-cols-3 gap-2 mb-5">
-                                        <div className="p-2.5 rounded-lg bg-secondary/60 border border-border text-center">
+                                        <div className="p-2.5 rounded-lg bg-background/70 border border-border/70 text-center">
                                             <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Trend</div>
                                             <div className="text-xs font-semibold capitalize">{d.technical.trend}</div>
                                         </div>
-                                        <div className="p-2.5 rounded-lg bg-secondary/60 border border-border text-center">
+                                        <div className="p-2.5 rounded-lg bg-background/70 border border-border/70 text-center">
                                             <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Momentum</div>
                                             <div className="text-xs font-semibold capitalize">{d.technical.momentum}</div>
                                         </div>
-                                        <div className="p-2.5 rounded-lg bg-secondary/60 border border-border text-center">
+                                        <div className="p-2.5 rounded-lg bg-background/70 border border-border/70 text-center">
                                             <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Volatilitas</div>
                                             <div className="text-xs font-semibold capitalize">{d.technical.volatility}</div>
                                         </div>
@@ -654,7 +653,8 @@ function AnalyzeV2Content() {
                         </Card>
 
                         {/* Fundamental */}
-                        <Card className="p-6">
+                        <Card className="p-6 border-border/70 bg-card shadow-sm overflow-hidden">
+                            <div className="-mx-6 -mt-6 mb-5 h-1 bg-gradient-to-r from-[#d07225] to-transparent" />
                             <div className="flex items-start justify-between mb-5">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
@@ -704,10 +704,10 @@ function AnalyzeV2Content() {
                                     </div>
 
                                     {/* Table */}
-                                    <div className="overflow-x-auto">
+                                    <div className="overflow-x-auto rounded-lg border border-border/70 bg-background/60">
                                         <table className="w-full text-[11px]">
                                             <thead>
-                                                <tr className="border-b border-border">
+                                                <tr className="border-b border-border bg-muted/30">
                                                     <th className="text-left pb-2 text-muted-foreground font-medium">Periode</th>
                                                     <th className="text-right pb-2 text-muted-foreground font-medium">Rev (T)</th>
                                                     <th className="text-right pb-2 text-muted-foreground font-medium">Laba (T)</th>
@@ -718,7 +718,7 @@ function AnalyzeV2Content() {
                                             </thead>
                                             <tbody>
                                                 {d.fundamental.quarterly.map((q, i) => (
-                                                    <tr key={i} className="border-b border-border/40 hover:bg-secondary/40 transition-colors">
+                                                    <tr key={i} className="border-b border-border/40 hover:bg-muted/40 transition-colors">
                                                         <td className="py-2 font-medium font-ibm-plex-mono">{q.period}</td>
                                                         <td className="py-2 text-right font-ibm-plex-mono">{q.revenue.toFixed(1)}</td>
                                                         <td className="py-2 text-right font-ibm-plex-mono">{q.netIncome.toFixed(1)}</td>
@@ -746,10 +746,10 @@ function AnalyzeV2Content() {
 
 
                     {/* Footer */}
-                    <p className="text-center text-[11px] text-muted-foreground/50 pb-4">
+                    <div className="rounded-lg border border-border/70 bg-card/70 px-4 py-3 text-center text-[11px] text-muted-foreground/70 shadow-sm">
                         <Info className="w-3 h-3 inline mr-1 -mt-0.5" />
                         Analisis ini dihasilkan oleh AI dan bukan merupakan saran investasi. Selalu lakukan riset mandiri sebelum mengambil keputusan investasi.
-                    </p>
+                    </div>
                 </div>
             </div>
         </div>
