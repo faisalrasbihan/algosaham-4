@@ -104,6 +104,9 @@ export function Navbar() {
         <Link href="/strategies" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Strategi
         </Link>
+        <Link href="/screener" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
+          Screener
+        </Link>
         <a href="/analyze-v2" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Analisis
         </a>
@@ -346,6 +349,7 @@ export function Navbar() {
                 <SheetClose asChild><Link href="/" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Home</Link></SheetClose>
                 <SheetClose asChild><Link href="/backtest" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Simulasi</Link></SheetClose>
                 <SheetClose asChild><Link href="/strategies" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Strategi</Link></SheetClose>
+                <SheetClose asChild><Link href="/screener" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Screener</Link></SheetClose>
                 <SheetClose asChild><Link href="/analyze-v2" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Analisis</Link></SheetClose>
                 <SheetClose asChild><Link href="/harga" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Harga</Link></SheetClose>
                 <SheetClose asChild><Link href="/about" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Pelajari</Link></SheetClose>

@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useState, useMemo } from "react"
-import { Crown, Lock, ArrowUpRight } from "lucide-react"
+import { Lock, ArrowUpRight } from "lucide-react"
 import Link from "next/link"
 import { Strategy } from "./types"
 import { generateSparklineData, generateHeatmapData } from "./utils"
@@ -28,11 +28,14 @@ import {
 
 // Bandar tier colors — consistent with navbar
 const BANDAR_COLORS = {
-    bg: '#d4af37',
-    bgLight: 'rgba(212, 175, 55, 0.08)',
-    bgMedium: 'rgba(212, 175, 55, 0.15)',
-    text: '#d4af37',
-    gradient: 'linear-gradient(135deg, #d4af37, #f0c75e)',
+    border: 'rgba(191, 160, 74, 0.32)',
+    badgeBg: 'linear-gradient(180deg, #e1bb4a 0%, #c59220 100%)',
+    badgeBorder: 'rgba(165, 118, 18, 0.65)',
+    badgeText: '#fffaf0',
+    glow: 'rgba(212, 175, 55, 0.08)',
+    accentDark: '#826923',
+    button: '#3c3933',
+    buttonHover: '#2f2c27',
 }
 
 interface ShowcaseStrategyCardProps {
@@ -61,43 +64,65 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
 
     const cardContent = (
         <Card
-            className="min-w-[520px] flex-shrink-0 border border-border/60 hover:border-border transition-all duration-200 bg-gradient-to-br from-amber-50/40 to-card relative overflow-hidden cursor-pointer hover:shadow-lg hover:scale-[1.01]"
+            className="w-[calc(100vw-3rem)] max-w-[520px] flex-shrink-0 border border-border bg-card relative overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] sm:min-w-[520px]"
+            style={{
+                boxShadow: `inset 0 1px 0 rgba(255,255,255,0.9), 0 0 0 1px ${BANDAR_COLORS.glow}`,
+                borderColor: BANDAR_COLORS.border,
+                backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,248,243,0.98) 100%)",
+            }}
             onClick={() => {
                 if (isBandarUser) onCardClick?.()
             }}
         >
-            <CardContent className="p-5 relative z-10">
+            <div
+                className="pointer-events-none absolute inset-x-0 top-0 h-px"
+                style={{ background: "linear-gradient(90deg, transparent, rgba(191,160,74,0.45), transparent)" }}
+            />
+            <div
+                className="pointer-events-none absolute right-0 top-0 h-32 w-32"
+                style={{ background: "radial-gradient(circle at top right, rgba(212,175,55,0.14), transparent 68%)" }}
+            />
+            <CardContent className="relative z-10 p-4 sm:p-5">
                 <div className="space-y-3">
-                    {/* Header: Title + Bandar Badge */}
                     <div className="flex items-start justify-between gap-3">
-                        <h3 className="text-base font-semibold text-foreground">{strategy.name}</h3>
+                        <div className="pr-8 sm:pr-10">
+                            <p
+                                className="mb-1 text-[10px] font-semibold uppercase tracking-[0.24em]"
+                                style={{ color: BANDAR_COLORS.accentDark }}
+                            >
+                                Strategy Showcase
+                            </p>
+                            <h3 className="text-base font-bold text-foreground">{strategy.name}</h3>
+                        </div>
                         <TooltipProvider delayDuration={200}>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div
-                                        className="flex items-center gap-1 px-2 py-0.5 rounded-sm flex-shrink-0 text-[10px] font-bold tracking-wide cursor-default"
+                                        className="flex h-8 w-8 items-center justify-center rounded-[0.8rem] border text-xs font-bold flex-shrink-0 cursor-default shadow-sm"
                                         style={{
-                                            background: BANDAR_COLORS.gradient,
-                                            color: '#ffffff',
+                                            background: BANDAR_COLORS.badgeBg,
+                                            borderColor: BANDAR_COLORS.badgeBorder,
+                                            color: BANDAR_COLORS.badgeText,
+                                            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28)",
                                         }}
+                                        aria-label="Bandar protected strategy"
                                     >
-                                        <Crown className="w-3 h-3" />
-                                        BANDAR
+                                        B
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom" className="max-w-[200px]">
-                                    <p className="text-xs">Strategi eksklusif untuk pengguna <strong>Bandar Plan</strong>. Upgrade untuk berlangganan.</p>
+                                    <p className="text-xs">Protected strategy for <strong>Bandar Plan</strong> users only.</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     </div>
 
                     {/* Return with Sparkline */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <div className="text-xs text-muted-foreground mb-1">Return</div>
                             <div
-                                className={`text-3xl font-bold ${strategy.totalReturn >= 0 ? "text-emerald-600" : "text-red-500"}`}
+                                className={`text-2xl font-bold sm:text-3xl ${strategy.totalReturn >= 0 ? "text-emerald-600" : "text-red-500"}`}
                                 style={{ fontFamily: "'IBM Plex Mono', monospace" }}
                             >
                                 {strategy.totalReturn >= 0 ? "+" : ""}
@@ -105,8 +130,8 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
                             </div>
                         </div>
 
-                        <div className="relative">
-                            <div className="flex items-end gap-0.5 h-12 w-[134px]">
+                        <div className="relative self-start sm:self-auto">
+                            <div className="flex h-10 w-full max-w-[148px] items-end gap-0.5 sm:h-12 sm:w-[134px]">
                                 {sparklineData.map((data, i) => {
                                     const height = ((data.value - minSparkline) / sparklineRange) * 100
                                     return (
@@ -136,9 +161,9 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
                         </div>
                     </div>
 
-                    <div className="flex items-start gap-4 pt-1">
+                    <div className="flex flex-col gap-4 pt-1 sm:flex-row sm:items-start">
                         {/* Left side metrics */}
-                        <div className="flex-1 grid grid-cols-3 gap-x-4 gap-y-2 text-xs">
+                        <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-3">
                             <div>
                                 <div className="text-muted-foreground mb-0.5">Trades</div>
                                 <div className="font-semibold text-foreground" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{strategy.totalTrades}</div>
@@ -202,7 +227,7 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
                                 {heatmapData.map((data, i) => (
                                     <div
                                         key={i}
-                                        className={`w-5 h-5 rounded-sm ${data.color} flex items-center justify-center relative group`}
+                                        className={`flex h-4 w-4 items-center justify-center rounded-sm relative group sm:h-5 sm:w-5 ${data.color}`}
                                         title={`${data.month}: ${data.value >= 0 ? "+" : ""}${data.value.toFixed(1)}%`}
                                     >
                                         <span className="text-[8px] font-semibold text-foreground/60" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
@@ -219,8 +244,14 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
                         {isBandarUser ? (
                             <Button
                                 size="sm"
-                                className="w-full text-white font-medium hover:opacity-90 transition-all"
-                                style={{ background: BANDAR_COLORS.gradient }}
+                                className="w-full text-white font-medium transition-colors"
+                                style={{ backgroundColor: BANDAR_COLORS.button }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = BANDAR_COLORS.buttonHover
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = BANDAR_COLORS.button
+                                }}
                                 onClick={() => onSubscribe?.(strategy.id)}
                                 disabled={isLoading || isSubscribed}
                             >
@@ -230,20 +261,21 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
                             <Button
                                 size="sm"
                                 variant="outline"
-                                className="w-full font-medium transition-all cursor-pointer hover:text-white"
+                                className="w-full font-medium transition-all cursor-pointer bg-transparent"
                                 style={{
-                                    borderColor: BANDAR_COLORS.bg,
-                                    color: BANDAR_COLORS.text,
+                                    borderColor: BANDAR_COLORS.border,
+                                    color: BANDAR_COLORS.accentDark,
+                                    backgroundColor: "rgba(255,255,255,0.72)",
                                 }}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#d07225'
-                                    e.currentTarget.style.borderColor = '#d07225'
-                                    e.currentTarget.style.color = '#ffffff'
+                                    e.currentTarget.style.backgroundColor = 'rgba(191, 160, 74, 0.12)'
+                                    e.currentTarget.style.borderColor = BANDAR_COLORS.badgeBorder
+                                    e.currentTarget.style.color = BANDAR_COLORS.accentDark
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = ''
-                                    e.currentTarget.style.borderColor = BANDAR_COLORS.bg
-                                    e.currentTarget.style.color = BANDAR_COLORS.text
+                                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.72)'
+                                    e.currentTarget.style.borderColor = BANDAR_COLORS.border
+                                    e.currentTarget.style.color = BANDAR_COLORS.accentDark
                                 }}
                             >
                                 <Lock className="w-3.5 h-3.5 mr-1.5" />
@@ -267,10 +299,14 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
             <div className="space-y-3">
                 <div className="flex items-center gap-2">
                     <div
-                        className="w-6 h-6 rounded-full flex items-center justify-center"
-                        style={{ background: BANDAR_COLORS.gradient }}
+                        className="flex h-6 w-6 items-center justify-center rounded-md border"
+                        style={{
+                            background: BANDAR_COLORS.badgeBg,
+                            borderColor: BANDAR_COLORS.badgeBorder,
+                            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28)",
+                        }}
                     >
-                        <Crown className="w-3.5 h-3.5 text-white" />
+                        <span className="text-xs font-semibold" style={{ color: BANDAR_COLORS.badgeText }}>B</span>
                     </div>
                     <span className="text-sm font-semibold text-foreground">Bandar Exclusive</span>
                 </div>
@@ -280,8 +316,8 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
                 <Link href="/harga">
                     <Button
                         size="sm"
-                        className="w-full text-white font-medium hover:opacity-90 transition-all group"
-                        style={{ background: BANDAR_COLORS.gradient }}
+                        className="w-full text-white font-medium transition-colors group"
+                        style={{ backgroundColor: BANDAR_COLORS.button }}
                     >
                         Upgrade Plan
                         <ArrowUpRight className="w-3.5 h-3.5 ml-1.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -294,8 +330,15 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
     const dialogContent = (
         <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
-                <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4 mt-2" style={{ background: BANDAR_COLORS.bgLight }}>
-                    <Crown className="w-6 h-6" style={{ color: BANDAR_COLORS.bg }} />
+                <div
+                    className="mx-auto mb-4 mt-2 flex h-12 w-12 items-center justify-center rounded-xl border"
+                    style={{
+                        background: BANDAR_COLORS.badgeBg,
+                        borderColor: BANDAR_COLORS.badgeBorder,
+                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28)",
+                    }}
+                >
+                    <span className="text-lg font-semibold" style={{ color: BANDAR_COLORS.badgeText }}>B</span>
                 </div>
                 <DialogTitle className="text-center text-xl font-bold font-ibm-plex-mono">Akses Eksklusif Bandar</DialogTitle>
                 <DialogDescription className="text-center pt-2 text-muted-foreground">
@@ -304,7 +347,7 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
             </DialogHeader>
             <div className="flex justify-center mt-2 pb-2">
                 <Link href="/harga" className="w-full">
-                    <Button className="w-full text-white hover:opacity-90 transition-all font-semibold" style={{ background: BANDAR_COLORS.gradient }}>
+                    <Button className="w-full text-white transition-colors font-semibold" style={{ backgroundColor: BANDAR_COLORS.button }}>
                         Upgrade ke Bandar
                         <ArrowUpRight className="w-4 h-4 ml-2" />
                     </Button>
