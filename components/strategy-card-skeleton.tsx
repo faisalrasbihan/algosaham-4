@@ -4,47 +4,82 @@ export function StrategyCardSkeleton({ type = "regular" }: { type?: "subscribed"
   if (type === "showcase") {
     return (
       <div className="py-4">
-        <Card className="min-w-[520px] min-h-[280px] shrink-0 animate-pulse border border-border bg-gradient-to-br from-amber-50/20 to-card">
-          <CardContent className="p-5 h-full flex flex-col">
-            <div className="space-y-4 flex-1 flex flex-col">
-              {/* Header skeleton */}
-              <div className="flex items-start justify-between">
-                <div className="h-5 bg-gradient-to-r from-muted to-muted/50 rounded w-1/3" />
-                <div className="h-5 w-16 bg-gradient-to-r from-amber-100/50 to-amber-100/30 rounded" />
-              </div>
-
-              {/* Return skeleton */}
-              <div className="flex items-center justify-between pt-2 pb-1">
-                <div className="space-y-2">
-                  <div className="h-3 bg-gradient-to-r from-muted to-muted/50 rounded w-16" />
-                  <div className="h-8 bg-gradient-to-r from-muted to-muted/50 rounded w-24" />
+        <Card
+          className="w-[calc(100vw-3rem)] max-w-[520px] min-h-[280px] shrink-0 overflow-hidden border animate-pulse sm:min-w-[520px]"
+          style={{
+            borderColor: "rgba(191, 160, 74, 0.32)",
+            backgroundImage: "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(250,248,243,0.98) 100%)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9), 0 0 0 1px rgba(212,175,55,0.08)",
+          }}
+        >
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(191,160,74,0.45), transparent)" }}
+          />
+          <div
+            className="pointer-events-none absolute right-0 top-0 h-32 w-32"
+            style={{ background: "radial-gradient(circle at top right, rgba(212,175,55,0.14), transparent 68%)" }}
+          />
+          <CardContent className="relative z-10 p-4 sm:p-5">
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 pr-8 sm:pr-10">
+                  <div className="mb-2 h-2.5 w-20 rounded bg-muted/70" />
+                  <div className="h-5 w-40 rounded bg-muted/80" />
                 </div>
-                <div className="h-12 w-[134px] bg-gradient-to-r from-muted to-muted/50 rounded" />
+                <div className="h-8 w-8 rounded-md bg-[#d4af37]/70 shadow-sm" />
               </div>
 
-              {/* Metrics skeleton */}
-              <div className="flex items-start gap-4 pt-1">
-                <div className="flex-1 grid grid-cols-3 gap-x-4 gap-y-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-2">
+                  <div className="h-3 w-12 rounded bg-muted/60" />
+                  <div className="h-8 w-28 rounded bg-muted/80 sm:h-9 sm:w-32" />
+                </div>
+                <div className="flex h-10 w-full max-w-[148px] items-end gap-0.5 self-start sm:h-12 sm:w-[134px] sm:self-auto">
+                  {[35, 48, 40, 58, 62, 45, 74, 52, 68, 84, 64, 92].map((height, i) => (
+                    <div
+                      key={i}
+                      className="flex-1 rounded-sm bg-emerald-400/45"
+                      style={{ height: `${height}%` }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-4 pt-1 sm:flex-row sm:items-start">
+                <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
                     <div key={i} className="space-y-1.5">
-                      <div className="h-3 bg-gradient-to-r from-muted to-muted/50 rounded w-16" />
-                      <div className="h-4 bg-gradient-to-r from-muted to-muted/50 rounded w-12" />
+                      <div className="h-3 w-16 rounded bg-muted/60" />
+                      <div className="h-4 w-12 rounded bg-muted/80" />
                     </div>
                   ))}
                 </div>
                 <div className="flex-shrink-0 space-y-2">
-                  <div className="h-3 bg-gradient-to-r from-muted to-muted/50 rounded w-24" />
-                  <div className="grid grid-cols-6 gap-1 w-[150px]">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div key={i} className="w-5 h-5 rounded-sm bg-gradient-to-r from-muted to-muted/50" />
+                  <div className="h-3 w-28 rounded bg-muted/60" />
+                  <div className="grid grid-cols-6 gap-1">
+                    {[
+                      "bg-emerald-200",
+                      "bg-emerald-300",
+                      "bg-slate-200",
+                      "bg-red-200",
+                      "bg-emerald-200",
+                      "bg-slate-200",
+                      "bg-emerald-300",
+                      "bg-emerald-200",
+                      "bg-red-200",
+                      "bg-slate-200",
+                      "bg-emerald-200",
+                      "bg-emerald-300",
+                    ].map((color, i) => (
+                      <div key={i} className={`h-4 w-4 rounded-sm sm:h-5 sm:w-5 ${color}`} />
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* Action button */}
               <div className="pt-2">
-                <div className="h-8 w-full rounded bg-gradient-to-r from-muted to-muted/50" />
+                <div className="h-8 w-full rounded-md border border-[rgba(191,160,74,0.32)] bg-white/80" />
               </div>
             </div>
           </CardContent>
@@ -161,4 +196,3 @@ export function StrategyCardSkeleton({ type = "regular" }: { type?: "subscribed"
     </div>
   )
 }
-

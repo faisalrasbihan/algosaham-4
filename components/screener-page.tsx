@@ -143,6 +143,10 @@ type ColumnId = keyof typeof COLUMN_LABELS
 const FIXED_COLUMN_IDS: ColumnId[] = ["ticker", "action"]
 const OPTIONAL_COLUMN_IDS: ColumnId[] = ["sector", "price", "changePct", "technicalScore", "fundamentalScore", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth"]
 
+function getColumnTemplate(template: ColumnTemplateKey): ColumnId[] {
+  return [...COLUMN_TEMPLATES[template]]
+}
+
 function formatPercent(value: number, digits = 1) {
   const sign = value > 0 ? "+" : ""
   return `${sign}${value.toFixed(digits)}%`
@@ -174,7 +178,7 @@ export function ScreenerPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [alertDraft, setAlertDraft] = useState<AlertDraft>(defaultAlertDraft)
   const [columnTemplate, setColumnTemplate] = useState<ColumnTemplateKey>("recommended")
-  const [visibleColumnIds, setVisibleColumnIds] = useState<ColumnId[]>(COLUMN_TEMPLATES.recommended as ColumnId[])
+  const [visibleColumnIds, setVisibleColumnIds] = useState<ColumnId[]>(() => getColumnTemplate("recommended"))
 
   useEffect(() => {
     const storedRadar = window.localStorage.getItem("algosaham-screener-radar")
@@ -204,7 +208,7 @@ export function ScreenerPage() {
         const normalized = Array.from(new Set([...FIXED_COLUMN_IDS, ...parsed])) as ColumnId[]
         setVisibleColumnIds(normalized)
       } catch {
-        setVisibleColumnIds(COLUMN_TEMPLATES.recommended as ColumnId[])
+        setVisibleColumnIds(getColumnTemplate("recommended"))
       }
     }
 
@@ -288,7 +292,7 @@ export function ScreenerPage() {
 
   function applyColumnTemplate(template: ColumnTemplateKey) {
     setColumnTemplate(template)
-    setVisibleColumnIds(COLUMN_TEMPLATES[template] as ColumnId[])
+    setVisibleColumnIds(getColumnTemplate(template))
   }
 
   function toggleColumnVisibility(columnId: ColumnId, checked: boolean) {

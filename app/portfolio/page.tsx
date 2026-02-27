@@ -520,9 +520,11 @@ export default function Portfolio() {
                                     ))}
                                 </div>
                             ) : savedStrategies.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-center">
-                                    <p className="text-muted-foreground mb-2">No strategies yet</p>
-                                    <p className="text-sm text-muted-foreground">Create your first strategy in the Backtester</p>
+                                <div className="px-1 py-4">
+                                    <div className="mx-auto flex min-h-[280px] w-full max-w-3xl flex-col items-center justify-center rounded-[28px] border border-border/70 bg-white px-8 py-12 text-center shadow-[0_18px_48px_rgba(54,53,55,0.08)]">
+                                        <p className="mb-2 text-xl font-semibold text-foreground">No strategies yet</p>
+                                        <p className="max-w-md text-sm text-muted-foreground">Create your first strategy in the Backtester</p>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="flex gap-5 overflow-x-auto pt-4 pb-6 scrollbar-hide pl-6 pr-6 -mx-6">
