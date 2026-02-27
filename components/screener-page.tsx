@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, ArrowDownRight, Radar, Search, SlidersHorizontal, Star, StarOff } from "lucide-react"
+import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, ArrowDownRight, Radar, Search, SlidersHorizontal, Star, StarOff, Columns3 } from "lucide-react"
 
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -26,14 +26,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 type ScreenerRow = {
   ticker: string
@@ -111,15 +112,46 @@ const SORT_OPTIONS = [
 
 type SortKey = (typeof SORT_OPTIONS)[number]
 
+const COLUMN_LABELS = {
+  ticker: "Saham",
+  sector: "Sector",
+  price: "Harga",
+  changePct: "Change",
+  technicalScore: "Tech",
+  fundamentalScore: "Fund",
+  rsi: "RSI",
+  ma20: "MA20",
+  ma50: "MA50",
+  trend: "Trend",
+  pe: "PE",
+  pbv: "PBV",
+  roe: "ROE",
+  epsGrowth: "EPS YoY",
+  action: "Action",
+} as const
+
+const COLUMN_TEMPLATES = {
+  recommended: ["ticker", "sector", "price", "changePct", "technicalScore", "fundamentalScore", "rsi", "trend", "pe", "roe", "action"],
+  technical: ["ticker", "sector", "price", "changePct", "technicalScore", "rsi", "ma20", "ma50", "trend", "action"],
+  fundamental: ["ticker", "sector", "price", "fundamentalScore", "pe", "pbv", "roe", "epsGrowth", "action"],
+  all: ["ticker", "sector", "price", "changePct", "technicalScore", "fundamentalScore", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth", "action"],
+} as const
+
+type ColumnTemplateKey = keyof typeof COLUMN_TEMPLATES
+type ColumnId = keyof typeof COLUMN_LABELS
+
+const FIXED_COLUMN_IDS: ColumnId[] = ["ticker", "action"]
+const OPTIONAL_COLUMN_IDS: ColumnId[] = ["sector", "price", "changePct", "technicalScore", "fundamentalScore", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth"]
+
 function formatPercent(value: number, digits = 1) {
   const sign = value > 0 ? "+" : ""
   return `${sign}${value.toFixed(digits)}%`
 }
 
 function scoreTone(score: number) {
-  if (score >= 75) return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/40"
-  if (score >= 60) return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/40"
-  return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/20 dark:text-rose-300 dark:border-rose-900/40"
+  if (score >= 75) return "bg-emerald-100 text-emerald-800 border-emerald-200"
+  if (score >= 60) return "bg-amber-100 text-amber-800 border-amber-200"
+  return "bg-rose-100 text-rose-800 border-rose-200"
 }
 
 function trendTone(trend: ScreenerRow["trend"]) {
@@ -141,10 +173,14 @@ export function ScreenerPage() {
   const [alerts, setAlerts] = useState<SavedAlert[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [alertDraft, setAlertDraft] = useState<AlertDraft>(defaultAlertDraft)
+  const [columnTemplate, setColumnTemplate] = useState<ColumnTemplateKey>("recommended")
+  const [visibleColumnIds, setVisibleColumnIds] = useState<ColumnId[]>(COLUMN_TEMPLATES.recommended as ColumnId[])
 
   useEffect(() => {
     const storedRadar = window.localStorage.getItem("algosaham-screener-radar")
     const storedAlerts = window.localStorage.getItem("algosaham-screener-alerts")
+    const storedColumns = window.localStorage.getItem("algosaham-screener-columns")
+    const storedTemplate = window.localStorage.getItem("algosaham-screener-column-template")
 
     if (storedRadar) {
       try {
@@ -161,6 +197,20 @@ export function ScreenerPage() {
         setAlerts([])
       }
     }
+
+    if (storedColumns) {
+      try {
+        const parsed = JSON.parse(storedColumns) as ColumnId[]
+        const normalized = Array.from(new Set([...FIXED_COLUMN_IDS, ...parsed])) as ColumnId[]
+        setVisibleColumnIds(normalized)
+      } catch {
+        setVisibleColumnIds(COLUMN_TEMPLATES.recommended as ColumnId[])
+      }
+    }
+
+    if (storedTemplate && storedTemplate in COLUMN_TEMPLATES) {
+      setColumnTemplate(storedTemplate as ColumnTemplateKey)
+    }
   }, [])
 
   useEffect(() => {
@@ -170,6 +220,14 @@ export function ScreenerPage() {
   useEffect(() => {
     window.localStorage.setItem("algosaham-screener-alerts", JSON.stringify(alerts))
   }, [alerts])
+
+  useEffect(() => {
+    window.localStorage.setItem("algosaham-screener-columns", JSON.stringify(visibleColumnIds))
+  }, [visibleColumnIds])
+
+  useEffect(() => {
+    window.localStorage.setItem("algosaham-screener-column-template", columnTemplate)
+  }, [columnTemplate])
 
   const sectors = Array.from(new Set(SCREENER_ROWS.map((row) => row.sector))).sort()
 
@@ -227,6 +285,212 @@ export function ScreenerPage() {
     setDialogOpen(false)
     setAlertDraft(defaultAlertDraft)
   }
+
+  function applyColumnTemplate(template: ColumnTemplateKey) {
+    setColumnTemplate(template)
+    setVisibleColumnIds(COLUMN_TEMPLATES[template] as ColumnId[])
+  }
+
+  function toggleColumnVisibility(columnId: ColumnId, checked: boolean) {
+    if (FIXED_COLUMN_IDS.includes(columnId)) return
+
+    setVisibleColumnIds((current) => {
+      const next = checked
+        ? Array.from(new Set([...current, columnId])) as ColumnId[]
+        : current.filter((id) => id !== columnId)
+
+      return Array.from(new Set([...FIXED_COLUMN_IDS, ...next])) as ColumnId[]
+    })
+    setColumnTemplate("recommended")
+  }
+
+  const columns: DataTableColumn<ScreenerRow>[] = [
+    {
+      id: "ticker",
+      headClassName: "min-w-[200px]",
+      header: (
+        <button className="inline-flex items-center gap-2" onClick={() => handleSort("ticker")}>
+          Saham <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: (row) => {
+        const inRadar = radarTickers.includes(row.ticker)
+        return (
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => toggleRadar(row.ticker)}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label={inRadar ? `Hapus ${row.ticker} dari radar` : `Tambah ${row.ticker} ke radar`}
+            >
+              {inRadar ? <Star className="h-4 w-4 fill-[#d07225] text-[#d07225]" /> : <StarOff className="h-4 w-4" />}
+            </button>
+            <div>
+              <Link href={`/analyze-v2?ticker=${row.ticker}`} className="font-ibm-plex-mono font-semibold text-foreground hover:underline">
+                {row.ticker}
+              </Link>
+              <div className="text-xs text-muted-foreground truncate max-w-[180px]">{row.company}</div>
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      id: "sector",
+      header: "Sector",
+      cell: (row) => (
+        <div className="space-y-1">
+          <div>{row.sector}</div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[10px]">{row.marketCapGroup}</Badge>
+            {row.syariah && <Badge variant="outline" className="text-[10px] text-[#487b78] border-[#487b78]/30 bg-[#487b78]/5">Syariah</Badge>}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "price",
+      headClassName: "text-right",
+      cellClassName: "text-right font-ibm-plex-mono",
+      header: (
+        <button className="inline-flex items-center gap-2" onClick={() => handleSort("price")}>
+          Harga <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: (row) => row.price.toLocaleString("id-ID"),
+    },
+    {
+      id: "changePct",
+      headClassName: "text-right",
+      cellClassName: "text-right font-ibm-plex-mono",
+      header: (
+        <button className="inline-flex items-center gap-2" onClick={() => handleSort("changePct")}>
+          Change <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: (row) => (
+        <span className={`inline-flex items-center gap-1 justify-end w-full ${row.changePct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+          {row.changePct >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+          {formatPercent(row.changePct, 2)}
+        </span>
+      ),
+    },
+    {
+      id: "technicalScore",
+      headClassName: "text-right",
+      cellClassName: "text-right",
+      header: (
+        <button className="inline-flex items-center gap-2" onClick={() => handleSort("technicalScore")}>
+          Tech <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: (row) => <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-semibold ${scoreTone(row.technicalScore)}`}>{row.technicalScore}</span>,
+    },
+    {
+      id: "fundamentalScore",
+      headClassName: "text-right",
+      cellClassName: "text-right",
+      header: (
+        <button className="inline-flex items-center gap-2" onClick={() => handleSort("fundamentalScore")}>
+          Fund <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: (row) => <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-semibold ${scoreTone(row.fundamentalScore)}`}>{row.fundamentalScore}</span>,
+    },
+    {
+      id: "rsi",
+      headClassName: "text-right",
+      cellClassName: "text-right font-ibm-plex-mono",
+      header: (
+        <button className="inline-flex items-center gap-2" onClick={() => handleSort("rsi")}>
+          RSI <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: (row) => row.rsi.toFixed(1),
+    },
+    {
+      id: "ma20",
+      headClassName: "text-right",
+      cellClassName: "text-right font-ibm-plex-mono",
+      header: "MA20",
+      cell: (row) => <span className={row.ma20GapPct >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(row.ma20GapPct)}</span>,
+    },
+    {
+      id: "ma50",
+      headClassName: "text-right",
+      cellClassName: "text-right font-ibm-plex-mono",
+      header: "MA50",
+      cell: (row) => <span className={row.ma50GapPct >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(row.ma50GapPct)}</span>,
+    },
+    {
+      id: "trend",
+      header: "Trend",
+      cell: (row) => <span className={`capitalize font-medium ${trendTone(row.trend)}`}>{row.trend}</span>,
+    },
+    {
+      id: "pe",
+      headClassName: "text-right",
+      cellClassName: "text-right font-ibm-plex-mono",
+      header: (
+        <button className="inline-flex items-center gap-2" onClick={() => handleSort("pe")}>
+          PE <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: (row) => `${row.pe.toFixed(1)}x`,
+    },
+    {
+      id: "pbv",
+      headClassName: "text-right",
+      cellClassName: "text-right font-ibm-plex-mono",
+      header: "PBV",
+      cell: (row) => `${row.pbv.toFixed(1)}x`,
+    },
+    {
+      id: "roe",
+      headClassName: "text-right",
+      cellClassName: "text-right font-ibm-plex-mono",
+      header: (
+        <button className="inline-flex items-center gap-2" onClick={() => handleSort("roe")}>
+          ROE <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: (row) => `${row.roe.toFixed(1)}%`,
+    },
+    {
+      id: "epsGrowth",
+      headClassName: "text-right",
+      cellClassName: "text-right font-ibm-plex-mono",
+      header: (
+        <button className="inline-flex items-center gap-2" onClick={() => handleSort("epsGrowth")}>
+          EPS YoY <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: (row) => <span className={row.epsGrowth >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(row.epsGrowth)}</span>,
+    },
+    {
+      id: "action",
+      headClassName: "text-right min-w-[220px]",
+      cellClassName: "text-right",
+      header: "Action",
+      cell: (row) => {
+        const inRadar = radarTickers.includes(row.ticker)
+        return (
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => toggleRadar(row.ticker)}>
+              <Radar className="h-3.5 w-3.5 mr-1" />
+              {inRadar ? "Radar aktif" : "Tambah radar"}
+            </Button>
+            <Button size="sm" onClick={() => openAlertDialog(row.ticker)} disabled={!inRadar}>
+              <BellPlus className="h-3.5 w-3.5 mr-1" />
+              Alert
+            </Button>
+          </div>
+        )
+      },
+    },
+  ]
+
+  const visibleColumns = columns.filter((column) => visibleColumnIds.includes(column.id as ColumnId))
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -355,135 +619,58 @@ export function ScreenerPage() {
                   {filteredRows.length} saham tampil
                 </div>
               </div>
+
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Select value={columnTemplate} onValueChange={(value: ColumnTemplateKey) => applyColumnTemplate(value)}>
+                    <SelectTrigger className="w-[220px] bg-background border-border/70">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recommended">Template rekomendasi</SelectItem>
+                      <SelectItem value="technical">Template technical</SelectItem>
+                      <SelectItem value="fundamental">Template fundamental</SelectItem>
+                      <SelectItem value="all">Semua kolom</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="gap-2">
+                        <Columns3 className="h-4 w-4" />
+                        Pilih kolom
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuLabel>Kolom terlihat</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {OPTIONAL_COLUMN_IDS.map((columnId) => (
+                        <DropdownMenuCheckboxItem
+                          key={columnId}
+                          checked={visibleColumnIds.includes(columnId)}
+                          onCheckedChange={(checked) => toggleColumnVisibility(columnId, checked === true)}
+                        >
+                          {COLUMN_LABELS[columnId]}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <div className="text-sm text-muted-foreground">
+                  Template rekomendasi menampilkan kolom yang paling relevan untuk screening harian.
+                </div>
+              </div>
             </div>
           </section>
 
-          <section className="rounded-xl border border-border/70 bg-card shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <Table className="min-w-[1380px]">
-                <TableHeader className="bg-muted/20 sticky top-0 z-10">
-                  <TableRow className="hover:bg-muted/20 border-border/70">
-                    <TableHead className="min-w-[200px] h-12 px-4 text-[11px] font-semibold uppercase tracking-[0.12em]">
-                      <button className="inline-flex items-center gap-2 hover:text-foreground transition-colors" onClick={() => handleSort("ticker")}>
-                        Saham <ArrowUpDown className="h-3.5 w-3.5" />
-                      </button>
-                    </TableHead>
-                    <TableHead className="h-12 px-4 text-[11px] font-semibold uppercase tracking-[0.12em]">Sector</TableHead>
-                    <TableHead className="h-12 px-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em]">
-                      <button className="inline-flex items-center gap-2 hover:text-foreground transition-colors" onClick={() => handleSort("price")}>
-                        Harga <ArrowUpDown className="h-3.5 w-3.5" />
-                      </button>
-                    </TableHead>
-                    <TableHead className="h-12 px-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em]">
-                      <button className="inline-flex items-center gap-2 hover:text-foreground transition-colors" onClick={() => handleSort("changePct")}>
-                        Change <ArrowUpDown className="h-3.5 w-3.5" />
-                      </button>
-                    </TableHead>
-                    <TableHead className="h-12 px-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em]">
-                      <button className="inline-flex items-center gap-2 hover:text-foreground transition-colors" onClick={() => handleSort("technicalScore")}>
-                        Tech <ArrowUpDown className="h-3.5 w-3.5" />
-                      </button>
-                    </TableHead>
-                    <TableHead className="h-12 px-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em]">
-                      <button className="inline-flex items-center gap-2 hover:text-foreground transition-colors" onClick={() => handleSort("fundamentalScore")}>
-                        Fund <ArrowUpDown className="h-3.5 w-3.5" />
-                      </button>
-                    </TableHead>
-                    <TableHead className="h-12 px-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em]">
-                      <button className="inline-flex items-center gap-2 hover:text-foreground transition-colors" onClick={() => handleSort("rsi")}>
-                        RSI <ArrowUpDown className="h-3.5 w-3.5" />
-                      </button>
-                    </TableHead>
-                    <TableHead className="h-12 px-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em]">MA20</TableHead>
-                    <TableHead className="h-12 px-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em]">MA50</TableHead>
-                    <TableHead className="h-12 px-4 text-[11px] font-semibold uppercase tracking-[0.12em]">Trend</TableHead>
-                    <TableHead className="h-12 px-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em]">
-                      <button className="inline-flex items-center gap-2 hover:text-foreground transition-colors" onClick={() => handleSort("pe")}>
-                        PE <ArrowUpDown className="h-3.5 w-3.5" />
-                      </button>
-                    </TableHead>
-                    <TableHead className="h-12 px-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em]">PBV</TableHead>
-                    <TableHead className="h-12 px-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em]">
-                      <button className="inline-flex items-center gap-2 hover:text-foreground transition-colors" onClick={() => handleSort("roe")}>
-                        ROE <ArrowUpDown className="h-3.5 w-3.5" />
-                      </button>
-                    </TableHead>
-                    <TableHead className="h-12 px-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em]">
-                      <button className="inline-flex items-center gap-2 hover:text-foreground transition-colors" onClick={() => handleSort("epsGrowth")}>
-                        EPS YoY <ArrowUpDown className="h-3.5 w-3.5" />
-                      </button>
-                    </TableHead>
-                    <TableHead className="h-12 px-4 text-right text-[11px] font-semibold uppercase tracking-[0.12em] min-w-[220px]">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRows.map((row) => {
-                    const inRadar = radarTickers.includes(row.ticker)
-                    return (
-                      <TableRow key={row.ticker} className="border-border/60 hover:bg-[#d07225]/[0.03]">
-                        <TableCell className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <button
-                              type="button"
-                              onClick={() => toggleRadar(row.ticker)}
-                              className="text-muted-foreground hover:text-[#d07225] transition-colors"
-                              aria-label={inRadar ? `Hapus ${row.ticker} dari radar` : `Tambah ${row.ticker} ke radar`}
-                            >
-                              {inRadar ? <Star className="h-4 w-4 fill-[#d07225] text-[#d07225]" /> : <StarOff className="h-4 w-4" />}
-                            </button>
-                            <div>
-                              <Link href={`/analyze-v2?ticker=${row.ticker}`} className="font-ibm-plex-mono font-semibold text-foreground hover:text-[#d07225] transition-colors">
-                                {row.ticker}
-                              </Link>
-                              <div className="text-xs text-muted-foreground truncate max-w-[180px]">{row.company}</div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3">
-                          <div className="space-y-1">
-                            <div>{row.sector}</div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-[10px]">{row.marketCapGroup}</Badge>
-                              {row.syariah && <Badge variant="outline" className="text-[10px] text-[#487b78] border-[#487b78]/30 bg-[#487b78]/5">Syariah</Badge>}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 text-right font-ibm-plex-mono">{row.price.toLocaleString("id-ID")}</TableCell>
-                        <TableCell className={`px-4 py-3 text-right font-ibm-plex-mono ${row.changePct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                          <span className="inline-flex items-center gap-1 justify-end w-full">
-                            {row.changePct >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-                            {formatPercent(row.changePct, 2)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 text-right"><span className={`inline-flex rounded-md border px-2 py-1 text-xs font-semibold ${scoreTone(row.technicalScore)}`}>{row.technicalScore}</span></TableCell>
-                        <TableCell className="px-4 py-3 text-right"><span className={`inline-flex rounded-md border px-2 py-1 text-xs font-semibold ${scoreTone(row.fundamentalScore)}`}>{row.fundamentalScore}</span></TableCell>
-                        <TableCell className="px-4 py-3 text-right font-ibm-plex-mono">{row.rsi.toFixed(1)}</TableCell>
-                        <TableCell className={`px-4 py-3 text-right font-ibm-plex-mono ${row.ma20GapPct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{formatPercent(row.ma20GapPct)}</TableCell>
-                        <TableCell className={`px-4 py-3 text-right font-ibm-plex-mono ${row.ma50GapPct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{formatPercent(row.ma50GapPct)}</TableCell>
-                        <TableCell className="px-4 py-3"><span className={`capitalize font-medium ${trendTone(row.trend)}`}>{row.trend}</span></TableCell>
-                        <TableCell className="px-4 py-3 text-right font-ibm-plex-mono">{row.pe.toFixed(1)}x</TableCell>
-                        <TableCell className="px-4 py-3 text-right font-ibm-plex-mono">{row.pbv.toFixed(1)}x</TableCell>
-                        <TableCell className="px-4 py-3 text-right font-ibm-plex-mono">{row.roe.toFixed(1)}%</TableCell>
-                        <TableCell className={`px-4 py-3 text-right font-ibm-plex-mono ${row.epsGrowth >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{formatPercent(row.epsGrowth)}</TableCell>
-                        <TableCell className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button variant="outline" size="sm" className="border-border/70 bg-background hover:border-[#d07225]/25 hover:bg-[#d07225]/[0.04]" onClick={() => toggleRadar(row.ticker)}>
-                              <Radar className="h-3.5 w-3.5 mr-1" />
-                              {inRadar ? "Radar aktif" : "Tambah radar"}
-                            </Button>
-                            <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => openAlertDialog(row.ticker)} disabled={!inRadar}>
-                              <BellPlus className="h-3.5 w-3.5 mr-1" />
-                              Alert
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </section>
+          <DataTable
+            columns={visibleColumns}
+            data={filteredRows}
+            getRowId={(row) => row.ticker}
+            emptyMessage="Tidak ada saham yang cocok dengan filter saat ini."
+            tableClassName="min-w-[1380px]"
+          />
 
           <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
             <div className="rounded-xl border border-border/70 bg-card shadow-sm">
