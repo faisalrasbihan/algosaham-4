@@ -40,8 +40,7 @@ export function MinimalStrategyCard({ strategy }: MinimalStrategyCardProps) {
                     {/* Return highlight */}
                     <div className="flex items-baseline gap-2">
                         <span
-                            className={`text-2xl font-bold ${isPositive ? "text-emerald-600" : "text-red-500"}`}
-                            style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                            className={`text-2xl font-bold font-mono ${isPositive ? "text-emerald-600" : "text-red-500"}`}
                         >
                             {isPositive ? "+" : ""}{strategy.totalReturn.toFixed(1)}%
                         </span>
@@ -59,8 +58,7 @@ export function MinimalStrategyCard({ strategy }: MinimalStrategyCardProps) {
                                 <span className="text-[10px] text-muted-foreground">Win Rate</span>
                             </div>
                             <span
-                                className="text-sm font-semibold text-foreground"
-                                style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                                className="text-sm font-semibold text-foreground font-mono"
                             >
                                 {strategy.winRate.toFixed(0)}%
                             </span>
@@ -72,8 +70,7 @@ export function MinimalStrategyCard({ strategy }: MinimalStrategyCardProps) {
                                 <span className="text-[10px] text-muted-foreground">Trades</span>
                             </div>
                             <span
-                                className="text-sm font-semibold text-foreground"
-                                style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                                className="text-sm font-semibold text-foreground font-mono"
                             >
                                 {strategy.totalTrades}
                             </span>
@@ -85,8 +82,7 @@ export function MinimalStrategyCard({ strategy }: MinimalStrategyCardProps) {
                                 <span className="text-[10px] text-muted-foreground">Drawdown</span>
                             </div>
                             <span
-                                className="text-sm font-semibold text-red-500"
-                                style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                                className="text-sm font-semibold text-red-500 font-mono"
                             >
                                 {strategy.maxDrawdown.toFixed(1)}%
                             </span>
@@ -97,11 +93,13 @@ export function MinimalStrategyCard({ strategy }: MinimalStrategyCardProps) {
                     <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1">
                         <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            <span>Avg {strategy.avgTradeDuration}d hold</span>
+                            <span>
+                                Avg <span className="font-mono">{strategy.avgTradeDuration}d</span> hold
+                            </span>
                         </div>
-                        <span>{strategy.stocksHeld} stocks</span>
+                        <span><span className="font-mono">{strategy.stocksHeld}</span> stocks</span>
                         {strategy.subscribers !== undefined && (
-                            <span>{strategy.subscribers.toLocaleString()} subscribers</span>
+                            <span><span className="font-mono">{strategy.subscribers.toLocaleString()}</span> subscribers</span>
                         )}
                     </div>
                 </div>

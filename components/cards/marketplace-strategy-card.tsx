@@ -100,13 +100,13 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                         </div>
                     </div>
 
-                    <div className="space-y-2.5 font-mono">
+                    <div className="space-y-2.5">
                         <div className="grid grid-cols-2 gap-3">
                             <div className="text-center">
                                 <div className="text-xs text-muted-foreground mb-0.5">Max. Drawdown</div>
                                 <div className="flex items-center justify-center gap-1">
                                     <span
-                                        className={`text-sm ${Math.abs(strategy.maxDrawdown) <= 10 ? "text-green-600" : Math.abs(strategy.maxDrawdown) <= 20 ? "text-yellow-600" : "text-red-600"}`}
+                                        className={`text-sm font-mono ${Math.abs(strategy.maxDrawdown) <= 10 ? "text-green-600" : Math.abs(strategy.maxDrawdown) <= 20 ? "text-yellow-600" : "text-red-600"}`}
                                     >
                                         {strategy.maxDrawdown}%
                                     </span>
@@ -123,7 +123,7 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                                 <div className="text-xs text-muted-foreground mb-0.5">Success Rate</div>
                                 <div className="flex items-center justify-center gap-1">
                                     <span
-                                        className={`text-sm ${strategy.winRate >= 70 ? "text-green-600" : strategy.winRate >= 60 ? "text-yellow-600" : "text-red-600"}`}
+                                        className={`text-sm font-mono ${strategy.winRate >= 70 ? "text-green-600" : strategy.winRate >= 60 ? "text-yellow-600" : "text-red-600"}`}
                                     >
                                         {strategy.winRate.toFixed(0)}%
                                     </span>
@@ -154,7 +154,7 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                                     </span>
                                     <div className="relative inline-block group">
                                         <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 font-mono">
                                             Sharpe Ratio: {strategy.sharpeRatio.toFixed(2)}
                                         </div>
                                     </div>
@@ -164,7 +164,7 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                             <div>
                                 <div className="text-xs text-muted-foreground mb-0.5">Trades</div>
                                 <div className="flex items-center justify-center gap-1">
-                                    <span className="text-xs text-foreground">{strategy.totalTrades}</span>
+                                    <span className="text-xs text-foreground font-mono">{strategy.totalTrades}</span>
                                     <div className="relative inline-block group">
                                         <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
@@ -177,7 +177,7 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                             <div>
                                 <div className="text-xs text-muted-foreground mb-0.5">Stocks</div>
                                 <div className="flex items-center justify-center gap-1">
-                                    <span className="text-xs text-foreground">{strategy.stocksHeld}</span>
+                                    <span className="text-xs text-foreground font-mono">{strategy.stocksHeld}</span>
                                     <div className="relative inline-block group">
                                         <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
