@@ -1,30 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { strategies, users } from "@/db/schema";
 import { BacktestRequest } from "@/lib/api";
 import crypto from "crypto";
 import { eq, sql } from "drizzle-orm";
 import { ensureUserInDatabase } from "@/lib/ensure-user";
-
-// Helper function to calculate quality score from Sharpe ratio
-function calculateQualityScore(sharpeRatio: number | null | undefined): string {
-    if (sharpeRatio === null || sharpeRatio === undefined) {
-        return "Unknown";
-    }
-
-    // Quality score ranges based on Sharpe ratio
-    // Poor: < 1.0
-    // Good: 1.0 - 2.0
-    // Excellent: > 2.0
-    if (sharpeRatio < 1.0) {
-        return "Poor";
-    } else if (sharpeRatio >= 1.0 && sharpeRatio <= 2.0) {
-        return "Good";
-    } else {
-        return "Excellent";
-    }
-}
+import { summarizeBacktestResult } from "@/lib/server/backtest";
 
 // Helper function to generate config hash
 function generateConfigHash(config: BacktestRequest): string {
@@ -106,72 +88,7 @@ export async function POST(req: Request) {
         // Generate config hash for Redis linking
         const configHash = generateConfigHash(config);
 
-        // Log the backtest results structure for debugging
-        console.log('📊 Backtest Results Structure:', JSON.stringify({
-            hasSummary: !!backtestResults?.summary,
-            hasSignals: !!backtestResults?.signals,
-            hasRecentSignals: !!(backtestResults as any)?.recentSignals,
-            summaryKeys: backtestResults?.summary ? Object.keys(backtestResults.summary) : [],
-            totalReturn: backtestResults?.summary?.totalReturn,
-            winRate: backtestResults?.summary?.winRate,
-            totalTrades: backtestResults?.summary?.totalTrades,
-        }, null, 2));
-
-        // Extract metadata from backtest results if available
-        const totalReturn = backtestResults?.summary?.totalReturn ?? null;
-        const maxDrawdown = backtestResults?.summary?.maxDrawdown ?? null;
-        const successRate = backtestResults?.summary?.winRate ?? null;
-        const totalTrades = backtestResults?.summary?.totalTrades ?? 0;
-        const sharpeRatio = backtestResults?.summary?.sharpeRatio ?? null;
-
-        // Calculate total unique stocks from signals (check both locations)
-        let totalStocks = 0;
-        if (backtestResults?.signals && Array.isArray(backtestResults.signals)) {
-            totalStocks = new Set(backtestResults.signals.map((s: any) => s.ticker)).size;
-        } else if ((backtestResults as any)?.recentSignals?.signals) {
-            totalStocks = new Set((backtestResults as any).recentSignals.signals.map((s: any) => s.ticker)).size;
-        }
-
-        console.log('💾 Saving strategy with metadata:', {
-            totalReturn,
-            maxDrawdown,
-            successRate,
-            totalTrades,
-            totalStocks,
-            sharpeRatio,
-        });
-
-        // Calculate quality score from Sharpe ratio
-        const qualityScore = calculateQualityScore(sharpeRatio);
-
-        // Extract top 3 holdings (most recent signals)
-        let topHoldings: { symbol: string; color?: string }[] = [];
-
-        const allSignals = (backtestResults as any)?.recentSignals?.signals || backtestResults?.signals || [];
-
-        if (Array.isArray(allSignals) && allSignals.length > 0) {
-            // Sort by date descending
-            const sortedSignals = [...allSignals].sort((a, b) =>
-                new Date(b.date).getTime() - new Date(a.date).getTime()
-            );
-
-            // Get unique tickers
-            const uniqueTickers = new Set<string>();
-            for (const signal of sortedSignals) {
-                if (uniqueTickers.size >= 3) break;
-                if (!uniqueTickers.has(signal.ticker)) {
-                    uniqueTickers.add(signal.ticker);
-                    // Cycle through colors for variety
-                    const colors = ["bg-blue-600", "bg-orange-500", "bg-green-600", "bg-purple-600", "bg-red-600"];
-                    const color = colors[uniqueTickers.size - 1] || "bg-gray-600";
-
-                    topHoldings.push({
-                        symbol: signal.ticker,
-                        color
-                    });
-                }
-            }
-        }
+        const metadata = summarizeBacktestResult(backtestResults);
 
         // Insert Strategy with metadata
         const [newStrategy] = await db.insert(strategies).values({
@@ -180,15 +97,16 @@ export async function POST(req: Request) {
             creatorId: userId,
             configHash,
             config,
-            totalReturn: totalReturn?.toString(),
-            maxDrawdown: maxDrawdown?.toString(),
-            successRate: successRate?.toString(),
-            totalTrades,
-            totalStocks,
-            qualityScore,
+            totalReturn: metadata.totalReturn?.toString(),
+            maxDrawdown: metadata.maxDrawdown?.toString(),
+            successRate: metadata.successRate?.toString(),
+            sharpeRatio: metadata.sharpeRatio?.toString(),
+            totalTrades: metadata.totalTrades,
+            totalStocks: metadata.totalStocks,
+            qualityScore: metadata.qualityScore,
             isPublic,
             isActive: true,
-            topHoldings: topHoldings.length > 0 ? topHoldings : null,
+            topHoldings: metadata.topHoldings,
         }).returning();
 
         // Increment user's saved strategies count safely using atomic sql update

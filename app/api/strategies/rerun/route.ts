@@ -1,26 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { strategies, users, subscriptions } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { strategies, subscriptions } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { BacktestRequest } from "@/lib/api";
-
-const rawUrl = process.env.RAILWAY_URL || '';
-const RAILWAY_URL = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
-
-// Helper function to calculate quality score from Sharpe ratio
-function calculateQualityScore(sharpeRatio: number | null | undefined): string {
-    if (sharpeRatio === null || sharpeRatio === undefined) {
-        return "Unknown";
-    }
-    if (sharpeRatio < 1.0) {
-        return "Poor";
-    } else if (sharpeRatio >= 1.0 && sharpeRatio <= 2.0) {
-        return "Good";
-    } else {
-        return "Excellent";
-    }
-}
+import { BacktestExecutionError, runBacktestWithQuota, summarizeBacktestResult } from "@/lib/server/backtest";
 
 export async function POST(req: Request) {
     try {
@@ -73,7 +57,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const config = strategy.config as BacktestRequest;
+        const config = structuredClone(strategy.config as BacktestRequest);
 
         // Let's modify the end date to today for latest rerun
         const today = new Date();
@@ -86,97 +70,59 @@ export async function POST(req: Request) {
             config.backtestConfig.endDate = endDateStr;
         }
 
-        if (!RAILWAY_URL) {
-            return NextResponse.json(
-                { success: false, error: "Server configuration error", details: "RAILWAY_URL is not configured." },
-                { status: 500 }
-            );
-        }
-
-        // 3. Increment backtest limit for user
-        const user = await db.query.users.findFirst({
-            where: eq(users.clerkId, userId),
-        });
-
-        if (user) {
-            const limit = user.backtestLimit;
-            const used = user.backtestUsedToday || 0;
-
-            if (limit !== -1 && used >= limit) {
-                return NextResponse.json(
-                    {
-                        error: "Daily backtest limit reached",
-                        message: `You have used ${used}/${limit} backtests for today. Upgrade your plan for more.`
+        const backtestResults = await runBacktestWithQuota({
+            config,
+            userId,
+            requireUser: true,
+            errors: {
+                config: () => ({
+                    status: 500,
+                    body: {
+                        success: false,
+                        error: "Server configuration error",
+                        details: "RAILWAY_URL is not configured.",
                     },
-                    { status: 403 }
-                );
-            }
-        }
-
-        // 4. Hit Backtest API
-        const fastApiRequest = { config };
-        const response = await fetch(`${RAILWAY_URL}/run_backtest`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(fastApiRequest),
+                }),
+                userNotFound: () => ({
+                    status: 404,
+                    body: {
+                        success: false,
+                        error: "User not found",
+                    },
+                }),
+                quotaExceeded: ({ used, limit }) => ({
+                    status: 403,
+                    body: {
+                        error: "Daily backtest limit reached",
+                        message: `You have used ${used}/${limit} backtests for today. Upgrade your plan for more.`,
+                    },
+                }),
+                railway: ({ status, details }) => ({
+                    status: 500,
+                    body: {
+                        success: false,
+                        error: "Failed to rerun strategy",
+                        message: `Railway error HTTP ${status}: ${details.substring(0, 100)}`,
+                    },
+                }),
+            },
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Railway error HTTP ${response.status}: ${errorText.substring(0, 100)}`);
-        }
-
-        const backtestResults = await response.json();
-
-        // Increment user's backtest usage
-        await db.update(users)
-            .set({ backtestUsedToday: sql`${users.backtestUsedToday} + 1` })
-            .where(eq(users.clerkId, userId));
-
-        // 5. Extract metadata from results
-        const totalReturn = backtestResults?.summary?.totalReturn ?? null;
-        const maxDrawdown = backtestResults?.summary?.maxDrawdown ?? null;
-        const successRate = backtestResults?.summary?.winRate ?? null;
-        const totalTrades = backtestResults?.summary?.totalTrades ?? 0;
-        const sharpeRatio = backtestResults?.summary?.sharpeRatio ?? null;
-
-        let totalStocks = 0;
-        if (backtestResults?.signals && Array.isArray(backtestResults.signals)) {
-            totalStocks = new Set(backtestResults.signals.map((s: any) => s.ticker)).size;
-        } else if ((backtestResults as any)?.recentSignals?.signals) {
-            totalStocks = new Set((backtestResults as any).recentSignals.signals.map((s: any) => s.ticker)).size;
-        }
-
-        const qualityScore = calculateQualityScore(sharpeRatio);
-
-        let topHoldings: { symbol: string; color?: string }[] = [];
-        const allSignals = (backtestResults as any)?.recentSignals?.signals || backtestResults?.signals || [];
-        if (Array.isArray(allSignals) && allSignals.length > 0) {
-            const sortedSignals = [...allSignals].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            const uniqueTickers = new Set<string>();
-            for (const signal of sortedSignals) {
-                if (uniqueTickers.size >= 3) break;
-                if (!uniqueTickers.has(signal.ticker)) {
-                    uniqueTickers.add(signal.ticker);
-                    const colors = ["bg-blue-600", "bg-orange-500", "bg-green-600", "bg-purple-600", "bg-red-600"];
-                    const color = colors[uniqueTickers.size - 1] || "bg-gray-600";
-                    topHoldings.push({ symbol: signal.ticker, color });
-                }
-            }
-        }
+        const metadata = summarizeBacktestResult(backtestResults);
 
         // 6. Update Database
         const updatedStrategies = await db.update(strategies)
             .set({
                 config, // update config to include the new endDate
-                totalReturn: totalReturn?.toString(),
-                maxDrawdown: maxDrawdown?.toString(),
-                successRate: successRate?.toString(),
-                totalTrades,
-                totalStocks,
-                qualityScore,
+                totalReturn: metadata.totalReturn?.toString(),
+                maxDrawdown: metadata.maxDrawdown?.toString(),
+                successRate: metadata.successRate?.toString(),
+                sharpeRatio: metadata.sharpeRatio?.toString(),
+                totalTrades: metadata.totalTrades,
+                totalStocks: metadata.totalStocks,
+                qualityScore: metadata.qualityScore,
                 updatedAt: new Date(),
-                topHoldings: topHoldings.length > 0 ? topHoldings : null,
+                topHoldings: metadata.topHoldings,
             })
             .where(eq(strategies.id, strategyId))
             .returning();
@@ -186,7 +132,7 @@ export async function POST(req: Request) {
         //   If we need to update active subs instantly:
         await db.update(subscriptions)
             .set({
-                currentReturn: totalReturn?.toString(),
+                currentReturn: metadata.totalReturn?.toString(),
                 updatedAt: new Date(),
                 lastCalculatedAt: new Date()
             })
@@ -199,6 +145,10 @@ export async function POST(req: Request) {
         });
 
     } catch (error) {
+        if (error instanceof BacktestExecutionError) {
+            return NextResponse.json(error.body, { status: error.status });
+        }
+
         console.error("Error rerunning strategy:", error);
         return NextResponse.json(
             {

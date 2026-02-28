@@ -42,7 +42,7 @@ export function DataTable<T>({
   rowClassName,
 }: DataTableProps<T>) {
   return (
-    <div className={cn("rounded-xl border border-border/70 bg-white shadow-sm overflow-hidden", className)}>
+    <div className={cn("overflow-hidden rounded-xl border border-border/70 bg-white shadow-sm", className)}>
       {toolbar ? <div className="border-b bg-white px-4 py-4">{toolbar}</div> : null}
       <div className="overflow-x-auto bg-white">
         <Table className={cn("min-w-full", tableClassName)}>
@@ -52,7 +52,7 @@ export function DataTable<T>({
                 <TableHead
                   key={column.id}
                   className={cn(
-                    "h-10 px-2",
+                    "h-12 px-4 text-sm font-medium text-muted-foreground",
                     column.headClassName
                   )}
                 >
@@ -73,12 +73,12 @@ export function DataTable<T>({
                 <TableRow
                   key={getRowId(row)}
                   className={cn(
-                    "bg-white",
+                    "bg-white hover:bg-muted/20",
                     typeof rowClassName === "function" ? rowClassName(row) : rowClassName
                   )}
                 >
                   {columns.map((column) => (
-                    <TableCell key={column.id} className={cn("p-2", column.cellClassName)}>
+                    <TableCell key={column.id} className={cn("px-4 py-2.5", column.cellClassName)}>
                       {column.cell(row)}
                     </TableCell>
                   ))}

@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
-import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, ArrowDownRight, Radar, Search, SlidersHorizontal, Star, StarOff, Columns3 } from "lucide-react"
+import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, ArrowDownRight, Radar, Search, SlidersHorizontal, Star, StarOff, Columns3, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -114,7 +115,9 @@ type SortKey = (typeof SORT_OPTIONS)[number]
 
 const COLUMN_LABELS = {
   ticker: "Saham",
+  marketCap: "Mkt Cap",
   sector: "Sector",
+  syariah: "Syariah",
   price: "Harga",
   changePct: "Change",
   technicalScore: "Tech",
@@ -131,17 +134,17 @@ const COLUMN_LABELS = {
 } as const
 
 const COLUMN_TEMPLATES = {
-  recommended: ["ticker", "sector", "price", "changePct", "technicalScore", "fundamentalScore", "rsi", "trend", "pe", "roe", "action"],
-  technical: ["ticker", "sector", "price", "changePct", "technicalScore", "rsi", "ma20", "ma50", "trend", "action"],
-  fundamental: ["ticker", "sector", "price", "fundamentalScore", "pe", "pbv", "roe", "epsGrowth", "action"],
-  all: ["ticker", "sector", "price", "changePct", "technicalScore", "fundamentalScore", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth", "action"],
+  recommended: ["ticker", "marketCap", "sector", "syariah", "price", "changePct", "technicalScore", "fundamentalScore", "rsi", "trend", "pe", "roe", "action"],
+  technical: ["ticker", "marketCap", "sector", "syariah", "price", "changePct", "technicalScore", "rsi", "ma20", "ma50", "trend", "action"],
+  fundamental: ["ticker", "marketCap", "sector", "syariah", "price", "fundamentalScore", "pe", "pbv", "roe", "epsGrowth", "action"],
+  all: ["ticker", "marketCap", "sector", "syariah", "price", "changePct", "technicalScore", "fundamentalScore", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth", "action"],
 } as const
 
 type ColumnTemplateKey = keyof typeof COLUMN_TEMPLATES
 type ColumnId = keyof typeof COLUMN_LABELS
 
 const FIXED_COLUMN_IDS: ColumnId[] = ["ticker", "action"]
-const OPTIONAL_COLUMN_IDS: ColumnId[] = ["sector", "price", "changePct", "technicalScore", "fundamentalScore", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth"]
+const OPTIONAL_COLUMN_IDS: ColumnId[] = ["marketCap", "sector", "syariah", "price", "changePct", "technicalScore", "fundamentalScore", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth"]
 
 function getColumnTemplate(template: ColumnTemplateKey): ColumnId[] {
   return [...COLUMN_TEMPLATES[template]]
@@ -150,6 +153,12 @@ function getColumnTemplate(template: ColumnTemplateKey): ColumnId[] {
 function formatPercent(value: number, digits = 1) {
   const sign = value > 0 ? "+" : ""
   return `${sign}${value.toFixed(digits)}%`
+}
+
+function normalizeStoredColumnIds(columnId: string): ColumnId[] {
+  if (columnId === "meta") return ["marketCap", "sector", "syariah"]
+  if (columnId in COLUMN_LABELS) return [columnId as ColumnId]
+  return []
 }
 
 function scoreTone(score: number) {
@@ -164,7 +173,31 @@ function trendTone(trend: ScreenerRow["trend"]) {
   return "text-amber-600"
 }
 
+function TickerCircleIcon({ ticker }: { ticker: string }) {
+  const [hasError, setHasError] = useState(false)
+
+  return (
+    <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-background">
+      {hasError ? (
+        <span className="font-ibm-plex-mono text-[11px] font-semibold text-muted-foreground">
+          {ticker.slice(0, 2)}
+        </span>
+      ) : (
+        <Image
+          src={`/stock_icons/${ticker}.png`}
+          alt={`${ticker} icon`}
+          fill
+          sizes="32px"
+          className="object-contain p-1"
+          onError={() => setHasError(true)}
+        />
+      )}
+    </div>
+  )
+}
+
 export function ScreenerPage() {
+  const PAGE_SIZE = 12
   const [search, setSearch] = useState("")
   const [sectorFilter, setSectorFilter] = useState("all")
   const [marketCapFilter, setMarketCapFilter] = useState("all")
@@ -179,6 +212,7 @@ export function ScreenerPage() {
   const [alertDraft, setAlertDraft] = useState<AlertDraft>(defaultAlertDraft)
   const [columnTemplate, setColumnTemplate] = useState<ColumnTemplateKey>("recommended")
   const [visibleColumnIds, setVisibleColumnIds] = useState<ColumnId[]>(() => getColumnTemplate("recommended"))
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     const storedRadar = window.localStorage.getItem("algosaham-screener-radar")
@@ -204,8 +238,9 @@ export function ScreenerPage() {
 
     if (storedColumns) {
       try {
-        const parsed = JSON.parse(storedColumns) as ColumnId[]
-        const normalized = Array.from(new Set([...FIXED_COLUMN_IDS, ...parsed])) as ColumnId[]
+        const parsed = JSON.parse(storedColumns) as string[]
+        const normalizedColumns = parsed.flatMap((columnId) => normalizeStoredColumnIds(columnId))
+        const normalized = Array.from(new Set([...FIXED_COLUMN_IDS, ...normalizedColumns])) as ColumnId[]
         setVisibleColumnIds(normalized)
       } catch {
         setVisibleColumnIds(getColumnTemplate("recommended"))
@@ -257,6 +292,18 @@ export function ScreenerPage() {
   })
 
   const radarRows = SCREENER_ROWS.filter((row) => radarTickers.includes(row.ticker))
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
+  const paginatedRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, sectorFilter, marketCapFilter, sortKey, sortDirection, onlyRadar, onlyBullish, onlySyariah])
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
 
   function toggleRadar(ticker: string) {
     setRadarTickers((current) => current.includes(ticker) ? current.filter((item) => item !== ticker) : [...current, ticker])
@@ -311,45 +358,57 @@ export function ScreenerPage() {
   const columns: DataTableColumn<ScreenerRow>[] = [
     {
       id: "ticker",
-      headClassName: "min-w-[200px]",
+      headClassName: "min-w-[160px]",
       header: (
         <button className="inline-flex items-center gap-2" onClick={() => handleSort("ticker")}>
           Saham <ArrowUpDown className="h-3.5 w-3.5" />
         </button>
       ),
-      cell: (row) => {
-        const inRadar = radarTickers.includes(row.ticker)
-        return (
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => toggleRadar(row.ticker)}
-              className="text-muted-foreground hover:text-foreground"
-              aria-label={inRadar ? `Hapus ${row.ticker} dari radar` : `Tambah ${row.ticker} ke radar`}
-            >
-              {inRadar ? <Star className="h-4 w-4 fill-[#d07225] text-[#d07225]" /> : <StarOff className="h-4 w-4" />}
-            </button>
-            <div>
-              <Link href={`/analyze-v2?ticker=${row.ticker}`} className="font-ibm-plex-mono font-semibold text-foreground hover:underline">
-                {row.ticker}
-              </Link>
-              <div className="text-xs text-muted-foreground truncate max-w-[180px]">{row.company}</div>
-            </div>
-          </div>
-        )
-      },
+      cellClassName: "py-2",
+      cell: (row) => (
+        <div className="flex items-center gap-3">
+          <TickerCircleIcon ticker={row.ticker} />
+          <Link href={`/analyze-v2?ticker=${row.ticker}`} className="font-ibm-plex-mono text-sm font-semibold tracking-[0.1em] text-foreground hover:text-[#d07225]">
+            {row.ticker}
+          </Link>
+        </div>
+      ),
+    },
+    {
+      id: "marketCap",
+      headClassName: "min-w-[110px]",
+      header: "Mkt Cap",
+      cell: (row) => (
+        <Badge variant="outline" className="rounded-full border-border/80 bg-muted/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+          {row.marketCapGroup}
+        </Badge>
+      ),
     },
     {
       id: "sector",
+      headClassName: "min-w-[150px]",
       header: "Sector",
       cell: (row) => (
-        <div className="space-y-1">
-          <div>{row.sector}</div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-[10px]">{row.marketCapGroup}</Badge>
-            {row.syariah && <Badge variant="outline" className="text-[10px] text-[#487b78] border-[#487b78]/30 bg-[#487b78]/5">Syariah</Badge>}
-          </div>
-        </div>
+        <Badge variant="outline" className="rounded-full border-border/80 bg-muted/20 px-2 py-0.5 text-[10px] font-medium">
+          {row.sector}
+        </Badge>
+      ),
+    },
+    {
+      id: "syariah",
+      headClassName: "min-w-[130px]",
+      header: "Syariah",
+      cell: (row) => (
+        <Badge
+          variant="outline"
+          className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] ${
+            row.syariah
+              ? "border-[#487b78]/30 bg-[#487b78]/5 text-[#487b78]"
+              : "border-border/80 bg-muted/20 text-muted-foreground"
+          }`}
+        >
+          {row.syariah ? "Syariah" : "Non-Syariah"}
+        </Badge>
       ),
     },
     {
@@ -373,7 +432,7 @@ export function ScreenerPage() {
         </button>
       ),
       cell: (row) => (
-        <span className={`inline-flex items-center gap-1 justify-end w-full ${row.changePct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+        <span className={`inline-flex w-full items-center justify-end gap-1 font-medium ${row.changePct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
           {row.changePct >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
           {formatPercent(row.changePct, 2)}
         </span>
@@ -388,7 +447,7 @@ export function ScreenerPage() {
           Tech <ArrowUpDown className="h-3.5 w-3.5" />
         </button>
       ),
-      cell: (row) => <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-semibold ${scoreTone(row.technicalScore)}`}>{row.technicalScore}</span>,
+      cell: (row) => <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${scoreTone(row.technicalScore)}`}>{row.technicalScore}</span>,
     },
     {
       id: "fundamentalScore",
@@ -399,7 +458,7 @@ export function ScreenerPage() {
           Fund <ArrowUpDown className="h-3.5 w-3.5" />
         </button>
       ),
-      cell: (row) => <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-semibold ${scoreTone(row.fundamentalScore)}`}>{row.fundamentalScore}</span>,
+      cell: (row) => <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${scoreTone(row.fundamentalScore)}`}>{row.fundamentalScore}</span>,
     },
     {
       id: "rsi",
@@ -429,7 +488,7 @@ export function ScreenerPage() {
     {
       id: "trend",
       header: "Trend",
-      cell: (row) => <span className={`capitalize font-medium ${trendTone(row.trend)}`}>{row.trend}</span>,
+      cell: (row) => <span className={`capitalize text-sm font-medium ${trendTone(row.trend)}`}>{row.trend}</span>,
     },
     {
       id: "pe",
@@ -473,20 +532,33 @@ export function ScreenerPage() {
     },
     {
       id: "action",
-      headClassName: "text-right min-w-[220px]",
+      headClassName: "min-w-[96px] text-right",
       cellClassName: "text-right",
       header: "Action",
       cell: (row) => {
         const inRadar = radarTickers.includes(row.ticker)
         return (
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => toggleRadar(row.ticker)}>
-              <Radar className="h-3.5 w-3.5 mr-1" />
-              {inRadar ? "Radar aktif" : "Tambah radar"}
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant={inRadar ? "secondary" : "ghost"}
+              size="icon"
+              className={`h-7 w-7 ${inRadar ? "text-[#d07225]" : "text-muted-foreground"}`}
+              onClick={() => toggleRadar(row.ticker)}
+              aria-label={inRadar ? `Hapus ${row.ticker} dari radar` : `Tambah ${row.ticker} ke radar`}
+              title={inRadar ? "Radar aktif" : "Tambah radar"}
+            >
+              {inRadar ? <Star className="h-3.5 w-3.5 fill-current" /> : <StarOff className="h-3.5 w-3.5" />}
             </Button>
-            <Button size="sm" onClick={() => openAlertDialog(row.ticker)} disabled={!inRadar}>
-              <BellPlus className="h-3.5 w-3.5 mr-1" />
-              Alert
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => openAlertDialog(row.ticker)}
+              disabled={!inRadar}
+              aria-label={`Buat alert untuk ${row.ticker}`}
+              title="Buat alert"
+            >
+              <BellPlus className="h-3.5 w-3.5" />
             </Button>
           </div>
         )
@@ -670,11 +742,42 @@ export function ScreenerPage() {
 
           <DataTable
             columns={visibleColumns}
-            data={filteredRows}
+            data={paginatedRows}
             getRowId={(row) => row.ticker}
             emptyMessage="Tidak ada saham yang cocok dengan filter saat ini."
-            tableClassName="min-w-[1380px]"
+            tableClassName="min-w-[1320px]"
           />
+
+          <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-muted-foreground">
+              Menampilkan {filteredRows.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-
+              {Math.min(currentPage * PAGE_SIZE, filteredRows.length)} dari {filteredRows.length} saham
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Prev
+              </Button>
+              <div className="min-w-[88px] text-center font-ibm-plex-mono text-sm text-muted-foreground">
+                {currentPage} / {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
 
           <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
             <div className="rounded-xl border border-border/70 bg-card shadow-sm">

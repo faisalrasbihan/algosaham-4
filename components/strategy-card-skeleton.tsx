@@ -5,21 +5,8 @@ export function StrategyCardSkeleton({ type = "regular" }: { type?: "subscribed"
     return (
       <div className="py-4">
         <Card
-          className="w-[calc(100vw-3rem)] max-w-[520px] min-h-[280px] shrink-0 overflow-hidden border animate-pulse sm:min-w-[520px]"
-          style={{
-            borderColor: "rgba(191, 160, 74, 0.32)",
-            backgroundImage: "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(250,248,243,0.98) 100%)",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9), 0 0 0 1px rgba(212,175,55,0.08)",
-          }}
+          className="w-[calc(100vw-3rem)] max-w-[520px] min-h-[280px] shrink-0 overflow-hidden border border-border bg-white shadow-sm animate-pulse sm:min-w-[520px]"
         >
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-px"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(191,160,74,0.45), transparent)" }}
-          />
-          <div
-            className="pointer-events-none absolute right-0 top-0 h-32 w-32"
-            style={{ background: "radial-gradient(circle at top right, rgba(212,175,55,0.14), transparent 68%)" }}
-          />
           <CardContent className="relative z-10 p-4 sm:p-5">
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-3">
@@ -27,7 +14,7 @@ export function StrategyCardSkeleton({ type = "regular" }: { type?: "subscribed"
                   <div className="mb-2 h-2.5 w-20 rounded bg-muted/70" />
                   <div className="h-5 w-40 rounded bg-muted/80" />
                 </div>
-                <div className="h-8 w-8 rounded-md bg-[#d4af37]/70 shadow-sm" />
+                <div className="h-8 w-8 rounded-md bg-muted/70 shadow-sm" />
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -79,7 +66,7 @@ export function StrategyCardSkeleton({ type = "regular" }: { type?: "subscribed"
               </div>
 
               <div className="pt-2">
-                <div className="h-8 w-full rounded-md border border-[rgba(191,160,74,0.32)] bg-white/80" />
+                <div className="h-8 w-full rounded-md border border-border bg-muted/40" />
               </div>
             </div>
           </CardContent>

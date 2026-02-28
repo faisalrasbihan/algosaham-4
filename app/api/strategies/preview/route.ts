@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { strategies, users } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { strategies } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
-
-const rawUrl = process.env.RAILWAY_URL || "";
-const RAILWAY_URL = rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`;
+import type { BacktestRequest } from "@/lib/api";
+import { BacktestExecutionError, runBacktestWithQuota } from "@/lib/server/backtest";
 
 export async function POST(request: NextRequest) {
     try {
@@ -64,58 +63,32 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (!RAILWAY_URL || !rawUrl) {
-            return NextResponse.json(
-                { success: false, error: "Server configuration error" },
-                { status: 500 }
-            );
-        }
-
-        // Check user quota for backtesting
-        const user = await db.query.users.findFirst({
-            where: eq(users.clerkId, userId),
+        const backtestResults = await runBacktestWithQuota({
+            config: strategy.config as BacktestRequest,
+            userId,
+            requireUser: true,
+            errors: {
+                config: () => ({
+                    status: 500,
+                    body: { success: false, error: "Server configuration error" },
+                }),
+                userNotFound: () => ({
+                    status: 404,
+                    body: { success: false, error: "User not found" },
+                }),
+                quotaExceeded: () => ({
+                    status: 403,
+                    body: { success: false, error: "Daily backtest limit reached. Please upgrade your plan." },
+                }),
+                railway: ({ status, statusText, details }) => {
+                    console.error("[PREVIEW] Railway error:", status, details.substring(0, 200));
+                    return {
+                        status,
+                        body: { success: false, error: `Backtest failed: ${statusText}` },
+                    };
+                },
+            },
         });
-
-        if (!user) {
-            return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
-        }
-
-        const limit = user.backtestLimit;
-        const used = user.backtestUsedToday || 0;
-
-        if (limit !== -1 && used >= limit) {
-            return NextResponse.json(
-                { success: false, error: "Daily backtest limit reached. Please upgrade your plan." },
-                { status: 403 }
-            );
-        }
-
-        // Run the backtest with the stored config
-        const config = strategy.config as any;
-
-        const response = await fetch(`${RAILWAY_URL}/run_backtest`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ config }),
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("[PREVIEW] Railway error:", response.status, errorText.substring(0, 200));
-            return NextResponse.json(
-                { success: false, error: `Backtest failed: ${response.statusText}` },
-                { status: response.status }
-            );
-        }
-
-        const backtestResults = await response.json();
-
-        // Increment user's backtest usage
-        await db.update(users)
-            .set({
-                backtestUsedToday: sql`${users.backtestUsedToday} + 1`
-            })
-            .where(eq(users.clerkId, userId));
 
         return NextResponse.json({
             success: true,
@@ -127,6 +100,10 @@ export async function POST(request: NextRequest) {
             results: backtestResults,
         });
     } catch (error) {
+        if (error instanceof BacktestExecutionError) {
+            return NextResponse.json(error.body, { status: error.status });
+        }
+
         console.error("[PREVIEW] Error:", error);
         return NextResponse.json(
             {
