@@ -107,9 +107,9 @@ export function Navbar() {
         <Link href="/screener" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Screener
         </Link>
-        <a href="/analyze-v2" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
+        <Link href="/analyze-v2" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Analisis
-        </a>
+        </Link>
         {/* <SignedIn>
           <Link href="/portfolio" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
             Portfolio
