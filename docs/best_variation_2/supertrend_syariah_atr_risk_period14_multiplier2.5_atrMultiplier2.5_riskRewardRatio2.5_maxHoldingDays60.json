@@ -1,0 +1,47 @@
+{
+  "backtestConfig": {
+    "endDate": "2026-01-21",
+    "initialCapital": 100000000,
+    "portfolio": {
+      "maxPositions": 5,
+      "minPositionPercent": 5,
+      "positionSizePercent": 20
+    },
+    "riskManagement": {
+      "maxHoldingDays": 60,
+      "stopLoss": {
+        "atrMultiplier": 2.5,
+        "atrPeriod": 14,
+        "method": "ATR"
+      },
+      "takeProfit": {
+        "method": "RISK_REWARD",
+        "riskRewardRatio": 2.5
+      }
+    },
+    "startDate": "2022-03-14",
+    "tradingCosts": {
+      "brokerFee": 0.15,
+      "minimumFee": 1000,
+      "sellFee": 0.15,
+      "slippageBps": 5.0,
+      "spreadBps": 10.0
+    }
+  },
+  "backtestId": "supertrend_syariah_atr_risk_period14_multiplier2.5_atrMultiplier2.5_riskRewardRatio2.5_maxHoldingDays60",
+  "filters": {
+    "marketCap": [
+      "large",
+      "mid"
+    ],
+    "syariah": true
+  },
+  "fundamentalIndicators": [],
+  "technicalIndicators": [
+    {
+      "multiplier": 2.5,
+      "period": 14,
+      "type": "SUPERTREND"
+    }
+  ]
+}

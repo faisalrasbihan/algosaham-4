@@ -797,8 +797,8 @@ export function ScreenerPage() {
             getRowId={(row) => row.ticker}
             emptyMessage="Tidak ada saham yang cocok dengan filter saat ini."
             tableClassName="min-w-[1120px]"
-            initialPageSize={12}
-            pageSizeOptions={[12, 24, 36, 48]}
+            initialPageSize={20}
+            pageSizeOptions={[20, 40, 60, 80]}
             paginationResetKey={`${search}|${sectorFilter}|${marketCapFilter}|${sortKey}|${sortDirection}|${onlyRadar}|${onlyBullish}|${onlySyariah}`}
           />
 

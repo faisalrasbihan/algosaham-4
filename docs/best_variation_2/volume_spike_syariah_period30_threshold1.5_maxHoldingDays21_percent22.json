@@ -1,0 +1,46 @@
+{
+  "backtestConfig": {
+    "endDate": "2026-01-21",
+    "initialCapital": 100000000,
+    "portfolio": {
+      "maxPositions": 5,
+      "minPositionPercent": 5,
+      "positionSizePercent": 20
+    },
+    "riskManagement": {
+      "maxHoldingDays": 21,
+      "stopLoss": {
+        "method": "FIXED",
+        "percent": 7
+      },
+      "takeProfit": {
+        "method": "FIXED",
+        "percent": 22
+      }
+    },
+    "startDate": "2022-03-14",
+    "tradingCosts": {
+      "brokerFee": 0.15,
+      "minimumFee": 1000,
+      "sellFee": 0.15,
+      "slippageBps": 5.0,
+      "spreadBps": 10.0
+    }
+  },
+  "backtestId": "volume_spike_syariah_period30_threshold1.5_maxHoldingDays21_percent22",
+  "filters": {
+    "marketCap": [
+      "large",
+      "mid"
+    ],
+    "syariah": true
+  },
+  "fundamentalIndicators": [],
+  "technicalIndicators": [
+    {
+      "period": 30,
+      "threshold": 1.5,
+      "type": "VOLUME_SMA"
+    }
+  ]
+}

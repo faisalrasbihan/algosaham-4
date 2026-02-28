@@ -1,0 +1,52 @@
+{
+  "backtestConfig": {
+    "endDate": "2026-01-21",
+    "initialCapital": 100000000,
+    "portfolio": {
+      "maxPositions": 5,
+      "minPositionPercent": 5,
+      "positionSizePercent": 20
+    },
+    "riskManagement": {
+      "maxHoldingDays": 21,
+      "stopLoss": {
+        "method": "FIXED",
+        "percent": 7
+      },
+      "takeProfit": {
+        "method": "FIXED",
+        "percent": 18
+      }
+    },
+    "startDate": "2022-03-14",
+    "tradingCosts": {
+      "brokerFee": 0.15,
+      "minimumFee": 1000,
+      "sellFee": 0.15,
+      "slippageBps": 5.0,
+      "spreadBps": 10.0
+    }
+  },
+  "backtestId": "base_breakout_low_debt_basePeriod20_breakoutPct2.0_max0.8",
+  "filters": {
+    "marketCap": [
+      "large",
+      "mid"
+    ]
+  },
+  "fundamentalIndicators": [
+    {
+      "max": 0.8,
+      "type": "DE_RATIO"
+    }
+  ],
+  "technicalIndicators": [
+    {
+      "basePeriod": 20,
+      "breakoutPct": 2.0,
+      "maxBaseRange": 15,
+      "type": "BASE_BREAKOUT",
+      "volumeMultiplier": 1.5
+    }
+  ]
+}

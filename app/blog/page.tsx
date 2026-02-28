@@ -191,7 +191,7 @@ export default function BlogPage() {
                   jadi artikel baru bisa ditambahkan tanpa mendesain ulang index.
                 </p>
                 <Link
-                  href="/contact"
+                  href="/help"
                   className="inline-flex items-center gap-2 text-sm font-medium text-ochre-700 transition-colors hover:text-white"
                 >
                   Kirim ide topik

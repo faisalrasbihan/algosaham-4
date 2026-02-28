@@ -49,7 +49,7 @@ export function HeroSection() {
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
-              <Link href="/about">
+              <Link href="/features">
                 <Button size="lg" variant="outline" className="text-base px-8 h-12 bg-white text-foreground border-border hover:bg-[#487b78] hover:text-white">
                   Pelajari lebih lanjut
                 </Button>

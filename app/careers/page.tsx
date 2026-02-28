@@ -45,31 +45,32 @@ export default function CareersPage() {
                 Careers
               </p>
               <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
-                Kami mencari orang yang suka membuat sistem lebih tajam.
+                Saat ini kami belum membuka lowongan.
               </h1>
               <p className="text-lg leading-8 text-muted-foreground">
-                Produk ini hidup di antara trading, data, dan product execution.
-                Artinya kami lebih menghargai kualitas keputusan daripada daftar
-                tool yang pernah disentuh.
+                Kami belum sedang merekrut untuk posisi baru. Namun, halaman ini
+                akan diperbarui secara berkala, jadi silakan cek lagi secara rutin
+                untuk melihat peluang terbaru.
               </p>
             </div>
 
             <div className="rounded-[2rem] border border-border bg-foreground p-6 text-background">
               <p className="mb-2 text-sm uppercase tracking-[0.22em] text-cambridge-blue-700">
-                Cara mendekat
+                Tetap terhubung
               </p>
               <h2 className="mb-3 text-xl font-semibold">
-                Kirim bukti kerja, bukan paragraf generik.
+                Belum ada posisi terbuka untuk saat ini.
               </h2>
               <p className="mb-5 text-sm leading-7 text-background/75">
-                Repo yang rapi, studi kasus, atau tulisan yang menunjukkan cara
-                berpikir biasanya jauh lebih berguna daripada CV yang padat jargon.
+                Jika Anda tertarik dengan algosaham.ai, pantau halaman ini secara
+                berkala. Saat ada kebutuhan baru, informasinya akan kami tampilkan
+                di sini.
               </p>
               <Link
                 href="mailto:support@algosaham.ai"
                 className="inline-flex items-center gap-2 text-sm font-medium text-cambridge-blue-700 transition-colors hover:text-white"
               >
-                Kirim perkenalan
+                Hubungi kami
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
@@ -84,7 +85,7 @@ export default function CareersPage() {
               Area kontribusi
             </p>
             <h2 className="text-3xl font-semibold tracking-tight text-foreground">
-              Peran yang paling dekat dengan kebutuhan produk sekarang.
+              Fokus area yang biasanya relevan saat kami membuka peran baru.
             </h2>
           </div>
 

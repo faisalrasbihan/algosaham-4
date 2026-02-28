@@ -118,7 +118,7 @@ export function Navbar() {
         <Link href="/harga" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Harga
         </Link>
-        <Link href="/about" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
+        <Link href="/features" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Pelajari
         </Link>
         <SignedIn>
@@ -352,7 +352,7 @@ export function Navbar() {
                 <SheetClose asChild><Link href="/screener" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Screener</Link></SheetClose>
                 <SheetClose asChild><Link href="/analyze-v2" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Analisis</Link></SheetClose>
                 <SheetClose asChild><Link href="/harga" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Harga</Link></SheetClose>
-                <SheetClose asChild><Link href="/about" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Pelajari</Link></SheetClose>
+                <SheetClose asChild><Link href="/features" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Pelajari</Link></SheetClose>
               </div>
               <SignedOut>
                 <div className="flex flex-col gap-3 mt-2 border-t border-border/50 pt-6">

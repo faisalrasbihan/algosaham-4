@@ -1,0 +1,44 @@
+{
+  "backtestConfig": {
+    "endDate": "2026-01-21",
+    "initialCapital": 100000000,
+    "portfolio": {
+      "maxPositions": 5,
+      "minPositionPercent": 5,
+      "positionSizePercent": 20
+    },
+    "riskManagement": {
+      "maxHoldingDays": 45,
+      "stopLoss": {
+        "method": "FIXED",
+        "percent": 8
+      },
+      "takeProfit": {
+        "method": "FIXED",
+        "percent": 30
+      }
+    },
+    "startDate": "2022-03-14",
+    "tradingCosts": {
+      "brokerFee": 0.15,
+      "minimumFee": 1000,
+      "sellFee": 0.15,
+      "slippageBps": 5.0,
+      "spreadBps": 10.0
+    }
+  },
+  "backtestId": "ema_crossover_largecap_shortPeriod8_longPeriod26_maxHoldingDays45_percent30",
+  "filters": {
+    "marketCap": [
+      "large"
+    ]
+  },
+  "fundamentalIndicators": [],
+  "technicalIndicators": [
+    {
+      "longPeriod": 26,
+      "shortPeriod": 8,
+      "type": "EMA_CROSSOVER"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "backtestConfig": {
+    "endDate": "2026-01-21",
+    "initialCapital": 100000000,
+    "portfolio": {
+      "maxPositions": 5,
+      "minPositionPercent": 5,
+      "positionSizePercent": 20
+    },
+    "riskManagement": {
+      "maxHoldingDays": 60,
+      "stopLoss": {
+        "method": "FIXED",
+        "percent": 8
+      },
+      "takeProfit": {
+        "method": "FIXED",
+        "percent": 30
+      }
+    },
+    "startDate": "2022-03-14",
+    "tradingCosts": {
+      "brokerFee": 0.15,
+      "minimumFee": 1000,
+      "sellFee": 0.15,
+      "slippageBps": 5.0,
+      "spreadBps": 10.0
+    }
+  },
+  "backtestId": "sma_crossover_syariah_shortPeriod20_longPeriod50_maxHoldingDays60_percent30",
+  "filters": {
+    "marketCap": [
+      "large",
+      "mid"
+    ],
+    "syariah": true
+  },
+  "fundamentalIndicators": [],
+  "technicalIndicators": [
+    {
+      "longPeriod": 50,
+      "shortPeriod": 20,
+      "type": "SMA_CROSSOVER"
+    }
+  ]
+}

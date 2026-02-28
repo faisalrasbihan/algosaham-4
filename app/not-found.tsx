@@ -101,7 +101,7 @@ export default function NotFound() {
                     </Link>
 
                     <Link
-                      href="/about"
+                      href="/features"
                       className="group flex items-center justify-between rounded-lg border border-border/60 bg-card px-4 py-3 text-sm hover:border-border hover:bg-muted/40 transition-colors"
                     >
                       <span className="font-medium text-foreground">Pelajari Platform</span>

@@ -1,0 +1,55 @@
+{
+  "backtestConfig": {
+    "endDate": "2026-01-21",
+    "initialCapital": 100000000,
+    "portfolio": {
+      "maxPositions": 5,
+      "minPositionPercent": 5,
+      "positionSizePercent": 20
+    },
+    "riskManagement": {
+      "maxHoldingDays": 7,
+      "stopLoss": {
+        "method": "FIXED",
+        "percent": 5
+      },
+      "takeProfit": {
+        "method": "FIXED",
+        "percent": 10
+      }
+    },
+    "startDate": "2022-03-14",
+    "tradingCosts": {
+      "brokerFee": 0.15,
+      "minimumFee": 1000,
+      "sellFee": 0.15,
+      "slippageBps": 5.0,
+      "spreadBps": 10.0
+    }
+  },
+  "backtestId": "stoch_oversold_vol_regime_kPeriod20_oversold30_signalWindow7_modeLOW_VOL_period20_lookback60",
+  "filters": {
+    "marketCap": [
+      "large",
+      "mid"
+    ]
+  },
+  "fundamentalIndicators": [],
+  "technicalIndicators": [
+    {
+      "dPeriod": 3,
+      "kPeriod": 20,
+      "overbought": 80,
+      "oversold": 30,
+      "signalWindow": 7,
+      "type": "STOCHASTIC"
+    },
+    {
+      "lookback": 60,
+      "mode": "LOW_VOL",
+      "period": 20,
+      "signalWindow": 5,
+      "type": "VOLATILITY_REGIME"
+    }
+  ]
+}

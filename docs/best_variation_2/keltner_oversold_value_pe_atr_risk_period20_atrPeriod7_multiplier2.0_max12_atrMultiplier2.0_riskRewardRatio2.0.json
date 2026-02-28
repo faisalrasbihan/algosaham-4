@@ -1,0 +1,52 @@
+{
+  "backtestConfig": {
+    "endDate": "2026-01-21",
+    "initialCapital": 100000000,
+    "portfolio": {
+      "maxPositions": 5,
+      "minPositionPercent": 5,
+      "positionSizePercent": 20
+    },
+    "riskManagement": {
+      "maxHoldingDays": 21,
+      "stopLoss": {
+        "atrMultiplier": 2.0,
+        "atrPeriod": 14,
+        "method": "ATR"
+      },
+      "takeProfit": {
+        "method": "RISK_REWARD",
+        "riskRewardRatio": 2.0
+      }
+    },
+    "startDate": "2022-03-14",
+    "tradingCosts": {
+      "brokerFee": 0.15,
+      "minimumFee": 1000,
+      "sellFee": 0.15,
+      "slippageBps": 5.0,
+      "spreadBps": 10.0
+    }
+  },
+  "backtestId": "keltner_oversold_value_pe_atr_risk_period20_atrPeriod7_multiplier2.0_max12_atrMultiplier2.0_riskRewardRatio2.0",
+  "filters": {
+    "marketCap": [
+      "large",
+      "mid"
+    ]
+  },
+  "fundamentalIndicators": [
+    {
+      "max": 12,
+      "type": "PE_RATIO"
+    }
+  ],
+  "technicalIndicators": [
+    {
+      "atrPeriod": 7,
+      "multiplier": 2.0,
+      "period": 20,
+      "type": "KELTNER_CHANNEL"
+    }
+  ]
+}

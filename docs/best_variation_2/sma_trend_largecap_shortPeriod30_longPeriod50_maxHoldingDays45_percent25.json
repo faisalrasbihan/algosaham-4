@@ -1,0 +1,44 @@
+{
+  "backtestConfig": {
+    "endDate": "2026-01-21",
+    "initialCapital": 100000000,
+    "portfolio": {
+      "maxPositions": 5,
+      "minPositionPercent": 5,
+      "positionSizePercent": 20
+    },
+    "riskManagement": {
+      "maxHoldingDays": 45,
+      "stopLoss": {
+        "method": "FIXED",
+        "percent": 8
+      },
+      "takeProfit": {
+        "method": "FIXED",
+        "percent": 25
+      }
+    },
+    "startDate": "2022-03-14",
+    "tradingCosts": {
+      "brokerFee": 0.15,
+      "minimumFee": 1000,
+      "sellFee": 0.15,
+      "slippageBps": 5.0,
+      "spreadBps": 10.0
+    }
+  },
+  "backtestId": "sma_trend_largecap_shortPeriod30_longPeriod50_maxHoldingDays45_percent25",
+  "filters": {
+    "marketCap": [
+      "large"
+    ]
+  },
+  "fundamentalIndicators": [],
+  "technicalIndicators": [
+    {
+      "longPeriod": 50,
+      "shortPeriod": 30,
+      "type": "SMA_TREND"
+    }
+  ]
+}

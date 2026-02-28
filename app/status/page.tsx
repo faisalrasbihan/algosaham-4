@@ -91,7 +91,7 @@ export default function StatusPage() {
                 lihat. Incident report yang baik mempercepat validasi.
               </p>
               <Link
-                href="/contact"
+                href="/help"
                 className="inline-flex items-center gap-2 text-sm font-medium text-ochre transition-colors hover:text-ochre/80"
               >
                 Laporkan masalah

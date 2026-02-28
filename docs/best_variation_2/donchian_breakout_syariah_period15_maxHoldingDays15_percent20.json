@@ -1,0 +1,45 @@
+{
+  "backtestConfig": {
+    "endDate": "2026-01-21",
+    "initialCapital": 100000000,
+    "portfolio": {
+      "maxPositions": 5,
+      "minPositionPercent": 5,
+      "positionSizePercent": 20
+    },
+    "riskManagement": {
+      "maxHoldingDays": 15,
+      "stopLoss": {
+        "method": "FIXED",
+        "percent": 7
+      },
+      "takeProfit": {
+        "method": "FIXED",
+        "percent": 20
+      }
+    },
+    "startDate": "2022-03-14",
+    "tradingCosts": {
+      "brokerFee": 0.15,
+      "minimumFee": 1000,
+      "sellFee": 0.15,
+      "slippageBps": 5.0,
+      "spreadBps": 10.0
+    }
+  },
+  "backtestId": "donchian_breakout_syariah_period15_maxHoldingDays15_percent20",
+  "filters": {
+    "marketCap": [
+      "large",
+      "mid"
+    ],
+    "syariah": true
+  },
+  "fundamentalIndicators": [],
+  "technicalIndicators": [
+    {
+      "period": 15,
+      "type": "DONCHIAN_CHANNEL"
+    }
+  ]
+}

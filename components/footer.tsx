@@ -45,18 +45,8 @@ export function Footer() {
                         <h3 className="font-semibold text-foreground">Company</h3>
                         <ul className="space-y-2 text-sm">
                             <li>
-                                <Link href="/about" className="text-muted-foreground hover:text-primary transition-colors">
-                                    About Us
-                                </Link>
-                            </li>
-                            <li>
                                 <Link href="/blog" className="text-muted-foreground hover:text-primary transition-colors">
                                     Blog
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/contact" className="text-muted-foreground hover:text-primary transition-colors">
-                                    Contact
                                 </Link>
                             </li>
                             <li>
@@ -73,7 +63,7 @@ export function Footer() {
                         <ul className="space-y-2 text-sm">
                             <li>
                                 <Link href="/help" className="text-muted-foreground hover:text-primary transition-colors">
-                                    Help Center
+                                    Contact Us
                                 </Link>
                             </li>
                             <li>
@@ -132,7 +122,7 @@ export function Footer() {
                             <span className="sr-only">LinkedIn</span>
                         </Link>
                         <Link
-                            href="mailto:support@algosaham.ai"
+                            href="/help"
                             className="text-muted-foreground hover:text-primary transition-colors"
                         >
                             <Mail className="h-5 w-5" />
