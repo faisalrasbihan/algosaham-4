@@ -530,44 +530,44 @@ function AnalyzeV2Content() {
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
                                 {/* Entry */}
-                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
+                                <div className="p-3 rounded-lg border border-border/70 bg-white">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Entry</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono">{d.riskPlan.entryPrice.toLocaleString("id-ID")}</div>
                                     <div className="text-[10px] text-muted-foreground capitalize mt-0.5">{d.riskPlan.entryReference}</div>
                                 </div>
                                 {/* Stop Loss */}
-                                <div className="p-3 rounded-lg border border-red-200/70 bg-red-50/60 dark:border-red-900/40 dark:bg-red-950/20">
+                                <div className="p-3 rounded-lg border border-red-200/70 bg-white">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Stop Loss</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono text-red-600">{d.riskPlan.stopLoss.toLocaleString("id-ID")}</div>
                                     <div className="text-[10px] text-red-600 mt-0.5 font-ibm-plex-mono">-{potentialLoss.toFixed(2)}%</div>
                                 </div>
                                 {/* Take Profit */}
-                                <div className="p-3 rounded-lg border border-emerald-200/70 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+                                <div className="p-3 rounded-lg border border-emerald-200/70 bg-white">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Take Profit</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono text-green-600">{d.riskPlan.takeProfit.toLocaleString("id-ID")}</div>
                                     <div className="text-[10px] text-green-600 mt-0.5 font-ibm-plex-mono">+{potentialGain.toFixed(2)}%</div>
                                 </div>
                                 {/* R/R */}
-                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
+                                <div className="p-3 rounded-lg border border-border/70 bg-white">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">R/R Ratio</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono">1:{d.riskPlan.riskReward.toFixed(1)}</div>
                                 </div>
                                 {/* Holding */}
-                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
+                                <div className="p-3 rounded-lg border border-border/70 bg-white">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Holding</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono">{d.riskPlan.holdingWindowDays}
                                         <span className="text-sm font-normal text-muted-foreground ml-1">hari</span>
                                     </div>
                                 </div>
                                 {/* Confidence */}
-                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
+                                <div className="p-3 rounded-lg border border-border/70 bg-white">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Confidence</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono capitalize">{d.riskPlan.holdingWindowDays > 10 ? "Medium" : "High"}</div>
                                 </div>
                             </div>
 
                             {/* Notes */}
-                            <div className="p-3 rounded-lg bg-background/70 border border-border/70">
+                            <div className="p-3 rounded-lg bg-white border border-border/70">
                                 <div className="flex items-center gap-1.5 mb-2">
                                     <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />
                                     <span className="text-xs font-semibold text-muted-foreground">Catatan Penting</span>

@@ -38,6 +38,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import type { BacktestRequest } from "@/lib/api"
 import { useClerk, useUser } from "@clerk/nextjs"
 
@@ -438,6 +443,7 @@ export function ScreenerPage() {
     createRule("rsi"),
     createRule("pe"),
   ])
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
   const [saveStrategyOpen, setSaveStrategyOpen] = useState(false)
   const [strategyName, setStrategyName] = useState("")
   const [strategyDescription, setStrategyDescription] = useState("")
@@ -578,6 +584,7 @@ export function ScreenerPage() {
 
   function removeRule(ruleId: string) {
     setActiveRules((current) => current.filter((rule) => rule.id !== ruleId))
+    setEditingRuleId((current) => (current === ruleId ? null : current))
   }
 
   async function handleSaveStrategy() {
@@ -943,7 +950,7 @@ export function ScreenerPage() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-10 gap-2 border-black bg-black px-3 text-white hover:border-black hover:bg-black/90 hover:text-white"
+                      className="h-10 gap-2 border-[#3f3f46] bg-[#3f3f46] px-3 text-white hover:border-[#35353b] hover:bg-[#35353b] hover:text-white"
                     >
                       <Columns3 className="h-4 w-4" />
                       Pilih kolom
@@ -971,7 +978,7 @@ export function ScreenerPage() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-10 gap-2 border-[#487b78]/25 bg-[#487b78]/10 px-3 text-[#487b78] hover:border-[#487b78]/40 hover:bg-[#487b78]/15 hover:text-[#3f6a68]"
+                      className="h-10 gap-2 border-[#d7dddc] bg-white px-3 text-[#487b78] hover:border-[#bfd0ce] hover:bg-[#f7f9f9] hover:text-[#3f6a68]"
                     >
                       <Plus className="h-4 w-4" />
                       Indicator
@@ -1034,18 +1041,88 @@ export function ScreenerPage() {
                       Belum ada indicator.
                     </span>
                   ) : (
-                    activeRules.map((rule) => (
-                      <button
-                        key={rule.id}
-                        type="button"
-                        onClick={() => removeRule(rule.id)}
-                        className="inline-flex h-10 items-center gap-2 rounded-md border border-border/70 bg-muted/35 px-3 font-ibm-plex-mono text-xs text-foreground transition-colors hover:border-[#d07225]/40 hover:bg-[#d07225]/5"
-                        title={`Hapus ${FILTER_LIBRARY[rule.key].label}`}
-                      >
-                        <span>{formatRuleSummary(rule)}</span>
-                        <X className="h-3 w-3 text-muted-foreground" />
-                      </button>
-                    ))
+                    activeRules.map((rule) => {
+                      const definition = FILTER_LIBRARY[rule.key]
+                      const isRange = definition.mode === "range"
+
+                      return (
+                        <Popover
+                          key={rule.id}
+                          open={editingRuleId === rule.id}
+                          onOpenChange={(open) => setEditingRuleId(open ? rule.id : null)}
+                        >
+                          <div className="inline-flex items-center">
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                className="inline-flex h-9 items-center gap-2 rounded-l-md border border-r-0 border-border/70 bg-muted/25 px-2.5 font-ibm-plex-mono text-[11px] text-foreground transition-colors hover:border-[#d07225]/40 hover:bg-[#d07225]/5"
+                                title={`Edit ${definition.label}`}
+                              >
+                                <span>{formatRuleSummary(rule)}</span>
+                              </button>
+                            </PopoverTrigger>
+                            <button
+                              type="button"
+                              onClick={() => removeRule(rule.id)}
+                              className="inline-flex h-9 items-center justify-center rounded-r-md border border-border/70 bg-muted/25 px-2 text-muted-foreground transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                              aria-label={`Hapus ${definition.label}`}
+                              title={`Hapus ${definition.label}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+
+                          <PopoverContent align="start" className="w-72 space-y-3 border-border/70 bg-card p-4">
+                            <div className="space-y-1">
+                              <div className="font-ibm-plex-mono text-sm font-semibold">{definition.label}</div>
+                              <div className="text-xs text-muted-foreground">{definition.description}</div>
+                            </div>
+
+                            {isRange ? (
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                  <label className="text-xs font-medium text-muted-foreground">Min</label>
+                                  <Input
+                                    value={rule.params.min ?? ""}
+                                    onChange={(event) => updateRuleParam(rule.id, "min", event.target.value)}
+                                    className="h-9 bg-background font-ibm-plex-mono text-sm"
+                                    placeholder="Kosongkan"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <label className="text-xs font-medium text-muted-foreground">Max</label>
+                                  <Input
+                                    value={rule.params.max ?? ""}
+                                    onChange={(event) => updateRuleParam(rule.id, "max", event.target.value)}
+                                    className="h-9 bg-background font-ibm-plex-mono text-sm"
+                                    placeholder="Kosongkan"
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-muted-foreground">Value</label>
+                                <Select
+                                  value={rule.params.value}
+                                  onValueChange={(value) => updateRuleParam(rule.id, "value", value)}
+                                >
+                                  <SelectTrigger className="h-9 bg-background font-ibm-plex-mono text-sm">
+                                    <SelectValue placeholder="Pilih nilai" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {definition.options?.map((option) => (
+                                      <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                          </PopoverContent>
+                        </Popover>
+                      )
+                    })
                   )}
                 </div>
 
@@ -1115,17 +1192,17 @@ export function ScreenerPage() {
 
                 <div className="flex items-center justify-end gap-2 self-end">
                   <Button
-                    className="h-11 gap-2 rounded-xl bg-[#d07225] px-4 text-white shadow-sm hover:bg-[#b8641f]"
+                    className="h-11 gap-2 rounded-md bg-[#d07225] px-4 text-white shadow-sm hover:bg-[#b8641f]"
                     onClick={handleRunScreener}
                   >
                     <Search className="h-4 w-4" />
-                    Screening Saham
+                    Run Screening
                   </Button>
 
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-11 w-11 rounded-xl border-border/70 bg-background text-foreground hover:border-[#d07225]/35 hover:bg-[#d07225]/5"
+                    className="h-11 w-11 rounded-md border-border/70 bg-background font-ibm-plex-mono text-foreground hover:border-[#d07225]/35 hover:bg-[#d07225]/5"
                     onClick={handleOpenSaveStrategy}
                     aria-label="Create New Strategy"
                     title="Create New Strategy"
