@@ -68,7 +68,7 @@ export function CardCarousel({ children, className = "", noPadding = false }: Ca
       {showRightIndicator && (
         <button
           onClick={handleScrollRight}
-          className="absolute right-0 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background/80 to-transparent pl-12 pr-4 py-6 cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-end group z-10"
+          className="absolute -right-6 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background/80 to-transparent pl-12 pr-4 py-6 cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-end group z-10"
           aria-label="Scroll right"
         >
           <ChevronRight className="w-6 h-6 text-[#d07225] animate-pulse group-hover:animate-none group-hover:scale-110 transition-transform" />
@@ -77,7 +77,7 @@ export function CardCarousel({ children, className = "", noPadding = false }: Ca
       {showLeftIndicator && (
         <button
           onClick={handleScrollLeft}
-          className="absolute left-0 top-1/2 -translate-y-1/2 bg-gradient-to-r from-background via-background/80 to-transparent pr-12 pl-4 py-6 cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-start group z-10"
+          className="absolute -left-6 top-1/2 -translate-y-1/2 bg-gradient-to-r from-background via-background/80 to-transparent pr-12 pl-4 py-6 cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-start group z-10"
           aria-label="Scroll left"
         >
           <ChevronLeft className="w-6 h-6 text-[#d07225] animate-pulse group-hover:animate-none group-hover:scale-110 transition-transform" />

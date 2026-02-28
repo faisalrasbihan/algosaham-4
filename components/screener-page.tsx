@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, ArrowDownRight, Radar, Search, SlidersHorizontal, Star, StarOff, Columns3, ChevronLeft, ChevronRight, Plus, X, ChevronDown, LayoutGrid, BarChart3, TrendingUp } from "lucide-react"
+import { Bell, BellPlus, ArrowUpDown, Radar, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, LayoutGrid, BarChart3, TrendingUp } from "lucide-react"
 
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -45,6 +45,8 @@ type ScreenerRow = {
   syariah: boolean
   price: number
   changePct: number
+  monthChangePct: number
+  ytdChangePct: number
   technicalScore: number
   fundamentalScore: number
   trend: "uptrend" | "sideways" | "downtrend"
@@ -70,26 +72,26 @@ type SavedAlert = AlertDraft & {
 }
 
 const SCREENER_ROWS: ScreenerRow[] = [
-  { ticker: "BBCA", company: "Bank Central Asia", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 9725, changePct: 1.83, technicalScore: 74, fundamentalScore: 78, trend: "uptrend", rsi: 58.4, ma20GapPct: 1.6, ma50GapPct: 4.8, pe: 24.1, pbv: 4.8, roe: 22.4, epsGrowth: 8.7 },
-  { ticker: "BMRI", company: "Bank Mandiri", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 6225, changePct: 0.96, technicalScore: 71, fundamentalScore: 76, trend: "uptrend", rsi: 56.2, ma20GapPct: 1.1, ma50GapPct: 4.2, pe: 13.6, pbv: 2.1, roe: 19.1, epsGrowth: 12.3 },
-  { ticker: "BBRI", company: "Bank Rakyat Indonesia", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 5030, changePct: -0.42, technicalScore: 64, fundamentalScore: 74, trend: "sideways", rsi: 49.8, ma20GapPct: -0.5, ma50GapPct: 2.4, pe: 11.8, pbv: 2.2, roe: 18.3, epsGrowth: 10.8 },
-  { ticker: "TLKM", company: "Telkom Indonesia", sector: "Infrastructure", marketCapGroup: "Large", syariah: true, price: 3650, changePct: 1.39, technicalScore: 69, fundamentalScore: 72, trend: "uptrend", rsi: 57.7, ma20GapPct: 3.1, ma50GapPct: 6.4, pe: 12.9, pbv: 2.3, roe: 17.2, epsGrowth: 7.1 },
-  { ticker: "ASII", company: "Astra International", sector: "Industrials", marketCapGroup: "Large", syariah: true, price: 4920, changePct: 0.61, technicalScore: 67, fundamentalScore: 75, trend: "uptrend", rsi: 54.1, ma20GapPct: 1.4, ma50GapPct: 3.6, pe: 8.9, pbv: 1.2, roe: 14.8, epsGrowth: 6.5 },
-  { ticker: "ICBP", company: "Indofood CBP", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 11400, changePct: -0.87, technicalScore: 59, fundamentalScore: 73, trend: "sideways", rsi: 47.2, ma20GapPct: -1.7, ma50GapPct: 1.1, pe: 14.2, pbv: 2.0, roe: 13.2, epsGrowth: 5.2 },
-  { ticker: "ANTM", company: "Aneka Tambang", sector: "Materials", marketCapGroup: "Large", syariah: true, price: 2010, changePct: 2.45, technicalScore: 77, fundamentalScore: 66, trend: "uptrend", rsi: 63.8, ma20GapPct: 4.5, ma50GapPct: 8.2, pe: 15.3, pbv: 1.6, roe: 11.4, epsGrowth: 18.1 },
-  { ticker: "MDKA", company: "Merdeka Copper Gold", sector: "Materials", marketCapGroup: "Mid", syariah: true, price: 2320, changePct: -1.28, technicalScore: 55, fundamentalScore: 52, trend: "downtrend", rsi: 42.3, ma20GapPct: -3.8, ma50GapPct: -6.2, pe: 31.5, pbv: 2.9, roe: 6.7, epsGrowth: -4.2 },
-  { ticker: "CPIN", company: "Charoen Pokphand Indonesia", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 4860, changePct: 0.83, technicalScore: 62, fundamentalScore: 68, trend: "sideways", rsi: 51.4, ma20GapPct: 0.8, ma50GapPct: 2.0, pe: 18.6, pbv: 2.7, roe: 12.6, epsGrowth: 9.4 },
-  { ticker: "INDF", company: "Indofood Sukses Makmur", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 6550, changePct: 1.12, technicalScore: 66, fundamentalScore: 71, trend: "uptrend", rsi: 55.6, ma20GapPct: 1.2, ma50GapPct: 3.5, pe: 7.4, pbv: 0.9, roe: 11.1, epsGrowth: 8.1 },
-  { ticker: "ADRO", company: "Alamtri Resources", sector: "Energy", marketCapGroup: "Large", syariah: true, price: 2890, changePct: -0.69, technicalScore: 61, fundamentalScore: 70, trend: "sideways", rsi: 48.9, ma20GapPct: -0.7, ma50GapPct: 1.5, pe: 5.8, pbv: 1.1, roe: 21.2, epsGrowth: 4.9 },
-  { ticker: "PTBA", company: "Bukit Asam", sector: "Energy", marketCapGroup: "Mid", syariah: true, price: 2710, changePct: 0.37, technicalScore: 58, fundamentalScore: 69, trend: "sideways", rsi: 46.7, ma20GapPct: -1.1, ma50GapPct: 0.9, pe: 6.3, pbv: 1.3, roe: 19.5, epsGrowth: 3.8 },
-  { ticker: "UNTR", company: "United Tractors", sector: "Industrials", marketCapGroup: "Large", syariah: true, price: 24450, changePct: 0.74, technicalScore: 68, fundamentalScore: 74, trend: "uptrend", rsi: 57.1, ma20GapPct: 1.8, ma50GapPct: 4.1, pe: 6.8, pbv: 1.2, roe: 17.8, epsGrowth: 7.9 },
-  { ticker: "EXCL", company: "XL Axiata", sector: "Infrastructure", marketCapGroup: "Mid", syariah: true, price: 2250, changePct: 1.58, technicalScore: 73, fundamentalScore: 60, trend: "uptrend", rsi: 61.2, ma20GapPct: 3.3, ma50GapPct: 5.7, pe: 17.1, pbv: 1.4, roe: 8.9, epsGrowth: 15.6 },
-  { ticker: "SIDO", company: "Industri Jamu Sido Muncul", sector: "Healthcare", marketCapGroup: "Mid", syariah: true, price: 620, changePct: 0.32, technicalScore: 57, fundamentalScore: 67, trend: "sideways", rsi: 45.8, ma20GapPct: -0.9, ma50GapPct: 1.8, pe: 18.3, pbv: 4.3, roe: 24.6, epsGrowth: 5.5 },
-  { ticker: "KLBF", company: "Kalbe Farma", sector: "Healthcare", marketCapGroup: "Large", syariah: true, price: 1560, changePct: -0.64, technicalScore: 60, fundamentalScore: 70, trend: "sideways", rsi: 48.3, ma20GapPct: -0.3, ma50GapPct: 2.2, pe: 22.4, pbv: 3.4, roe: 15.7, epsGrowth: 6.2 },
-  { ticker: "ERAA", company: "Erajaya Swasembada", sector: "Consumer", marketCapGroup: "Mid", syariah: true, price: 484, changePct: 3.42, technicalScore: 79, fundamentalScore: 64, trend: "uptrend", rsi: 66.9, ma20GapPct: 5.2, ma50GapPct: 9.4, pe: 9.8, pbv: 1.7, roe: 16.8, epsGrowth: 14.7 },
-  { ticker: "AMRT", company: "Sumber Alfaria Trijaya", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 2890, changePct: 1.05, technicalScore: 72, fundamentalScore: 69, trend: "uptrend", rsi: 59.1, ma20GapPct: 2.6, ma50GapPct: 5.5, pe: 30.4, pbv: 8.1, roe: 18.4, epsGrowth: 13.1 },
-  { ticker: "BRIS", company: "Bank Syariah Indonesia", sector: "Financials", marketCapGroup: "Large", syariah: true, price: 2480, changePct: 2.12, technicalScore: 75, fundamentalScore: 71, trend: "uptrend", rsi: 62.4, ma20GapPct: 3.9, ma50GapPct: 7.6, pe: 17.5, pbv: 2.4, roe: 15.3, epsGrowth: 16.2 },
-  { ticker: "MAPI", company: "Mitra Adiperkasa", sector: "Consumer", marketCapGroup: "Mid", syariah: true, price: 1645, changePct: -1.15, technicalScore: 54, fundamentalScore: 63, trend: "downtrend", rsi: 41.9, ma20GapPct: -2.7, ma50GapPct: -4.4, pe: 12.7, pbv: 1.9, roe: 10.4, epsGrowth: 4.1 },
+  { ticker: "BBCA", company: "Bank Central Asia", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 9725, changePct: 1.83, monthChangePct: 6.4, ytdChangePct: 12.8, technicalScore: 74, fundamentalScore: 78, trend: "uptrend", rsi: 58.4, ma20GapPct: 1.6, ma50GapPct: 4.8, pe: 24.1, pbv: 4.8, roe: 22.4, epsGrowth: 8.7 },
+  { ticker: "BMRI", company: "Bank Mandiri", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 6225, changePct: 0.96, monthChangePct: 5.1, ytdChangePct: 11.4, technicalScore: 71, fundamentalScore: 76, trend: "uptrend", rsi: 56.2, ma20GapPct: 1.1, ma50GapPct: 4.2, pe: 13.6, pbv: 2.1, roe: 19.1, epsGrowth: 12.3 },
+  { ticker: "BBRI", company: "Bank Rakyat Indonesia", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 5030, changePct: -0.42, monthChangePct: 1.8, ytdChangePct: 4.6, technicalScore: 64, fundamentalScore: 74, trend: "sideways", rsi: 49.8, ma20GapPct: -0.5, ma50GapPct: 2.4, pe: 11.8, pbv: 2.2, roe: 18.3, epsGrowth: 10.8 },
+  { ticker: "TLKM", company: "Telkom Indonesia", sector: "Infrastructure", marketCapGroup: "Large", syariah: true, price: 3650, changePct: 1.39, monthChangePct: 4.9, ytdChangePct: 9.7, technicalScore: 69, fundamentalScore: 72, trend: "uptrend", rsi: 57.7, ma20GapPct: 3.1, ma50GapPct: 6.4, pe: 12.9, pbv: 2.3, roe: 17.2, epsGrowth: 7.1 },
+  { ticker: "ASII", company: "Astra International", sector: "Industrials", marketCapGroup: "Large", syariah: true, price: 4920, changePct: 0.61, monthChangePct: 2.8, ytdChangePct: 7.2, technicalScore: 67, fundamentalScore: 75, trend: "uptrend", rsi: 54.1, ma20GapPct: 1.4, ma50GapPct: 3.6, pe: 8.9, pbv: 1.2, roe: 14.8, epsGrowth: 6.5 },
+  { ticker: "ICBP", company: "Indofood CBP", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 11400, changePct: -0.87, monthChangePct: -2.3, ytdChangePct: 1.4, technicalScore: 59, fundamentalScore: 73, trend: "sideways", rsi: 47.2, ma20GapPct: -1.7, ma50GapPct: 1.1, pe: 14.2, pbv: 2.0, roe: 13.2, epsGrowth: 5.2 },
+  { ticker: "ANTM", company: "Aneka Tambang", sector: "Materials", marketCapGroup: "Large", syariah: true, price: 2010, changePct: 2.45, monthChangePct: 9.6, ytdChangePct: 18.5, technicalScore: 77, fundamentalScore: 66, trend: "uptrend", rsi: 63.8, ma20GapPct: 4.5, ma50GapPct: 8.2, pe: 15.3, pbv: 1.6, roe: 11.4, epsGrowth: 18.1 },
+  { ticker: "MDKA", company: "Merdeka Copper Gold", sector: "Materials", marketCapGroup: "Mid", syariah: true, price: 2320, changePct: -1.28, monthChangePct: -6.8, ytdChangePct: -12.4, technicalScore: 55, fundamentalScore: 52, trend: "downtrend", rsi: 42.3, ma20GapPct: -3.8, ma50GapPct: -6.2, pe: 31.5, pbv: 2.9, roe: 6.7, epsGrowth: -4.2 },
+  { ticker: "CPIN", company: "Charoen Pokphand Indonesia", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 4860, changePct: 0.83, monthChangePct: 2.1, ytdChangePct: 5.9, technicalScore: 62, fundamentalScore: 68, trend: "sideways", rsi: 51.4, ma20GapPct: 0.8, ma50GapPct: 2.0, pe: 18.6, pbv: 2.7, roe: 12.6, epsGrowth: 9.4 },
+  { ticker: "INDF", company: "Indofood Sukses Makmur", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 6550, changePct: 1.12, monthChangePct: 3.7, ytdChangePct: 8.8, technicalScore: 66, fundamentalScore: 71, trend: "uptrend", rsi: 55.6, ma20GapPct: 1.2, ma50GapPct: 3.5, pe: 7.4, pbv: 0.9, roe: 11.1, epsGrowth: 8.1 },
+  { ticker: "ADRO", company: "Alamtri Resources", sector: "Energy", marketCapGroup: "Large", syariah: true, price: 2890, changePct: -0.69, monthChangePct: -1.9, ytdChangePct: 3.1, technicalScore: 61, fundamentalScore: 70, trend: "sideways", rsi: 48.9, ma20GapPct: -0.7, ma50GapPct: 1.5, pe: 5.8, pbv: 1.1, roe: 21.2, epsGrowth: 4.9 },
+  { ticker: "PTBA", company: "Bukit Asam", sector: "Energy", marketCapGroup: "Mid", syariah: true, price: 2710, changePct: 0.37, monthChangePct: 1.4, ytdChangePct: 4.8, technicalScore: 58, fundamentalScore: 69, trend: "sideways", rsi: 46.7, ma20GapPct: -1.1, ma50GapPct: 0.9, pe: 6.3, pbv: 1.3, roe: 19.5, epsGrowth: 3.8 },
+  { ticker: "UNTR", company: "United Tractors", sector: "Industrials", marketCapGroup: "Large", syariah: true, price: 24450, changePct: 0.74, monthChangePct: 4.1, ytdChangePct: 10.3, technicalScore: 68, fundamentalScore: 74, trend: "uptrend", rsi: 57.1, ma20GapPct: 1.8, ma50GapPct: 4.1, pe: 6.8, pbv: 1.2, roe: 17.8, epsGrowth: 7.9 },
+  { ticker: "EXCL", company: "XL Axiata", sector: "Infrastructure", marketCapGroup: "Mid", syariah: true, price: 2250, changePct: 1.58, monthChangePct: 7.3, ytdChangePct: 14.1, technicalScore: 73, fundamentalScore: 60, trend: "uptrend", rsi: 61.2, ma20GapPct: 3.3, ma50GapPct: 5.7, pe: 17.1, pbv: 1.4, roe: 8.9, epsGrowth: 15.6 },
+  { ticker: "SIDO", company: "Industri Jamu Sido Muncul", sector: "Healthcare", marketCapGroup: "Mid", syariah: true, price: 620, changePct: 0.32, monthChangePct: 0.8, ytdChangePct: 2.6, technicalScore: 57, fundamentalScore: 67, trend: "sideways", rsi: 45.8, ma20GapPct: -0.9, ma50GapPct: 1.8, pe: 18.3, pbv: 4.3, roe: 24.6, epsGrowth: 5.5 },
+  { ticker: "KLBF", company: "Kalbe Farma", sector: "Healthcare", marketCapGroup: "Large", syariah: true, price: 1560, changePct: -0.64, monthChangePct: -1.1, ytdChangePct: 2.2, technicalScore: 60, fundamentalScore: 70, trend: "sideways", rsi: 48.3, ma20GapPct: -0.3, ma50GapPct: 2.2, pe: 22.4, pbv: 3.4, roe: 15.7, epsGrowth: 6.2 },
+  { ticker: "ERAA", company: "Erajaya Swasembada", sector: "Consumer", marketCapGroup: "Mid", syariah: true, price: 484, changePct: 3.42, monthChangePct: 12.6, ytdChangePct: 24.8, technicalScore: 79, fundamentalScore: 64, trend: "uptrend", rsi: 66.9, ma20GapPct: 5.2, ma50GapPct: 9.4, pe: 9.8, pbv: 1.7, roe: 16.8, epsGrowth: 14.7 },
+  { ticker: "AMRT", company: "Sumber Alfaria Trijaya", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 2890, changePct: 1.05, monthChangePct: 6.2, ytdChangePct: 13.6, technicalScore: 72, fundamentalScore: 69, trend: "uptrend", rsi: 59.1, ma20GapPct: 2.6, ma50GapPct: 5.5, pe: 30.4, pbv: 8.1, roe: 18.4, epsGrowth: 13.1 },
+  { ticker: "BRIS", company: "Bank Syariah Indonesia", sector: "Financials", marketCapGroup: "Large", syariah: true, price: 2480, changePct: 2.12, monthChangePct: 8.4, ytdChangePct: 17.9, technicalScore: 75, fundamentalScore: 71, trend: "uptrend", rsi: 62.4, ma20GapPct: 3.9, ma50GapPct: 7.6, pe: 17.5, pbv: 2.4, roe: 15.3, epsGrowth: 16.2 },
+  { ticker: "MAPI", company: "Mitra Adiperkasa", sector: "Consumer", marketCapGroup: "Mid", syariah: true, price: 1645, changePct: -1.15, monthChangePct: -4.6, ytdChangePct: -7.8, technicalScore: 54, fundamentalScore: 63, trend: "downtrend", rsi: 41.9, ma20GapPct: -2.7, ma50GapPct: -4.4, pe: 12.7, pbv: 1.9, roe: 10.4, epsGrowth: 4.1 },
 ]
 
 const defaultAlertDraft: AlertDraft = {
@@ -103,6 +105,8 @@ const SORT_OPTIONS = [
   "ticker",
   "price",
   "changePct",
+  "monthChangePct",
+  "ytdChangePct",
   "technicalScore",
   "fundamentalScore",
   "rsi",
@@ -117,9 +121,10 @@ const COLUMN_LABELS = {
   ticker: "Saham",
   marketCap: "Mkt Cap",
   sector: "Sector",
-  syariah: "Syariah",
   price: "Harga",
   changePct: "Change",
+  monthChangePct: "1M Perf",
+  ytdChangePct: "YTD Perf",
   rsi: "RSI",
   ma20: "MA20",
   ma50: "MA50",
@@ -132,10 +137,10 @@ const COLUMN_LABELS = {
 } as const
 
 const COLUMN_TEMPLATES = {
-  recommended: ["ticker", "marketCap", "sector", "syariah", "price", "changePct", "rsi", "trend", "pe", "roe", "action"],
-  technical: ["ticker", "marketCap", "sector", "syariah", "price", "changePct", "rsi", "ma20", "ma50", "trend", "action"],
-  fundamental: ["ticker", "marketCap", "sector", "syariah", "price", "pe", "pbv", "roe", "epsGrowth", "action"],
-  all: ["ticker", "marketCap", "sector", "syariah", "price", "changePct", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth", "action"],
+  recommended: ["ticker", "marketCap", "sector", "price", "changePct", "monthChangePct", "ytdChangePct", "rsi", "trend", "pe", "roe", "action"],
+  technical: ["ticker", "marketCap", "sector", "price", "changePct", "monthChangePct", "rsi", "ma20", "ma50", "trend", "action"],
+  fundamental: ["ticker", "marketCap", "sector", "price", "monthChangePct", "ytdChangePct", "pe", "pbv", "roe", "epsGrowth", "action"],
+  all: ["ticker", "marketCap", "sector", "price", "changePct", "monthChangePct", "ytdChangePct", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth", "action"],
 } as const
 
 type ColumnTemplateKey = keyof typeof COLUMN_TEMPLATES
@@ -143,7 +148,7 @@ type ColumnId = keyof typeof COLUMN_LABELS
 type ColumnGroupId = "overview" | "technical" | "fundamental"
 
 const FIXED_COLUMN_IDS: ColumnId[] = ["ticker", "action"]
-const OPTIONAL_COLUMN_IDS: ColumnId[] = ["marketCap", "sector", "syariah", "price", "changePct", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth"]
+const OPTIONAL_COLUMN_IDS: ColumnId[] = ["marketCap", "sector", "price", "changePct", "monthChangePct", "ytdChangePct", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth"]
 
 const COLUMN_GROUPS: {
   id: ColumnGroupId
@@ -157,7 +162,7 @@ const COLUMN_GROUPS: {
     label: "Overview",
     addLabel: "Add Overview Column",
     icon: LayoutGrid,
-    columnIds: ["marketCap", "sector", "syariah", "price", "changePct", "trend"],
+    columnIds: ["marketCap", "sector", "price", "changePct", "monthChangePct", "ytdChangePct", "trend"],
   },
   {
     id: "technical",
@@ -185,7 +190,7 @@ function formatPercent(value: number, digits = 1) {
 }
 
 function normalizeStoredColumnIds(columnId: string): ColumnId[] {
-  if (columnId === "meta") return ["marketCap", "sector", "syariah"]
+  if (columnId === "meta") return ["marketCap", "sector"]
   if (columnId in COLUMN_LABELS) return [columnId as ColumnId]
   return []
 }
@@ -220,7 +225,6 @@ function TickerCircleIcon({ ticker }: { ticker: string }) {
 }
 
 export function ScreenerPage() {
-  const PAGE_SIZE = 12
   const [search, setSearch] = useState("")
   const [sectorFilter, setSectorFilter] = useState("all")
   const [marketCapFilter, setMarketCapFilter] = useState("all")
@@ -236,7 +240,6 @@ export function ScreenerPage() {
   const [columnTemplate, setColumnTemplate] = useState<ColumnTemplateKey>("recommended")
   const [visibleColumnIds, setVisibleColumnIds] = useState<ColumnId[]>(() => getColumnTemplate("recommended"))
   const [columnPickerOpen, setColumnPickerOpen] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     const storedRadar = window.localStorage.getItem("algosaham-screener-radar")
@@ -314,19 +317,6 @@ export function ScreenerPage() {
     const result = Number(aValue) - Number(bValue)
     return sortDirection === "asc" ? result : -result
   })
-
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
-  const paginatedRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
-
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [search, sectorFilter, marketCapFilter, sortKey, sortDirection, onlyRadar, onlyBullish, onlySyariah])
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages)
-    }
-  }, [currentPage, totalPages])
 
   function toggleRadar(ticker: string) {
     setRadarTickers((current) => current.includes(ticker) ? current.filter((item) => item !== ticker) : [...current, ticker])
@@ -414,13 +404,6 @@ export function ScreenerPage() {
       cell: (row) => row.sector,
     },
     {
-      id: "syariah",
-      headClassName: "min-w-[96px]",
-      header: "Syariah",
-      cellClassName: "text-sm text-muted-foreground",
-      cell: (row) => (row.syariah ? "Syariah" : "Non-Syariah"),
-    },
-    {
       id: "price",
       headClassName: "text-right",
       cellClassName: "text-right font-ibm-plex-mono",
@@ -441,11 +424,32 @@ export function ScreenerPage() {
         </button>
       ),
       cell: (row) => (
-        <span className={`inline-flex w-full items-center justify-end gap-1 font-medium ${row.changePct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-          {row.changePct >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+        <span className={`inline-flex w-full items-center justify-end font-medium ${row.changePct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
           {formatPercent(row.changePct, 2)}
         </span>
       ),
+    },
+    {
+      id: "monthChangePct",
+      headClassName: "text-right",
+      cellClassName: "text-right font-ibm-plex-mono",
+      header: (
+        <button className="inline-flex items-center gap-2" onClick={() => handleSort("monthChangePct")}>
+          1M Perf <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: (row) => <span className={row.monthChangePct >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(row.monthChangePct, 1)}</span>,
+    },
+    {
+      id: "ytdChangePct",
+      headClassName: "text-right",
+      cellClassName: "text-right font-ibm-plex-mono",
+      header: (
+        <button className="inline-flex items-center gap-2" onClick={() => handleSort("ytdChangePct")}>
+          YTD Perf <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: (row) => <span className={row.ytdChangePct >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(row.ytdChangePct, 1)}</span>,
     },
     {
       id: "rsi",
@@ -565,36 +569,15 @@ export function ScreenerPage() {
           <section className="rounded-2xl border border-border/70 bg-card shadow-sm overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-[#487b78] via-[#d07225] to-transparent" />
             <div className="p-6 sm:p-8">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                <div className="max-w-3xl space-y-3">
-                  <Badge variant="outline" className="font-mono text-[11px] tracking-[0.14em] uppercase text-[#d07225] border-[#d07225]/25 bg-[#d07225]/10">
-                    Screener
-                  </Badge>
-                  <div>
-                    <h1 className="text-3xl sm:text-4xl font-bold font-ibm-plex-mono tracking-tight text-balance">Pantau semua saham dalam satu radar</h1>
-                    <p className="mt-2 text-sm sm:text-base text-muted-foreground font-mono max-w-2xl">
-                      Filter, urutkan, dan tandai saham berdasarkan data fundamental dan teknikal. Alert disimpan lokal untuk versi awal halaman ini.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[460px]">
-                  <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3">
-                    <div className="text-[11px] text-muted-foreground uppercase tracking-[0.14em]">Universe</div>
-                    <div className="mt-1 text-2xl font-ibm-plex-mono font-bold">{SCREENER_ROWS.length}</div>
-                  </div>
-                  <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3">
-                    <div className="text-[11px] text-muted-foreground uppercase tracking-[0.14em]">Radar</div>
-                    <div className="mt-1 text-2xl font-ibm-plex-mono font-bold">{radarTickers.length}</div>
-                  </div>
-                  <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3">
-                    <div className="text-[11px] text-muted-foreground uppercase tracking-[0.14em]">Alerts</div>
-                    <div className="mt-1 text-2xl font-ibm-plex-mono font-bold">{alerts.length}</div>
-                  </div>
-                  <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3">
-                    <div className="text-[11px] text-muted-foreground uppercase tracking-[0.14em]">Bullish</div>
-                    <div className="mt-1 text-2xl font-ibm-plex-mono font-bold">{SCREENER_ROWS.filter((row) => row.technicalScore >= 70 && row.trend === "uptrend").length}</div>
-                  </div>
+              <div className="max-w-3xl space-y-3">
+                <Badge variant="outline" className="font-mono text-[11px] tracking-[0.14em] uppercase text-[#d07225] border-[#d07225]/25 bg-[#d07225]/10">
+                  Screener
+                </Badge>
+                <div>
+                  <h1 className="text-3xl sm:text-4xl font-bold font-ibm-plex-mono tracking-tight text-balance">Pantau semua saham dalam satu radar</h1>
+                  <p className="mt-2 text-sm sm:text-base text-muted-foreground font-mono max-w-2xl">
+                    Filter, urutkan, dan tandai saham berdasarkan data fundamental dan teknikal. Alert disimpan lokal untuk versi awal halaman ini.
+                  </p>
                 </div>
               </div>
             </div>
@@ -810,42 +793,14 @@ export function ScreenerPage() {
 
           <DataTable
             columns={visibleColumns}
-            data={paginatedRows}
+            data={filteredRows}
             getRowId={(row) => row.ticker}
             emptyMessage="Tidak ada saham yang cocok dengan filter saat ini."
             tableClassName="min-w-[1120px]"
+            initialPageSize={12}
+            pageSizeOptions={[12, 24, 36, 48]}
+            paginationResetKey={`${search}|${sectorFilter}|${marketCapFilter}|${sortKey}|${sortDirection}|${onlyRadar}|${onlyBullish}|${onlySyariah}`}
           />
-
-          <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-muted-foreground">
-              Menampilkan {filteredRows.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-
-              {Math.min(currentPage * PAGE_SIZE, filteredRows.length)} dari {filteredRows.length} saham
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-                Prev
-              </Button>
-              <div className="min-w-[88px] text-center font-ibm-plex-mono text-sm text-muted-foreground">
-                {currentPage} / {totalPages}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
 
         </div>
       </main>

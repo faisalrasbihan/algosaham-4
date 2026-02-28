@@ -29,7 +29,7 @@ import {
 type SubscribeDialogState = 'confirm' | 'loading' | 'success'
 
 const OFFICIAL_CREATOR_KEYWORDS = ["algosaham"]
-const EXPLORE_SKELETON_COUNT = 3
+const EXPLORE_SKELETON_COUNT = 5
 
 function isOfficialStrategy(strategy: Strategy) {
   const normalizedCreator = strategy.creator?.trim().toLowerCase() || ""
