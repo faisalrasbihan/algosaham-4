@@ -239,6 +239,8 @@ const MOCK = {
     },
 }
 
+const SUPPORTED_TICKERS = ["BBCA", "TLKM", "ASII", "BMRI", "UNVR"]
+
 // ─── SMALL HELPERS ──────────────────────────────────────────────────────────
 
 function AiBadge() {
@@ -329,17 +331,26 @@ function AnalyzeV2Content() {
     const urlTicker = searchParams.get('ticker')
 
     const [loading, setLoading] = useState(false)
-    const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+    const [showTickerNotFound, setShowTickerNotFound] = useState(false)
+    const [requestedTicker, setRequestedTicker] = useState("")
     const { isSignedIn, isLoaded } = useUser()
     const { openSignIn } = useClerk()
 
     const handleSearch = async (ticker: string) => {
+        const normalizedTicker = ticker.toUpperCase()
+
+        if (!SUPPORTED_TICKERS.includes(normalizedTicker)) {
+            setRequestedTicker(normalizedTicker)
+            setShowTickerNotFound(true)
+            return
+        }
+
         if (isLoaded && !isSignedIn) {
             openSignIn()
             return
         }
         setLoading(true)
-        router.push(`/analyze-v2?ticker=${ticker.toUpperCase()}`)
+        router.push(`/analyze-v2?ticker=${normalizedTicker}`)
     }
 
     useEffect(() => {
@@ -355,6 +366,28 @@ function AnalyzeV2Content() {
                 <div className="flex-1 flex flex-col items-center justify-center -mt-10 md:-mt-16">
                     <StockSearch onSearch={handleSearch} loading={loading} />
                 </div>
+
+                <Dialog open={showTickerNotFound} onOpenChange={setShowTickerNotFound}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#d07225]/10">
+                                <AlertTriangle className="h-6 w-6 text-[#d07225]" />
+                            </div>
+                            <DialogTitle className="text-center">Ticker tidak ditemukan</DialogTitle>
+                            <DialogDescription className="text-center">
+                                {requestedTicker
+                                    ? `Maaf, ticker ${requestedTicker} belum tersedia untuk halaman Analyze saat ini.`
+                                    : "Maaf, ticker yang kamu masukkan belum tersedia untuk halaman Analyze saat ini."}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <Button
+                            className="w-full bg-[#d07225] text-white hover:bg-[#b8641f]"
+                            onClick={() => setShowTickerNotFound(false)}
+                        >
+                            Mengerti
+                        </Button>
+                    </DialogContent>
+                </Dialog>
             </div>
         )
     }

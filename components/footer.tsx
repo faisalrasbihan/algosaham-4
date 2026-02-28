@@ -28,7 +28,7 @@ export function Footer() {
                                 </Link>
                             </li>
                             <li>
-                                <Link href="#pricing" className="text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/harga" className="text-muted-foreground hover:text-primary transition-colors">
                                     Pricing
                                 </Link>
                             </li>

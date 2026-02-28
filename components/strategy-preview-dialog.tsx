@@ -204,10 +204,12 @@ export function StrategyPreviewDialog({
         },
         {
             label: "Best Trade",
-            value: results.summary?.bestTrade?.ticker || "N/A",
-            subValue: results.summary?.bestTrade?.return != null
-                ? `+${results.summary.bestTrade.return.toFixed(1)}%`
-                : null,
+            value: results.summary?.bestTickers?.[0]?.ticker || results.summary?.bestTrade?.ticker || "N/A",
+            subValue: results.summary?.bestTickers?.[0]?.totalReturnPct != null
+                ? `+${results.summary.bestTickers[0].totalReturnPct.toFixed(1)}%`
+                : results.summary?.bestTrade?.return != null
+                    ? `+${results.summary.bestTrade.return.toFixed(1)}%`
+                    : null,
             subPositive: true,
             icon: Trophy,
             tooltip: "Saham yang menghasilkan persentase keuntungan tertinggi."

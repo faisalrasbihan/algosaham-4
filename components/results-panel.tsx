@@ -105,15 +105,15 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
     },
     {
       label: "Profit Factor",
-      value: "1.84",
-      positive: true,
-      tooltip: "Rasio total keuntungan terhadap total kerugian. Mengukur seberapa efisien strategi dalam menghasilkan profit. (Dummy data)"
+      value: (currentResults.summary?.profitFactor || 0).toFixed(2),
+      positive: (currentResults.summary?.profitFactor || 0) >= 1,
+      tooltip: "Rasio total keuntungan terhadap total kerugian. Mengukur seberapa efisien strategi dalam menghasilkan profit."
     },
     {
       label: "Sharpe Ratio",
-      value: "1.25",
-      positive: true,
-      tooltip: "Ukuran tingkat return tambahan atas setiap unit risiko yang diambil. (Dummy data)"
+      value: (currentResults.summary?.sharpeRatio || 0).toFixed(2),
+      positive: (currentResults.summary?.sharpeRatio || 0) >= 1,
+      tooltip: "Ukuran tingkat return tambahan atas setiap unit risiko yang diambil."
     },
   ] : []
 

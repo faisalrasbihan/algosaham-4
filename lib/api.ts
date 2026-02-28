@@ -47,15 +47,26 @@ export interface BacktestResult {
   summary?: {
     initialCapital: number
     finalValue: number
+    totalReturnIdr?: number
     totalReturn: number
     annualizedReturn: number
+    benchmarkReturn?: number
     totalTrades: number
+    closedTrades?: number
     winningTrades: number
     losingTrades: number
+    breakevenTrades?: number
     winRate: number
     maxDrawdown: number
+    profitFactor?: number
     sharpeRatio: number
     averageHoldingDays: number
+    bestTickers?: Array<{
+      ticker: string
+      totalReturnIdr: number
+      totalReturnPct: number
+      trades: number
+    }>
     bestTrade?: {
       ticker: string
       return: number

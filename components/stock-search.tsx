@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
@@ -39,29 +40,34 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
   const currentTickerDisplay = ticker.trim().toUpperCase()
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-6 py-8 md:py-10">
-      <div className="rounded-2xl border border-border/70 bg-card shadow-sm overflow-hidden">
+    <div className="mx-auto w-full max-w-3xl px-6 py-8 md:py-10">
+      <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
         <div className="h-1 w-full bg-gradient-to-r from-[#487b78] via-[#d07225] to-transparent" />
         <div className="p-5 md:p-6">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl md:text-4xl font-bold mb-3 font-ibm-plex-mono tracking-tight text-balance">
-              Analisis Saham Indonesia
-            </h1>
-            <p className="text-sm md:text-base text-muted-foreground font-mono max-w-2xl mx-auto leading-relaxed">
-              Masukkan kode saham untuk melihat analisis teknikal dan fundamental.
-            </p>
+          <div className="space-y-3 text-center">
+            <Badge variant="outline" className="border-[#d07225]/25 bg-[#d07225]/10 font-mono text-[11px] uppercase tracking-[0.14em] text-[#d07225]">
+              Analyze
+            </Badge>
+            <div>
+              <h1 className="mb-3 text-3xl font-bold tracking-tight text-balance font-ibm-plex-mono md:text-4xl">
+                analisa saham indonesia
+              </h1>
+              <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground font-mono md:text-base">
+                Masukkan kode saham untuk melihat analisis teknikal dan fundamental.
+              </p>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="w-full transition-all">
-            <div className="flex flex-col md:flex-row gap-3">
+          <form onSubmit={handleSubmit} className="mt-6 w-full transition-all">
+            <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
               {!loading && (
-                <div className="flex-1 relative transition-all duration-500">
+                <div className="relative flex-1 transition-all duration-500">
                   <Input
                     type="text"
                     placeholder="Masukkan ticker (contoh: BBCA, TLKM, ASII)"
                     value={ticker}
                     onChange={(e) => setTicker(e.target.value)}
-                    className="h-13 md:h-14 text-base pl-4 pr-4 bg-white border-border/80 focus-visible:ring-[#d07225] font-ibm-plex-mono"
+                    className="h-13 rounded-xl border-border/80 bg-background px-4 text-base font-ibm-plex-mono focus-visible:ring-[#d07225] md:h-14"
                     disabled={loading}
                   />
                 </div>
@@ -70,34 +76,34 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
                 type="submit"
                 size="lg"
                 disabled={loading || !ticker.trim()}
-                className={`h-13 md:h-14 text-base transition-all duration-500 disabled:opacity-100 disabled:cursor-not-allowed ${loading
-                  ? "w-full md:w-auto md:min-w-[320px] px-6 bg-secondary text-muted-foreground border border-border"
-                  : "px-7 md:px-8 bg-primary hover:bg-primary/90 text-white"
+                className={`h-13 text-base transition-all duration-500 disabled:cursor-not-allowed disabled:opacity-100 md:h-14 ${loading
+                  ? "w-full rounded-xl border border-border bg-secondary px-6 text-muted-foreground md:w-auto md:min-w-[320px]"
+                  : "rounded-xl bg-primary px-7 text-white shadow-sm hover:bg-primary/90 md:min-w-[220px] md:px-8"
                   }`}
               >
                 {loading ? (
                   <>
                     <span className="mr-2 font-mono">Analyzing {currentTickerDisplay} ({elapsedTime}s)</span>
-                    <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
                   </>
                 ) : (
                   <>
                     <Search className="mr-2 h-5 w-5" />
-                    Lihat Analisis
+                    Analyze
                   </>
                 )}
               </Button>
             </div>
           </form>
 
-          <div className="mt-5 flex flex-wrap gap-2 justify-center items-center">
-            <span className="text-xs md:text-sm text-muted-foreground font-mono">Coba:</span>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+            <span className="text-xs text-muted-foreground font-mono md:text-sm">Coba:</span>
             {["BBCA", "TLKM", "ASII", "BMRI", "UNVR"].map((code) => (
               <button
                 key={code}
                 type="button"
                 onClick={() => setTicker(code)}
-                className="px-3 py-1.5 text-sm rounded-md border border-border/80 bg-background hover:bg-muted transition-colors font-ibm-plex-mono"
+                className="rounded-md border border-border/80 bg-background px-3 py-1.5 text-sm font-ibm-plex-mono transition-colors hover:bg-muted"
                 disabled={loading}
               >
                 {code}
@@ -105,7 +111,7 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
             ))}
           </div>
         </div>
-      </div>
+      </section>
     </div>
   )
 }

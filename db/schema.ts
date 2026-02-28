@@ -58,6 +58,8 @@ export const strategies = pgTable("strategies", {
   configHash: text("config_hash").notNull().unique(), // Links to Redis: backtest:{hash}, summary:{hash}
   config: jsonb("config").$type<any>(), // Full BacktestRequest json config (using any to prevent import cycles, but matches the API structure)
 
+  strategyCategory: text("strategy_category"), // e.g. "trend", "momentum"
+
   // Performance metrics (for card display)
   totalReturn: numeric("total_return"), // "0%"
   maxDrawdown: numeric("max_drawdown"), // "0%"

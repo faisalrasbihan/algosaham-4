@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { StrategyPreviewDialog } from "@/components/strategy-preview-dialog"
 import { CardCarousel } from "@/components/card-carousel"
+import { useClerk, useUser } from "@clerk/nextjs"
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,8 @@ export default function Strategies() {
   const [previewStrategyName, setPreviewStrategyName] = useState<string | undefined>(undefined)
 
   const { tier, limits, usage, refreshTier } = useUserTier()
+  const { isSignedIn, isLoaded } = useUser()
+  const { openSignIn } = useClerk()
 
   // Fetch initial data (strategies + user subscriptions)
   useEffect(() => {
@@ -126,6 +129,13 @@ export default function Strategies() {
 
   // When user clicks subscribe/unsubscribe button on a card
   const handleSubscribeClick = (strategyId: string) => {
+    if (!isLoaded) return
+
+    if (!isSignedIn) {
+      openSignIn()
+      return
+    }
+
     const isSubscribed = subscribedIds.includes(strategyId)
 
     if (isSubscribed) {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Bell, BellPlus, ArrowUpDown, Radar, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, LayoutGrid, BarChart3, TrendingUp } from "lucide-react"
+import { Bell, BellPlus, ArrowUpDown, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save } from "lucide-react"
 
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -11,6 +11,7 @@ import { TickerTape } from "@/components/ticker-tape"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import {
   Select,
   SelectContent,
@@ -18,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
 import {
   Dialog,
   DialogContent,
@@ -30,12 +30,16 @@ import {
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import type { BacktestRequest } from "@/lib/api"
+import { useClerk, useUser } from "@clerk/nextjs"
 
 type ScreenerRow = {
   ticker: string
@@ -50,6 +54,7 @@ type ScreenerRow = {
   technicalScore: number
   fundamentalScore: number
   trend: "uptrend" | "sideways" | "downtrend"
+  valuation: "value" | "fair" | "premium"
   rsi: number
   ma20GapPct: number
   ma50GapPct: number
@@ -71,27 +76,160 @@ type SavedAlert = AlertDraft & {
   createdAt: string
 }
 
+type RuleCategory = "technical" | "fundamental"
+type RuleMode = "range" | "select"
+
+type FilterDefinition = {
+  label: string
+  category: RuleCategory
+  mode: RuleMode
+  description: string
+  defaultParams: Record<string, string>
+  options?: { label: string; value: string }[]
+}
+
+const FILTER_LIBRARY = {
+  changePct: {
+    label: "Chg.",
+    category: "technical",
+    mode: "range",
+    description: "Perubahan harga harian.",
+    defaultParams: { min: "0", max: "" },
+  },
+  monthChangePct: {
+    label: "1M Chg",
+    category: "technical",
+    mode: "range",
+    description: "Performa satu bulan.",
+    defaultParams: { min: "0", max: "" },
+  },
+  ytdChangePct: {
+    label: "1Y Chg",
+    category: "technical",
+    mode: "range",
+    description: "Performa satu tahun berjalan.",
+    defaultParams: { min: "0", max: "" },
+  },
+  rsi: {
+    label: "RSI",
+    category: "technical",
+    mode: "range",
+    description: "Momentum oscillator.",
+    defaultParams: { min: "40", max: "70" },
+  },
+  ma20GapPct: {
+    label: "MA-20",
+    category: "technical",
+    mode: "range",
+    description: "Jarak harga terhadap MA-20.",
+    defaultParams: { min: "0", max: "" },
+  },
+  ma5GapPct: {
+    label: "MA-5",
+    category: "technical",
+    mode: "range",
+    description: "Jarak harga terhadap MA-5.",
+    defaultParams: { min: "0", max: "" },
+  },
+  trend: {
+    label: "Trend",
+    category: "technical",
+    mode: "select",
+    description: "Arah trend utama.",
+    defaultParams: { value: "uptrend" },
+    options: [
+      { label: "Uptrend", value: "uptrend" },
+      { label: "Sideways", value: "sideways" },
+      { label: "Downtrend", value: "downtrend" },
+    ],
+  },
+  technicalScore: {
+    label: "Technical Score",
+    category: "technical",
+    mode: "range",
+    description: "Skor teknikal internal.",
+    defaultParams: { min: "70", max: "" },
+  },
+  pe: {
+    label: "PE",
+    category: "fundamental",
+    mode: "range",
+    description: "Price to earnings.",
+    defaultParams: { min: "", max: "15" },
+  },
+  pbv: {
+    label: "PBV",
+    category: "fundamental",
+    mode: "range",
+    description: "Price to book.",
+    defaultParams: { min: "", max: "3" },
+  },
+  roe: {
+    label: "ROE",
+    category: "fundamental",
+    mode: "range",
+    description: "Return on equity.",
+    defaultParams: { min: "10", max: "" },
+  },
+  epsGrowth: {
+    label: "EPS YoY",
+    category: "fundamental",
+    mode: "range",
+    description: "Pertumbuhan EPS tahunan.",
+    defaultParams: { min: "0", max: "" },
+  },
+  valuation: {
+    label: "Value",
+    category: "fundamental",
+    mode: "select",
+    description: "Kategori valuasi.",
+    defaultParams: { value: "value" },
+    options: [
+      { label: "Value", value: "value" },
+      { label: "Fair", value: "fair" },
+      { label: "Premium", value: "premium" },
+    ],
+  },
+  fundamentalScore: {
+    label: "Fundamental Score",
+    category: "fundamental",
+    mode: "range",
+    description: "Skor fundamental internal.",
+    defaultParams: { min: "70", max: "" },
+  },
+} satisfies Record<string, FilterDefinition>
+
+type FilterKey = keyof typeof FILTER_LIBRARY
+
+type ScreenerRule = {
+  id: string
+  key: FilterKey
+  category: RuleCategory
+  params: Record<string, string>
+}
+
+
 const SCREENER_ROWS: ScreenerRow[] = [
-  { ticker: "BBCA", company: "Bank Central Asia", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 9725, changePct: 1.83, monthChangePct: 6.4, ytdChangePct: 12.8, technicalScore: 74, fundamentalScore: 78, trend: "uptrend", rsi: 58.4, ma20GapPct: 1.6, ma50GapPct: 4.8, pe: 24.1, pbv: 4.8, roe: 22.4, epsGrowth: 8.7 },
-  { ticker: "BMRI", company: "Bank Mandiri", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 6225, changePct: 0.96, monthChangePct: 5.1, ytdChangePct: 11.4, technicalScore: 71, fundamentalScore: 76, trend: "uptrend", rsi: 56.2, ma20GapPct: 1.1, ma50GapPct: 4.2, pe: 13.6, pbv: 2.1, roe: 19.1, epsGrowth: 12.3 },
-  { ticker: "BBRI", company: "Bank Rakyat Indonesia", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 5030, changePct: -0.42, monthChangePct: 1.8, ytdChangePct: 4.6, technicalScore: 64, fundamentalScore: 74, trend: "sideways", rsi: 49.8, ma20GapPct: -0.5, ma50GapPct: 2.4, pe: 11.8, pbv: 2.2, roe: 18.3, epsGrowth: 10.8 },
-  { ticker: "TLKM", company: "Telkom Indonesia", sector: "Infrastructure", marketCapGroup: "Large", syariah: true, price: 3650, changePct: 1.39, monthChangePct: 4.9, ytdChangePct: 9.7, technicalScore: 69, fundamentalScore: 72, trend: "uptrend", rsi: 57.7, ma20GapPct: 3.1, ma50GapPct: 6.4, pe: 12.9, pbv: 2.3, roe: 17.2, epsGrowth: 7.1 },
-  { ticker: "ASII", company: "Astra International", sector: "Industrials", marketCapGroup: "Large", syariah: true, price: 4920, changePct: 0.61, monthChangePct: 2.8, ytdChangePct: 7.2, technicalScore: 67, fundamentalScore: 75, trend: "uptrend", rsi: 54.1, ma20GapPct: 1.4, ma50GapPct: 3.6, pe: 8.9, pbv: 1.2, roe: 14.8, epsGrowth: 6.5 },
-  { ticker: "ICBP", company: "Indofood CBP", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 11400, changePct: -0.87, monthChangePct: -2.3, ytdChangePct: 1.4, technicalScore: 59, fundamentalScore: 73, trend: "sideways", rsi: 47.2, ma20GapPct: -1.7, ma50GapPct: 1.1, pe: 14.2, pbv: 2.0, roe: 13.2, epsGrowth: 5.2 },
-  { ticker: "ANTM", company: "Aneka Tambang", sector: "Materials", marketCapGroup: "Large", syariah: true, price: 2010, changePct: 2.45, monthChangePct: 9.6, ytdChangePct: 18.5, technicalScore: 77, fundamentalScore: 66, trend: "uptrend", rsi: 63.8, ma20GapPct: 4.5, ma50GapPct: 8.2, pe: 15.3, pbv: 1.6, roe: 11.4, epsGrowth: 18.1 },
-  { ticker: "MDKA", company: "Merdeka Copper Gold", sector: "Materials", marketCapGroup: "Mid", syariah: true, price: 2320, changePct: -1.28, monthChangePct: -6.8, ytdChangePct: -12.4, technicalScore: 55, fundamentalScore: 52, trend: "downtrend", rsi: 42.3, ma20GapPct: -3.8, ma50GapPct: -6.2, pe: 31.5, pbv: 2.9, roe: 6.7, epsGrowth: -4.2 },
-  { ticker: "CPIN", company: "Charoen Pokphand Indonesia", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 4860, changePct: 0.83, monthChangePct: 2.1, ytdChangePct: 5.9, technicalScore: 62, fundamentalScore: 68, trend: "sideways", rsi: 51.4, ma20GapPct: 0.8, ma50GapPct: 2.0, pe: 18.6, pbv: 2.7, roe: 12.6, epsGrowth: 9.4 },
-  { ticker: "INDF", company: "Indofood Sukses Makmur", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 6550, changePct: 1.12, monthChangePct: 3.7, ytdChangePct: 8.8, technicalScore: 66, fundamentalScore: 71, trend: "uptrend", rsi: 55.6, ma20GapPct: 1.2, ma50GapPct: 3.5, pe: 7.4, pbv: 0.9, roe: 11.1, epsGrowth: 8.1 },
-  { ticker: "ADRO", company: "Alamtri Resources", sector: "Energy", marketCapGroup: "Large", syariah: true, price: 2890, changePct: -0.69, monthChangePct: -1.9, ytdChangePct: 3.1, technicalScore: 61, fundamentalScore: 70, trend: "sideways", rsi: 48.9, ma20GapPct: -0.7, ma50GapPct: 1.5, pe: 5.8, pbv: 1.1, roe: 21.2, epsGrowth: 4.9 },
-  { ticker: "PTBA", company: "Bukit Asam", sector: "Energy", marketCapGroup: "Mid", syariah: true, price: 2710, changePct: 0.37, monthChangePct: 1.4, ytdChangePct: 4.8, technicalScore: 58, fundamentalScore: 69, trend: "sideways", rsi: 46.7, ma20GapPct: -1.1, ma50GapPct: 0.9, pe: 6.3, pbv: 1.3, roe: 19.5, epsGrowth: 3.8 },
-  { ticker: "UNTR", company: "United Tractors", sector: "Industrials", marketCapGroup: "Large", syariah: true, price: 24450, changePct: 0.74, monthChangePct: 4.1, ytdChangePct: 10.3, technicalScore: 68, fundamentalScore: 74, trend: "uptrend", rsi: 57.1, ma20GapPct: 1.8, ma50GapPct: 4.1, pe: 6.8, pbv: 1.2, roe: 17.8, epsGrowth: 7.9 },
-  { ticker: "EXCL", company: "XL Axiata", sector: "Infrastructure", marketCapGroup: "Mid", syariah: true, price: 2250, changePct: 1.58, monthChangePct: 7.3, ytdChangePct: 14.1, technicalScore: 73, fundamentalScore: 60, trend: "uptrend", rsi: 61.2, ma20GapPct: 3.3, ma50GapPct: 5.7, pe: 17.1, pbv: 1.4, roe: 8.9, epsGrowth: 15.6 },
-  { ticker: "SIDO", company: "Industri Jamu Sido Muncul", sector: "Healthcare", marketCapGroup: "Mid", syariah: true, price: 620, changePct: 0.32, monthChangePct: 0.8, ytdChangePct: 2.6, technicalScore: 57, fundamentalScore: 67, trend: "sideways", rsi: 45.8, ma20GapPct: -0.9, ma50GapPct: 1.8, pe: 18.3, pbv: 4.3, roe: 24.6, epsGrowth: 5.5 },
-  { ticker: "KLBF", company: "Kalbe Farma", sector: "Healthcare", marketCapGroup: "Large", syariah: true, price: 1560, changePct: -0.64, monthChangePct: -1.1, ytdChangePct: 2.2, technicalScore: 60, fundamentalScore: 70, trend: "sideways", rsi: 48.3, ma20GapPct: -0.3, ma50GapPct: 2.2, pe: 22.4, pbv: 3.4, roe: 15.7, epsGrowth: 6.2 },
-  { ticker: "ERAA", company: "Erajaya Swasembada", sector: "Consumer", marketCapGroup: "Mid", syariah: true, price: 484, changePct: 3.42, monthChangePct: 12.6, ytdChangePct: 24.8, technicalScore: 79, fundamentalScore: 64, trend: "uptrend", rsi: 66.9, ma20GapPct: 5.2, ma50GapPct: 9.4, pe: 9.8, pbv: 1.7, roe: 16.8, epsGrowth: 14.7 },
-  { ticker: "AMRT", company: "Sumber Alfaria Trijaya", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 2890, changePct: 1.05, monthChangePct: 6.2, ytdChangePct: 13.6, technicalScore: 72, fundamentalScore: 69, trend: "uptrend", rsi: 59.1, ma20GapPct: 2.6, ma50GapPct: 5.5, pe: 30.4, pbv: 8.1, roe: 18.4, epsGrowth: 13.1 },
-  { ticker: "BRIS", company: "Bank Syariah Indonesia", sector: "Financials", marketCapGroup: "Large", syariah: true, price: 2480, changePct: 2.12, monthChangePct: 8.4, ytdChangePct: 17.9, technicalScore: 75, fundamentalScore: 71, trend: "uptrend", rsi: 62.4, ma20GapPct: 3.9, ma50GapPct: 7.6, pe: 17.5, pbv: 2.4, roe: 15.3, epsGrowth: 16.2 },
-  { ticker: "MAPI", company: "Mitra Adiperkasa", sector: "Consumer", marketCapGroup: "Mid", syariah: true, price: 1645, changePct: -1.15, monthChangePct: -4.6, ytdChangePct: -7.8, technicalScore: 54, fundamentalScore: 63, trend: "downtrend", rsi: 41.9, ma20GapPct: -2.7, ma50GapPct: -4.4, pe: 12.7, pbv: 1.9, roe: 10.4, epsGrowth: 4.1 },
+  { ticker: "BBCA", company: "Bank Central Asia", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 9725, changePct: 1.83, monthChangePct: 6.4, ytdChangePct: 12.8, technicalScore: 74, fundamentalScore: 78, trend: "uptrend", valuation: "premium", rsi: 58.4, ma20GapPct: 1.6, ma50GapPct: 4.8, pe: 24.1, pbv: 4.8, roe: 22.4, epsGrowth: 8.7 },
+  { ticker: "BMRI", company: "Bank Mandiri", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 6225, changePct: 0.96, monthChangePct: 5.1, ytdChangePct: 11.4, technicalScore: 71, fundamentalScore: 76, trend: "uptrend", valuation: "fair", rsi: 56.2, ma20GapPct: 1.1, ma50GapPct: 4.2, pe: 13.6, pbv: 2.1, roe: 19.1, epsGrowth: 12.3 },
+  { ticker: "BBRI", company: "Bank Rakyat Indonesia", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 5030, changePct: -0.42, monthChangePct: 1.8, ytdChangePct: 4.6, technicalScore: 64, fundamentalScore: 74, trend: "sideways", valuation: "fair", rsi: 49.8, ma20GapPct: -0.5, ma50GapPct: 2.4, pe: 11.8, pbv: 2.2, roe: 18.3, epsGrowth: 10.8 },
+  { ticker: "TLKM", company: "Telkom Indonesia", sector: "Infrastructure", marketCapGroup: "Large", syariah: true, price: 3650, changePct: 1.39, monthChangePct: 4.9, ytdChangePct: 9.7, technicalScore: 69, fundamentalScore: 72, trend: "uptrend", valuation: "fair", rsi: 57.7, ma20GapPct: 3.1, ma50GapPct: 6.4, pe: 12.9, pbv: 2.3, roe: 17.2, epsGrowth: 7.1 },
+  { ticker: "ASII", company: "Astra International", sector: "Industrials", marketCapGroup: "Large", syariah: true, price: 4920, changePct: 0.61, monthChangePct: 2.8, ytdChangePct: 7.2, technicalScore: 67, fundamentalScore: 75, trend: "uptrend", valuation: "value", rsi: 54.1, ma20GapPct: 1.4, ma50GapPct: 3.6, pe: 8.9, pbv: 1.2, roe: 14.8, epsGrowth: 6.5 },
+  { ticker: "ICBP", company: "Indofood CBP", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 11400, changePct: -0.87, monthChangePct: -2.3, ytdChangePct: 1.4, technicalScore: 59, fundamentalScore: 73, trend: "sideways", valuation: "fair", rsi: 47.2, ma20GapPct: -1.7, ma50GapPct: 1.1, pe: 14.2, pbv: 2.0, roe: 13.2, epsGrowth: 5.2 },
+  { ticker: "ANTM", company: "Aneka Tambang", sector: "Materials", marketCapGroup: "Large", syariah: true, price: 2010, changePct: 2.45, monthChangePct: 9.6, ytdChangePct: 18.5, technicalScore: 77, fundamentalScore: 66, trend: "uptrend", valuation: "fair", rsi: 63.8, ma20GapPct: 4.5, ma50GapPct: 8.2, pe: 15.3, pbv: 1.6, roe: 11.4, epsGrowth: 18.1 },
+  { ticker: "MDKA", company: "Merdeka Copper Gold", sector: "Materials", marketCapGroup: "Mid", syariah: true, price: 2320, changePct: -1.28, monthChangePct: -6.8, ytdChangePct: -12.4, technicalScore: 55, fundamentalScore: 52, trend: "downtrend", valuation: "premium", rsi: 42.3, ma20GapPct: -3.8, ma50GapPct: -6.2, pe: 31.5, pbv: 2.9, roe: 6.7, epsGrowth: -4.2 },
+  { ticker: "CPIN", company: "Charoen Pokphand Indonesia", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 4860, changePct: 0.83, monthChangePct: 2.1, ytdChangePct: 5.9, technicalScore: 62, fundamentalScore: 68, trend: "sideways", valuation: "fair", rsi: 51.4, ma20GapPct: 0.8, ma50GapPct: 2.0, pe: 18.6, pbv: 2.7, roe: 12.6, epsGrowth: 9.4 },
+  { ticker: "INDF", company: "Indofood Sukses Makmur", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 6550, changePct: 1.12, monthChangePct: 3.7, ytdChangePct: 8.8, technicalScore: 66, fundamentalScore: 71, trend: "uptrend", valuation: "value", rsi: 55.6, ma20GapPct: 1.2, ma50GapPct: 3.5, pe: 7.4, pbv: 0.9, roe: 11.1, epsGrowth: 8.1 },
+  { ticker: "ADRO", company: "Alamtri Resources", sector: "Energy", marketCapGroup: "Large", syariah: true, price: 2890, changePct: -0.69, monthChangePct: -1.9, ytdChangePct: 3.1, technicalScore: 61, fundamentalScore: 70, trend: "sideways", valuation: "value", rsi: 48.9, ma20GapPct: -0.7, ma50GapPct: 1.5, pe: 5.8, pbv: 1.1, roe: 21.2, epsGrowth: 4.9 },
+  { ticker: "PTBA", company: "Bukit Asam", sector: "Energy", marketCapGroup: "Mid", syariah: true, price: 2710, changePct: 0.37, monthChangePct: 1.4, ytdChangePct: 4.8, technicalScore: 58, fundamentalScore: 69, trend: "sideways", valuation: "value", rsi: 46.7, ma20GapPct: -1.1, ma50GapPct: 0.9, pe: 6.3, pbv: 1.3, roe: 19.5, epsGrowth: 3.8 },
+  { ticker: "UNTR", company: "United Tractors", sector: "Industrials", marketCapGroup: "Large", syariah: true, price: 24450, changePct: 0.74, monthChangePct: 4.1, ytdChangePct: 10.3, technicalScore: 68, fundamentalScore: 74, trend: "uptrend", valuation: "value", rsi: 57.1, ma20GapPct: 1.8, ma50GapPct: 4.1, pe: 6.8, pbv: 1.2, roe: 17.8, epsGrowth: 7.9 },
+  { ticker: "EXCL", company: "XL Axiata", sector: "Infrastructure", marketCapGroup: "Mid", syariah: true, price: 2250, changePct: 1.58, monthChangePct: 7.3, ytdChangePct: 14.1, technicalScore: 73, fundamentalScore: 60, trend: "uptrend", valuation: "fair", rsi: 61.2, ma20GapPct: 3.3, ma50GapPct: 5.7, pe: 17.1, pbv: 1.4, roe: 8.9, epsGrowth: 15.6 },
+  { ticker: "SIDO", company: "Industri Jamu Sido Muncul", sector: "Healthcare", marketCapGroup: "Mid", syariah: true, price: 620, changePct: 0.32, monthChangePct: 0.8, ytdChangePct: 2.6, technicalScore: 57, fundamentalScore: 67, trend: "sideways", valuation: "premium", rsi: 45.8, ma20GapPct: -0.9, ma50GapPct: 1.8, pe: 18.3, pbv: 4.3, roe: 24.6, epsGrowth: 5.5 },
+  { ticker: "KLBF", company: "Kalbe Farma", sector: "Healthcare", marketCapGroup: "Large", syariah: true, price: 1560, changePct: -0.64, monthChangePct: -1.1, ytdChangePct: 2.2, technicalScore: 60, fundamentalScore: 70, trend: "sideways", valuation: "premium", rsi: 48.3, ma20GapPct: -0.3, ma50GapPct: 2.2, pe: 22.4, pbv: 3.4, roe: 15.7, epsGrowth: 6.2 },
+  { ticker: "ERAA", company: "Erajaya Swasembada", sector: "Consumer", marketCapGroup: "Mid", syariah: true, price: 484, changePct: 3.42, monthChangePct: 12.6, ytdChangePct: 24.8, technicalScore: 79, fundamentalScore: 64, trend: "uptrend", valuation: "fair", rsi: 66.9, ma20GapPct: 5.2, ma50GapPct: 9.4, pe: 9.8, pbv: 1.7, roe: 16.8, epsGrowth: 14.7 },
+  { ticker: "AMRT", company: "Sumber Alfaria Trijaya", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 2890, changePct: 1.05, monthChangePct: 6.2, ytdChangePct: 13.6, technicalScore: 72, fundamentalScore: 69, trend: "uptrend", valuation: "premium", rsi: 59.1, ma20GapPct: 2.6, ma50GapPct: 5.5, pe: 30.4, pbv: 8.1, roe: 18.4, epsGrowth: 13.1 },
+  { ticker: "BRIS", company: "Bank Syariah Indonesia", sector: "Financials", marketCapGroup: "Large", syariah: true, price: 2480, changePct: 2.12, monthChangePct: 8.4, ytdChangePct: 17.9, technicalScore: 75, fundamentalScore: 71, trend: "uptrend", valuation: "fair", rsi: 62.4, ma20GapPct: 3.9, ma50GapPct: 7.6, pe: 17.5, pbv: 2.4, roe: 15.3, epsGrowth: 16.2 },
+  { ticker: "MAPI", company: "Mitra Adiperkasa", sector: "Consumer", marketCapGroup: "Mid", syariah: true, price: 1645, changePct: -1.15, monthChangePct: -4.6, ytdChangePct: -7.8, technicalScore: 54, fundamentalScore: 63, trend: "downtrend", valuation: "fair", rsi: 41.9, ma20GapPct: -2.7, ma50GapPct: -4.4, pe: 12.7, pbv: 1.9, roe: 10.4, epsGrowth: 4.1 },
 ]
 
 const defaultAlertDraft: AlertDraft = {
@@ -122,12 +260,13 @@ const COLUMN_LABELS = {
   marketCap: "Mkt Cap",
   sector: "Sector",
   price: "Harga",
-  changePct: "Change",
-  monthChangePct: "1M Perf",
-  ytdChangePct: "YTD Perf",
+  changePct: "Chg.",
+  monthChangePct: "1M Chg",
+  ytdChangePct: "1Y Chg",
   rsi: "RSI",
-  ma20: "MA20",
-  ma50: "MA50",
+  value: "Value",
+  ma20: "MA-20",
+  ma5: "MA-5",
   trend: "Trend",
   pe: "PE",
   pbv: "PBV",
@@ -137,48 +276,15 @@ const COLUMN_LABELS = {
 } as const
 
 const COLUMN_TEMPLATES = {
-  recommended: ["ticker", "marketCap", "sector", "price", "changePct", "monthChangePct", "ytdChangePct", "rsi", "trend", "pe", "roe", "action"],
-  technical: ["ticker", "marketCap", "sector", "price", "changePct", "monthChangePct", "rsi", "ma20", "ma50", "trend", "action"],
-  fundamental: ["ticker", "marketCap", "sector", "price", "monthChangePct", "ytdChangePct", "pe", "pbv", "roe", "epsGrowth", "action"],
-  all: ["ticker", "marketCap", "sector", "price", "changePct", "monthChangePct", "ytdChangePct", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth", "action"],
+  recommended: ["ticker", "marketCap", "sector", "price", "changePct", "monthChangePct", "ytdChangePct", "value", "ma20", "ma5", "rsi", "trend", "pe", "roe", "action"],
+  technical: ["ticker", "marketCap", "sector", "price", "changePct", "monthChangePct", "rsi", "ma20", "ma5", "trend", "action"],
+  fundamental: ["ticker", "marketCap", "sector", "price", "monthChangePct", "ytdChangePct", "value", "pe", "pbv", "roe", "epsGrowth", "action"],
+  all: ["ticker", "marketCap", "sector", "price", "changePct", "monthChangePct", "ytdChangePct", "value", "rsi", "ma20", "ma5", "trend", "pe", "pbv", "roe", "epsGrowth", "action"],
 } as const
 
 type ColumnTemplateKey = keyof typeof COLUMN_TEMPLATES
 type ColumnId = keyof typeof COLUMN_LABELS
-type ColumnGroupId = "overview" | "technical" | "fundamental"
-
 const FIXED_COLUMN_IDS: ColumnId[] = ["ticker", "action"]
-const OPTIONAL_COLUMN_IDS: ColumnId[] = ["marketCap", "sector", "price", "changePct", "monthChangePct", "ytdChangePct", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth"]
-
-const COLUMN_GROUPS: {
-  id: ColumnGroupId
-  label: string
-  addLabel: string
-  icon: typeof LayoutGrid
-  columnIds: ColumnId[]
-}[] = [
-  {
-    id: "overview",
-    label: "Overview",
-    addLabel: "Add Overview Column",
-    icon: LayoutGrid,
-    columnIds: ["marketCap", "sector", "price", "changePct", "monthChangePct", "ytdChangePct", "trend"],
-  },
-  {
-    id: "technical",
-    label: "Technical Indicators",
-    addLabel: "Add Technical Indicator",
-    icon: BarChart3,
-    columnIds: ["rsi", "ma20", "ma50"],
-  },
-  {
-    id: "fundamental",
-    label: "Fundamental Indicators",
-    addLabel: "Add Fundamental Indicator",
-    icon: TrendingUp,
-    columnIds: ["pe", "pbv", "roe", "epsGrowth"],
-  },
-]
 
 function getColumnTemplate(template: ColumnTemplateKey): ColumnId[] {
   return [...COLUMN_TEMPLATES[template]]
@@ -191,6 +297,7 @@ function formatPercent(value: number, digits = 1) {
 
 function normalizeStoredColumnIds(columnId: string): ColumnId[] {
   if (columnId === "meta") return ["marketCap", "sector"]
+  if (columnId === "ma50") return ["ma5"]
   if (columnId in COLUMN_LABELS) return [columnId as ColumnId]
   return []
 }
@@ -201,11 +308,99 @@ function trendTone(trend: ScreenerRow["trend"]) {
   return "text-amber-600"
 }
 
+function valueTone(valuation: ScreenerRow["valuation"]) {
+  if (valuation === "value") return "text-emerald-600"
+  if (valuation === "premium") return "text-rose-600"
+  return "text-amber-600"
+}
+
+function formatValueLabel(valuation: ScreenerRow["valuation"]) {
+  if (valuation === "value") return "Value"
+  if (valuation === "premium") return "Premium"
+  return "Fair"
+}
+
+function getMa5GapPct(row: ScreenerRow) {
+  return Number((row.changePct * 0.65 + row.ma20GapPct * 0.35).toFixed(1))
+}
+
+function createRule(key: FilterKey): ScreenerRule {
+  const definition = FILTER_LIBRARY[key]
+  return {
+    id: `${key}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    key,
+    category: definition.category,
+    params: { ...definition.defaultParams },
+  }
+}
+
+function parseOptionalNumber(value: string | undefined) {
+  if (!value || value.trim() === "") return undefined
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+function getRuleNumericValue(row: ScreenerRow, key: FilterKey) {
+  switch (key) {
+    case "ma5GapPct":
+      return getMa5GapPct(row)
+    case "ma20GapPct":
+      return row.ma20GapPct
+    default: {
+      const value = row[key as keyof ScreenerRow]
+      return typeof value === "number" ? value : undefined
+    }
+  }
+}
+
+function matchesRule(row: ScreenerRow, rule: ScreenerRule) {
+  const definition = FILTER_LIBRARY[rule.key]
+
+  if (definition.mode === "range") {
+    const value = getRuleNumericValue(row, rule.key)
+    if (value === undefined) return true
+    const min = parseOptionalNumber(rule.params.min)
+    const max = parseOptionalNumber(rule.params.max)
+    if (min !== undefined && value < min) return false
+    if (max !== undefined && value > max) return false
+    return true
+  }
+
+  const selected = rule.params.value
+  if (!selected) return true
+
+  switch (rule.key) {
+    case "trend":
+      return row.trend === selected
+    case "valuation":
+      return row.valuation === selected
+    default:
+      return true
+  }
+}
+
+function formatRuleSummary(rule: ScreenerRule) {
+  const definition = FILTER_LIBRARY[rule.key]
+
+  if (definition.mode === "select") {
+    const selected = definition.options?.find((option) => option.value === rule.params.value)?.label ?? rule.params.value
+    return `${definition.label}: ${selected || "Any"}`
+  }
+
+  const min = rule.params.min?.trim()
+  const max = rule.params.max?.trim()
+
+  if (min && max) return `${definition.label}: ${min}-${max}`
+  if (min) return `${definition.label} ≥ ${min}`
+  if (max) return `${definition.label} ≤ ${max}`
+  return definition.label
+}
+
 function TickerCircleIcon({ ticker }: { ticker: string }) {
   const [hasError, setHasError] = useState(false)
 
   return (
-    <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-background">
+    <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full">
       {hasError ? (
         <span className="font-ibm-plex-mono text-[11px] font-semibold text-muted-foreground">
           {ticker.slice(0, 2)}
@@ -216,7 +411,7 @@ function TickerCircleIcon({ ticker }: { ticker: string }) {
           alt={`${ticker} icon`}
           fill
           sizes="32px"
-          className="object-contain p-1"
+          className="object-contain"
           onError={() => setHasError(true)}
         />
       )}
@@ -225,21 +420,28 @@ function TickerCircleIcon({ ticker }: { ticker: string }) {
 }
 
 export function ScreenerPage() {
+  const { isLoaded, isSignedIn } = useUser()
+  const { openSignIn } = useClerk()
   const [search, setSearch] = useState("")
   const [sectorFilter, setSectorFilter] = useState("all")
   const [marketCapFilter, setMarketCapFilter] = useState("all")
   const [sortKey, setSortKey] = useState<SortKey>("technicalScore")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
-  const [onlyRadar, setOnlyRadar] = useState(false)
-  const [onlyBullish, setOnlyBullish] = useState(false)
-  const [onlySyariah, setOnlySyariah] = useState(false)
   const [radarTickers, setRadarTickers] = useState<string[]>([])
   const [alerts, setAlerts] = useState<SavedAlert[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [alertDraft, setAlertDraft] = useState<AlertDraft>(defaultAlertDraft)
   const [columnTemplate, setColumnTemplate] = useState<ColumnTemplateKey>("recommended")
   const [visibleColumnIds, setVisibleColumnIds] = useState<ColumnId[]>(() => getColumnTemplate("recommended"))
-  const [columnPickerOpen, setColumnPickerOpen] = useState(false)
+  const [activeRules, setActiveRules] = useState<ScreenerRule[]>([
+    createRule("trend"),
+    createRule("rsi"),
+    createRule("pe"),
+  ])
+  const [saveStrategyOpen, setSaveStrategyOpen] = useState(false)
+  const [strategyName, setStrategyName] = useState("")
+  const [strategyDescription, setStrategyDescription] = useState("")
+  const [savingStrategy, setSavingStrategy] = useState(false)
 
   useEffect(() => {
     const storedRadar = window.localStorage.getItem("algosaham-screener-radar")
@@ -301,10 +503,8 @@ export function ScreenerPage() {
     const matchesSearch = !search || row.ticker.toLowerCase().includes(search.toLowerCase()) || row.company.toLowerCase().includes(search.toLowerCase())
     const matchesSector = sectorFilter === "all" || row.sector === sectorFilter
     const matchesMarketCap = marketCapFilter === "all" || row.marketCapGroup === marketCapFilter
-    const matchesRadar = !onlyRadar || radarTickers.includes(row.ticker)
-    const matchesBullish = !onlyBullish || (row.technicalScore >= 70 && row.trend === "uptrend" && row.rsi >= 50)
-    const matchesSyariah = !onlySyariah || row.syariah
-    return matchesSearch && matchesSector && matchesMarketCap && matchesRadar && matchesBullish && matchesSyariah
+    const matchesRules = activeRules.every((rule) => matchesRule(row, rule))
+    return matchesSearch && matchesSector && matchesMarketCap && matchesRules
   }).sort((a, b) => {
     const aValue = a[sortKey]
     const bValue = b[sortKey]
@@ -350,11 +550,6 @@ export function ScreenerPage() {
     setAlertDraft(defaultAlertDraft)
   }
 
-  function applyColumnTemplate(template: ColumnTemplateKey) {
-    setColumnTemplate(template)
-    setVisibleColumnIds(getColumnTemplate(template))
-  }
-
   function toggleColumnVisibility(columnId: ColumnId, checked: boolean) {
     if (FIXED_COLUMN_IDS.includes(columnId)) return
 
@@ -368,7 +563,148 @@ export function ScreenerPage() {
     setColumnTemplate("recommended")
   }
 
-  const activeOptionalColumns = OPTIONAL_COLUMN_IDS.filter((columnId) => visibleColumnIds.includes(columnId))
+  function addRule(key: FilterKey) {
+    setActiveRules((current) => {
+      if (current.some((rule) => rule.key === key)) return current
+      return [...current, createRule(key)]
+    })
+  }
+
+  function updateRuleParam(ruleId: string, paramKey: string, value: string) {
+    setActiveRules((current) =>
+      current.map((rule) => (rule.id === ruleId ? { ...rule, params: { ...rule.params, [paramKey]: value } } : rule)),
+    )
+  }
+
+  function removeRule(ruleId: string) {
+    setActiveRules((current) => current.filter((rule) => rule.id !== ruleId))
+  }
+
+  async function handleSaveStrategy() {
+    if (!strategyName.trim()) return
+
+    setSavingStrategy(true)
+
+    const config: BacktestRequest = {
+      backtestId: `screener_${Date.now()}`,
+      filters: {
+        marketCap: marketCapFilter === "all" ? [] : [marketCapFilter.toLowerCase()],
+        syariah: false,
+        sectors: sectorFilter === "all" ? undefined : [sectorFilter],
+      },
+      fundamentalIndicators: activeRules
+        .filter((rule) => rule.category === "fundamental")
+        .map((rule) => {
+          switch (rule.key) {
+            case "pe":
+              return { type: "PE_RATIO", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+            case "pbv":
+              return { type: "PBV", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+            case "roe":
+              return { type: "ROE", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+            case "epsGrowth":
+              return { type: "EPS_GROWTH", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+            case "valuation":
+              return { type: "VALUATION", value: rule.params.value }
+            case "fundamentalScore":
+              return { type: "FUNDAMENTAL_SCORE", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+            default:
+              return { type: rule.key.toUpperCase(), min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+          }
+        }),
+      technicalIndicators: activeRules
+        .filter((rule) => rule.category === "technical")
+        .map((rule) => {
+          switch (rule.key) {
+            case "rsi":
+              return { type: "RSI", oversold: parseOptionalNumber(rule.params.min), overbought: parseOptionalNumber(rule.params.max) }
+            case "trend":
+              return { type: "TREND", value: rule.params.value }
+            case "changePct":
+              return { type: "DAILY_CHANGE", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+            case "monthChangePct":
+              return { type: "MONTH_CHANGE", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+            case "ytdChangePct":
+              return { type: "YEAR_CHANGE", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+            case "ma20GapPct":
+              return { type: "MA20_GAP", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+            case "ma5GapPct":
+              return { type: "MA5_GAP", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+            case "technicalScore":
+              return { type: "TECHNICAL_SCORE", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+            default:
+              return { type: rule.key.toUpperCase(), min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+          }
+        }),
+      backtestConfig: {
+        initialCapital: 100000000,
+        startDate: "2025-01-01",
+        endDate: "2026-02-28",
+        tradingCosts: {
+          brokerFee: 0.15,
+          sellFee: 0.15,
+          minimumFee: 1000,
+        },
+        portfolio: {
+          positionSizePercent: 25,
+          minPositionPercent: 5,
+          maxPositions: 4,
+        },
+        riskManagement: {
+          stopLossPercent: 8,
+          takeProfitPercent: 20,
+          maxHoldingDays: 60,
+        },
+      },
+    }
+
+    try {
+      const response = await fetch("/api/strategies/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: strategyName,
+          description: strategyDescription,
+          config,
+          backtestResults: {
+            recentSignals: {
+              signals: filteredRows.slice(0, 10).map((row) => ({
+                ticker: row.ticker,
+                date: new Date().toISOString(),
+              })),
+            },
+          },
+        }),
+      })
+
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || result.error || "Gagal menyimpan strategy.")
+      }
+
+      setSaveStrategyOpen(false)
+      setStrategyName("")
+      setStrategyDescription("")
+    } catch (error) {
+      console.error("Save strategy error:", error)
+    } finally {
+      setSavingStrategy(false)
+    }
+  }
+
+  function handleOpenSaveStrategy() {
+    if (isLoaded && !isSignedIn) {
+      openSignIn()
+      return
+    }
+
+    setSaveStrategyOpen(true)
+  }
+
+  function handleRunScreener() {
+    const table = document.getElementById("screener-results")
+    table?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
 
   const columns: DataTableColumn<ScreenerRow>[] = [
     {
@@ -420,7 +756,7 @@ export function ScreenerPage() {
       cellClassName: "text-right font-ibm-plex-mono",
       header: (
         <button className="inline-flex items-center gap-2" onClick={() => handleSort("changePct")}>
-          Change <ArrowUpDown className="h-3.5 w-3.5" />
+          Chg. <ArrowUpDown className="h-3.5 w-3.5" />
         </button>
       ),
       cell: (row) => (
@@ -435,7 +771,7 @@ export function ScreenerPage() {
       cellClassName: "text-right font-ibm-plex-mono",
       header: (
         <button className="inline-flex items-center gap-2" onClick={() => handleSort("monthChangePct")}>
-          1M Perf <ArrowUpDown className="h-3.5 w-3.5" />
+          1M Chg <ArrowUpDown className="h-3.5 w-3.5" />
         </button>
       ),
       cell: (row) => <span className={row.monthChangePct >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(row.monthChangePct, 1)}</span>,
@@ -446,10 +782,17 @@ export function ScreenerPage() {
       cellClassName: "text-right font-ibm-plex-mono",
       header: (
         <button className="inline-flex items-center gap-2" onClick={() => handleSort("ytdChangePct")}>
-          YTD Perf <ArrowUpDown className="h-3.5 w-3.5" />
+          1Y Chg <ArrowUpDown className="h-3.5 w-3.5" />
         </button>
       ),
       cell: (row) => <span className={row.ytdChangePct >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(row.ytdChangePct, 1)}</span>,
+    },
+    {
+      id: "value",
+      headClassName: "text-right",
+      cellClassName: "text-right",
+      header: "Value",
+      cell: (row) => <span className={`text-sm font-medium ${valueTone(row.valuation)}`}>{formatValueLabel(row.valuation)}</span>,
     },
     {
       id: "rsi",
@@ -466,15 +809,18 @@ export function ScreenerPage() {
       id: "ma20",
       headClassName: "text-right",
       cellClassName: "text-right font-ibm-plex-mono",
-      header: "MA20",
+      header: "MA-20",
       cell: (row) => <span className={row.ma20GapPct >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(row.ma20GapPct)}</span>,
     },
     {
-      id: "ma50",
+      id: "ma5",
       headClassName: "text-right",
       cellClassName: "text-right font-ibm-plex-mono",
-      header: "MA50",
-      cell: (row) => <span className={row.ma50GapPct >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(row.ma50GapPct)}</span>,
+      header: "MA-5",
+      cell: (row) => {
+        const ma5GapPct = getMa5GapPct(row)
+        return <span className={ma5GapPct >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(ma5GapPct)}</span>
+      },
     },
     {
       id: "trend",
@@ -574,7 +920,7 @@ export function ScreenerPage() {
                   Screener
                 </Badge>
                 <div>
-                  <h1 className="text-3xl sm:text-4xl font-bold font-ibm-plex-mono tracking-tight text-balance">Pantau semua saham dalam satu radar</h1>
+                  <h1 className="text-3xl sm:text-4xl font-bold font-ibm-plex-mono tracking-tight text-balance">pantau semua saham dalam satu radar</h1>
                   <p className="mt-2 text-sm sm:text-base text-muted-foreground font-mono max-w-2xl">
                     Filter, urutkan, dan tandai saham berdasarkan data fundamental dan teknikal. Alert disimpan lokal untuk versi awal halaman ini.
                   </p>
@@ -585,9 +931,124 @@ export function ScreenerPage() {
 
           <section className="rounded-xl border border-border/70 bg-card shadow-sm">
             <div className="p-5 sm:p-6 space-y-5">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-                Filter & Sort
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+                  Screener Builder
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-10 gap-2 border-black bg-black px-3 text-white hover:border-black hover:bg-black/90 hover:text-white"
+                    >
+                      <Columns3 className="h-4 w-4" />
+                      Pilih kolom
+                      <ChevronDown className="h-4 w-4 text-white/80" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuGroup>
+                      {Object.entries(COLUMN_LABELS)
+                        .filter(([columnId]) => !FIXED_COLUMN_IDS.includes(columnId as ColumnId))
+                        .map(([columnId, label]) => (
+                          <DropdownMenuCheckboxItem
+                            key={columnId}
+                            checked={visibleColumnIds.includes(columnId as ColumnId)}
+                            onCheckedChange={(checked) => toggleColumnVisibility(columnId as ColumnId, checked)}
+                          >
+                            {label}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-10 gap-2 border-[#487b78]/25 bg-[#487b78]/10 px-3 text-[#487b78] hover:border-[#487b78]/40 hover:bg-[#487b78]/15 hover:text-[#3f6a68]"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Indicator
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-72">
+                    <DropdownMenuLabel>Tambah filter screener</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                      Technical
+                    </DropdownMenuLabel>
+                    {(Object.entries(FILTER_LIBRARY) as [FilterKey, FilterDefinition][])
+                      .filter(([, definition]) => definition.category === "technical")
+                      .map(([key, definition]) => {
+                        const alreadyActive = activeRules.some((rule) => rule.key === key)
+                        return (
+                          <DropdownMenuItem
+                            key={key}
+                            disabled={alreadyActive}
+                            onClick={() => addRule(key)}
+                            className="flex items-start justify-between gap-3 py-2"
+                          >
+                            <div>
+                              <div className="text-sm font-medium">{definition.label}</div>
+                              <div className="text-xs text-muted-foreground">{definition.description}</div>
+                            </div>
+                            <Plus className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                      Fundamental
+                    </DropdownMenuLabel>
+                    {(Object.entries(FILTER_LIBRARY) as [FilterKey, FilterDefinition][])
+                      .filter(([, definition]) => definition.category === "fundamental")
+                      .map(([key, definition]) => {
+                        const alreadyActive = activeRules.some((rule) => rule.key === key)
+                        return (
+                          <DropdownMenuItem
+                            key={key}
+                            disabled={alreadyActive}
+                            onClick={() => addRule(key)}
+                            className="flex items-start justify-between gap-3 py-2"
+                          >
+                            <div>
+                              <div className="text-sm font-medium">{definition.label}</div>
+                              <div className="text-xs text-muted-foreground">{definition.description}</div>
+                            </div>
+                            <Plus className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
+                          </DropdownMenuItem>
+                        )
+                      })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <div className="flex flex-wrap gap-2">
+                  {activeRules.length === 0 ? (
+                    <span className="text-sm text-muted-foreground">
+                      Belum ada indicator.
+                    </span>
+                  ) : (
+                    activeRules.map((rule) => (
+                      <button
+                        key={rule.id}
+                        type="button"
+                        onClick={() => removeRule(rule.id)}
+                        className="inline-flex h-10 items-center gap-2 rounded-md border border-border/70 bg-muted/35 px-3 font-ibm-plex-mono text-xs text-foreground transition-colors hover:border-[#d07225]/40 hover:bg-[#d07225]/5"
+                        title={`Hapus ${FILTER_LIBRARY[rule.key].label}`}
+                      >
+                        <span>{formatRuleSummary(rule)}</span>
+                        <X className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    ))
+                  )}
+                </div>
+
               </div>
 
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -645,167 +1106,96 @@ export function ScreenerPage() {
                 </Select>
               </div>
 
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-wrap gap-4">
-                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Switch checked={onlyBullish} onCheckedChange={setOnlyBullish} />
-                    Hanya bullish setup
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Switch checked={onlyRadar} onCheckedChange={setOnlyRadar} />
-                    Hanya radar saya
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Switch checked={onlySyariah} onCheckedChange={setOnlySyariah} />
-                    Hanya syariah
-                  </label>
+              <div className="flex flex-col gap-4 border-t border-border/70 pt-6 sm:flex-row sm:items-end sm:justify-between">
+                <div className="font-ibm-plex-mono text-sm text-muted-foreground">
+                  <span>{activeRules.length} filter aktif</span>
+                  <span className="px-2">→</span>
+                  <span className="text-[#487b78]">{filteredRows.length} saham ditemukan</span>
                 </div>
 
-                <div className="text-sm text-muted-foreground font-mono">
-                  {filteredRows.length} saham tampil
+                <div className="flex items-center justify-end gap-2 self-end">
+                  <Button
+                    className="h-11 gap-2 rounded-xl bg-[#d07225] px-4 text-white shadow-sm hover:bg-[#b8641f]"
+                    onClick={handleRunScreener}
+                  >
+                    <Search className="h-4 w-4" />
+                    Screening Saham
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-11 w-11 rounded-xl border-border/70 bg-background text-foreground hover:border-[#d07225]/35 hover:bg-[#d07225]/5"
+                    onClick={handleOpenSaveStrategy}
+                    aria-label="Create New Strategy"
+                    title="Create New Strategy"
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-xl border border-border/70 bg-background/50 p-4">
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Button
-                      variant="outline"
-                      className="gap-2"
-                      onClick={() => setColumnPickerOpen((current) => !current)}
-                    >
-                      <Columns3 className="h-4 w-4" />
-                      Pilih kolom
-                      <ChevronDown className={`h-4 w-4 transition-transform ${columnPickerOpen ? "rotate-180" : ""}`} />
-                    </Button>
-
-                    <Select value={columnTemplate} onValueChange={(value: ColumnTemplateKey) => applyColumnTemplate(value)}>
-                      <SelectTrigger className="w-[220px] bg-background border-border/70">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="recommended">Template rekomendasi</SelectItem>
-                        <SelectItem value="technical">Template technical</SelectItem>
-                        <SelectItem value="fundamental">Template fundamental</SelectItem>
-                        <SelectItem value="all">Semua kolom</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="text-sm text-muted-foreground xl:max-w-md xl:text-right">
-                    Template rekomendasi menampilkan kolom yang paling relevan untuk screening harian.
-                  </div>
-                </div>
-
-                {columnPickerOpen ? (
-                  <div className="grid gap-4 lg:grid-cols-3">
-                    {COLUMN_GROUPS.map((group) => {
-                      const Icon = group.icon
-                      const selectedColumns = group.columnIds.filter((columnId) => visibleColumnIds.includes(columnId))
-                      const availableColumns = group.columnIds.filter((columnId) => !visibleColumnIds.includes(columnId))
-
-                      return (
-                        <div key={group.id} className="rounded-lg border border-border/70 bg-card p-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                              <Icon className="h-4 w-4 text-[#d07225]" />
-                              <div>
-                                <div className="text-sm font-medium text-foreground">{group.label}</div>
-                                <div className="text-xs text-muted-foreground">{selectedColumns.length} aktif</div>
-                              </div>
-                            </div>
-
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-8 gap-2">
-                                  <Plus className="h-3.5 w-3.5" />
-                                  {group.addLabel}
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-64">
-                                <DropdownMenuLabel>{group.addLabel}</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {availableColumns.length === 0 ? (
-                                  <div className="px-2 py-3 text-xs text-muted-foreground">
-                                    Semua kolom di grup ini sudah aktif.
-                                  </div>
-                                ) : (
-                                  availableColumns.map((columnId) => (
-                                    <DropdownMenuItem
-                                      key={columnId}
-                                      onClick={() => toggleColumnVisibility(columnId, true)}
-                                      className="flex items-center justify-between gap-3"
-                                    >
-                                      <span>{COLUMN_LABELS[columnId]}</span>
-                                      <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-                                    </DropdownMenuItem>
-                                  ))
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {selectedColumns.length === 0 ? (
-                              <span className="text-xs text-muted-foreground">Belum ada kolom dipilih.</span>
-                            ) : (
-                              selectedColumns.map((columnId) => (
-                                <button
-                                  key={columnId}
-                                  type="button"
-                                  onClick={() => toggleColumnVisibility(columnId, false)}
-                                  className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-background px-2.5 py-1 text-xs text-foreground transition-colors hover:border-[#d07225]/40 hover:bg-[#d07225]/5"
-                                  title={`Hapus kolom ${COLUMN_LABELS[columnId]}`}
-                                >
-                                  <span>{COLUMN_LABELS[columnId]}</span>
-                                  <X className="h-3 w-3 text-muted-foreground" />
-                                </button>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {activeOptionalColumns.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">
-                        Belum ada kolom tambahan aktif. Buka Pilih kolom untuk menambah indikator.
-                      </span>
-                    ) : (
-                      activeOptionalColumns.map((columnId) => (
-                        <button
-                          key={columnId}
-                          type="button"
-                          onClick={() => setColumnPickerOpen(true)}
-                          className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-card px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-[#d07225]/40 hover:text-foreground"
-                        >
-                          {COLUMN_LABELS[columnId]}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
           </section>
 
-          <DataTable
-            columns={visibleColumns}
-            data={filteredRows}
-            getRowId={(row) => row.ticker}
-            emptyMessage="Tidak ada saham yang cocok dengan filter saat ini."
-            tableClassName="min-w-[1120px]"
-            initialPageSize={20}
-            pageSizeOptions={[20, 40, 60, 80]}
-            paginationResetKey={`${search}|${sectorFilter}|${marketCapFilter}|${sortKey}|${sortDirection}|${onlyRadar}|${onlyBullish}|${onlySyariah}`}
-          />
+          <div id="screener-results">
+            <DataTable
+              columns={visibleColumns}
+              data={filteredRows}
+              getRowId={(row) => row.ticker}
+              emptyMessage="Tidak ada saham yang cocok dengan filter saat ini."
+              tableClassName="min-w-[1120px]"
+              initialPageSize={20}
+              pageSizeOptions={[20, 40, 60, 80]}
+              paginationResetKey={`${search}|${sectorFilter}|${marketCapFilter}|${sortKey}|${sortDirection}|${activeRules.map((rule) => `${rule.key}:${JSON.stringify(rule.params)}`).join("|")}`}
+            />
+          </div>
 
         </div>
       </main>
 
       <Footer />
+
+      <Dialog open={saveStrategyOpen} onOpenChange={setSaveStrategyOpen}>
+        <DialogContent className="border-border/70 bg-card shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="font-ibm-plex-mono">Create New Strategy</DialogTitle>
+            <DialogDescription>
+              Simpan preset screener ini sebagai strategy baru.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Nama strategy</label>
+              <Input
+                value={strategyName}
+                onChange={(event) => setStrategyName(event.target.value)}
+                placeholder="Contoh: RSI + Value Large Cap"
+                className="bg-background"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Deskripsi</label>
+              <textarea
+                value={strategyDescription}
+                onChange={(event) => setStrategyDescription(event.target.value)}
+                placeholder="Jelaskan preset screener ini."
+                className="min-h-[96px] w-full rounded-md border border-border/70 bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-[#d07225]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveStrategyOpen(false)}>Batal</Button>
+            <Button onClick={handleSaveStrategy} disabled={savingStrategy || !strategyName.trim()} className="gap-2">
+              <Save className="h-4 w-4" />
+              Simpan strategy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="border-border/70 bg-card shadow-xl">
