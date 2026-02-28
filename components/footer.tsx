@@ -23,7 +23,7 @@ export function Footer() {
                         <h3 className="font-semibold text-foreground">Product</h3>
                         <ul className="space-y-2 text-sm">
                             <li>
-                                <Link href="#features" className="text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/features" className="text-muted-foreground hover:text-primary transition-colors">
                                     Features
                                 </Link>
                             </li>
@@ -33,13 +33,8 @@ export function Footer() {
                                 </Link>
                             </li>
                             <li>
-                                <Link href="#strategies" className="text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/strategies" className="text-muted-foreground hover:text-primary transition-colors">
                                     Strategies
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/docs" className="text-muted-foreground hover:text-primary transition-colors">
-                                    Documentation
                                 </Link>
                             </li>
                         </ul>

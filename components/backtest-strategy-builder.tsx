@@ -97,6 +97,7 @@ interface BacktestStrategyBuilderProps {
 
 export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults }: BacktestStrategyBuilderProps) {
   const { isSignedIn, isLoaded } = useUser()
+  const { openSignIn } = useClerk()
   const { refreshTier } = useUserTier(); // Added hook usage
   const searchParams = useSearchParams()
   const strategyId = searchParams.get('strategyId')
@@ -126,7 +127,6 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   const [isSaving, setIsSaving] = useState(false)
   const [pendingRunBacktest, setPendingRunBacktest] = useState(false)
   const [saveWithBacktest, setSaveWithBacktest] = useState(false)
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const [editingIndicators, setEditingIndicators] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState<string>("strategy")
@@ -616,7 +616,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
     if (!skipAuthCheck) {
       if (!isLoaded) return
       if (!isSignedIn) {
-        setShowLoginPrompt(true)
+        openSignIn()
         return
       }
     }
@@ -1633,7 +1633,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-52" align="end">
-                    <DropdownMenuItem onClick={() => { if (isLoaded && !isSignedIn) { setSaveWithBacktest(true); setShowLoginPrompt(true) } else { setSaveWithBacktest(true); setShowSaveModal(true) } }} className="font-mono text-xs">
+                    <DropdownMenuItem onClick={() => { if (isLoaded && !isSignedIn) { setSaveWithBacktest(true); openSignIn() } else { setSaveWithBacktest(true); setShowSaveModal(true) } }} className="font-mono text-xs">
                       <Play className="h-3.5 w-3.5 mr-2" />
                       Save & Run
                     </DropdownMenuItem>
@@ -1647,7 +1647,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                 variant="outline"
                 size="sm"
                 className="h-10 px-3 border-slate-300 hover:bg-slate-50"
-                onClick={() => { if (isLoaded && !isSignedIn) { setSaveWithBacktest(false); setShowLoginPrompt(true) } else { setSaveWithBacktest(false); setShowSaveModal(true) } }}
+                onClick={() => { if (isLoaded && !isSignedIn) { setSaveWithBacktest(false); openSignIn() } else { setSaveWithBacktest(false); setShowSaveModal(true) } }}
               >
                 <Save className="h-4 w-4 text-muted-foreground" />
               </Button>
@@ -1773,39 +1773,6 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
               className="w-full font-mono"
             >
               View My Strategies
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Login Prompt Dialog */}
-      <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader className="items-center text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#d07225]/10">
-              <LogIn className="h-8 w-8 text-[#d07225]" />
-            </div>
-            <DialogTitle className="font-mono text-xl">Login Dibutuhkan</DialogTitle>
-            <DialogDescription className="font-mono text-sm text-muted-foreground text-center pt-2">
-              Silakan login untuk melihat preview strategi.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-3 pt-4">
-            <SignInButton mode="modal">
-              <Button
-                onClick={() => setShowLoginPrompt(false)}
-                className="w-full font-mono bg-[#d07225] hover:bg-[#a65b1d]"
-              >
-                <LogIn className="h-4 w-4 mr-2" />
-                Sign In
-              </Button>
-            </SignInButton>
-            <Button
-              variant="outline"
-              onClick={() => setShowLoginPrompt(false)}
-              className="w-full font-mono"
-            >
-              Cancel
             </Button>
           </div>
         </DialogContent>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, ArrowDownRight, Radar, Search, SlidersHorizontal, Star, StarOff, Columns3, ChevronLeft, ChevronRight } from "lucide-react"
+import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, ArrowDownRight, Radar, Search, SlidersHorizontal, Star, StarOff, Columns3, ChevronLeft, ChevronRight, Plus, X, ChevronDown, LayoutGrid, BarChart3, TrendingUp } from "lucide-react"
 
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -30,9 +30,9 @@ import {
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table"
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
+  DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -120,8 +120,6 @@ const COLUMN_LABELS = {
   syariah: "Syariah",
   price: "Harga",
   changePct: "Change",
-  technicalScore: "Tech",
-  fundamentalScore: "Fund",
   rsi: "RSI",
   ma20: "MA20",
   ma50: "MA50",
@@ -134,17 +132,48 @@ const COLUMN_LABELS = {
 } as const
 
 const COLUMN_TEMPLATES = {
-  recommended: ["ticker", "marketCap", "sector", "syariah", "price", "changePct", "technicalScore", "fundamentalScore", "rsi", "trend", "pe", "roe", "action"],
-  technical: ["ticker", "marketCap", "sector", "syariah", "price", "changePct", "technicalScore", "rsi", "ma20", "ma50", "trend", "action"],
-  fundamental: ["ticker", "marketCap", "sector", "syariah", "price", "fundamentalScore", "pe", "pbv", "roe", "epsGrowth", "action"],
-  all: ["ticker", "marketCap", "sector", "syariah", "price", "changePct", "technicalScore", "fundamentalScore", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth", "action"],
+  recommended: ["ticker", "marketCap", "sector", "syariah", "price", "changePct", "rsi", "trend", "pe", "roe", "action"],
+  technical: ["ticker", "marketCap", "sector", "syariah", "price", "changePct", "rsi", "ma20", "ma50", "trend", "action"],
+  fundamental: ["ticker", "marketCap", "sector", "syariah", "price", "pe", "pbv", "roe", "epsGrowth", "action"],
+  all: ["ticker", "marketCap", "sector", "syariah", "price", "changePct", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth", "action"],
 } as const
 
 type ColumnTemplateKey = keyof typeof COLUMN_TEMPLATES
 type ColumnId = keyof typeof COLUMN_LABELS
+type ColumnGroupId = "overview" | "technical" | "fundamental"
 
 const FIXED_COLUMN_IDS: ColumnId[] = ["ticker", "action"]
-const OPTIONAL_COLUMN_IDS: ColumnId[] = ["marketCap", "sector", "syariah", "price", "changePct", "technicalScore", "fundamentalScore", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth"]
+const OPTIONAL_COLUMN_IDS: ColumnId[] = ["marketCap", "sector", "syariah", "price", "changePct", "rsi", "ma20", "ma50", "trend", "pe", "pbv", "roe", "epsGrowth"]
+
+const COLUMN_GROUPS: {
+  id: ColumnGroupId
+  label: string
+  addLabel: string
+  icon: typeof LayoutGrid
+  columnIds: ColumnId[]
+}[] = [
+  {
+    id: "overview",
+    label: "Overview",
+    addLabel: "Add Overview Column",
+    icon: LayoutGrid,
+    columnIds: ["marketCap", "sector", "syariah", "price", "changePct", "trend"],
+  },
+  {
+    id: "technical",
+    label: "Technical Indicators",
+    addLabel: "Add Technical Indicator",
+    icon: BarChart3,
+    columnIds: ["rsi", "ma20", "ma50"],
+  },
+  {
+    id: "fundamental",
+    label: "Fundamental Indicators",
+    addLabel: "Add Fundamental Indicator",
+    icon: TrendingUp,
+    columnIds: ["pe", "pbv", "roe", "epsGrowth"],
+  },
+]
 
 function getColumnTemplate(template: ColumnTemplateKey): ColumnId[] {
   return [...COLUMN_TEMPLATES[template]]
@@ -159,12 +188,6 @@ function normalizeStoredColumnIds(columnId: string): ColumnId[] {
   if (columnId === "meta") return ["marketCap", "sector", "syariah"]
   if (columnId in COLUMN_LABELS) return [columnId as ColumnId]
   return []
-}
-
-function scoreTone(score: number) {
-  if (score >= 75) return "bg-emerald-100 text-emerald-800 border-emerald-200"
-  if (score >= 60) return "bg-amber-100 text-amber-800 border-amber-200"
-  return "bg-rose-100 text-rose-800 border-rose-200"
 }
 
 function trendTone(trend: ScreenerRow["trend"]) {
@@ -212,6 +235,7 @@ export function ScreenerPage() {
   const [alertDraft, setAlertDraft] = useState<AlertDraft>(defaultAlertDraft)
   const [columnTemplate, setColumnTemplate] = useState<ColumnTemplateKey>("recommended")
   const [visibleColumnIds, setVisibleColumnIds] = useState<ColumnId[]>(() => getColumnTemplate("recommended"))
+  const [columnPickerOpen, setColumnPickerOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
@@ -291,7 +315,6 @@ export function ScreenerPage() {
     return sortDirection === "asc" ? result : -result
   })
 
-  const radarRows = SCREENER_ROWS.filter((row) => radarTickers.includes(row.ticker))
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
   const paginatedRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
@@ -355,6 +378,8 @@ export function ScreenerPage() {
     setColumnTemplate("recommended")
   }
 
+  const activeOptionalColumns = OPTIONAL_COLUMN_IDS.filter((columnId) => visibleColumnIds.includes(columnId))
+
   const columns: DataTableColumn<ScreenerRow>[] = [
     {
       id: "ticker",
@@ -376,40 +401,24 @@ export function ScreenerPage() {
     },
     {
       id: "marketCap",
-      headClassName: "min-w-[110px]",
+      headClassName: "min-w-[90px]",
       header: "Mkt Cap",
-      cell: (row) => (
-        <Badge variant="outline" className="rounded-full border-border/80 bg-muted/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-          {row.marketCapGroup}
-        </Badge>
-      ),
+      cellClassName: "text-sm text-muted-foreground",
+      cell: (row) => row.marketCapGroup,
     },
     {
       id: "sector",
-      headClassName: "min-w-[150px]",
+      headClassName: "min-w-[120px]",
       header: "Sector",
-      cell: (row) => (
-        <Badge variant="outline" className="rounded-full border-border/80 bg-muted/20 px-2 py-0.5 text-[10px] font-medium">
-          {row.sector}
-        </Badge>
-      ),
+      cellClassName: "text-sm text-muted-foreground",
+      cell: (row) => row.sector,
     },
     {
       id: "syariah",
-      headClassName: "min-w-[130px]",
+      headClassName: "min-w-[96px]",
       header: "Syariah",
-      cell: (row) => (
-        <Badge
-          variant="outline"
-          className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] ${
-            row.syariah
-              ? "border-[#487b78]/30 bg-[#487b78]/5 text-[#487b78]"
-              : "border-border/80 bg-muted/20 text-muted-foreground"
-          }`}
-        >
-          {row.syariah ? "Syariah" : "Non-Syariah"}
-        </Badge>
-      ),
+      cellClassName: "text-sm text-muted-foreground",
+      cell: (row) => (row.syariah ? "Syariah" : "Non-Syariah"),
     },
     {
       id: "price",
@@ -437,28 +446,6 @@ export function ScreenerPage() {
           {formatPercent(row.changePct, 2)}
         </span>
       ),
-    },
-    {
-      id: "technicalScore",
-      headClassName: "text-right",
-      cellClassName: "text-right",
-      header: (
-        <button className="inline-flex items-center gap-2" onClick={() => handleSort("technicalScore")}>
-          Tech <ArrowUpDown className="h-3.5 w-3.5" />
-        </button>
-      ),
-      cell: (row) => <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${scoreTone(row.technicalScore)}`}>{row.technicalScore}</span>,
-    },
-    {
-      id: "fundamentalScore",
-      headClassName: "text-right",
-      cellClassName: "text-right",
-      header: (
-        <button className="inline-flex items-center gap-2" onClick={() => handleSort("fundamentalScore")}>
-          Fund <ArrowUpDown className="h-3.5 w-3.5" />
-        </button>
-      ),
-      cell: (row) => <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${scoreTone(row.fundamentalScore)}`}>{row.fundamentalScore}</span>,
     },
     {
       id: "rsi",
@@ -696,46 +683,127 @@ export function ScreenerPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-wrap items-center gap-3">
-                  <Select value={columnTemplate} onValueChange={(value: ColumnTemplateKey) => applyColumnTemplate(value)}>
-                    <SelectTrigger className="w-[220px] bg-background border-border/70">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="recommended">Template rekomendasi</SelectItem>
-                      <SelectItem value="technical">Template technical</SelectItem>
-                      <SelectItem value="fundamental">Template fundamental</SelectItem>
-                      <SelectItem value="all">Semua kolom</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-3 rounded-xl border border-border/70 bg-background/50 p-4">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() => setColumnPickerOpen((current) => !current)}
+                    >
+                      <Columns3 className="h-4 w-4" />
+                      Pilih kolom
+                      <ChevronDown className={`h-4 w-4 transition-transform ${columnPickerOpen ? "rotate-180" : ""}`} />
+                    </Button>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="gap-2">
-                        <Columns3 className="h-4 w-4" />
-                        Pilih kolom
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-56">
-                      <DropdownMenuLabel>Kolom terlihat</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {OPTIONAL_COLUMN_IDS.map((columnId) => (
-                        <DropdownMenuCheckboxItem
+                    <Select value={columnTemplate} onValueChange={(value: ColumnTemplateKey) => applyColumnTemplate(value)}>
+                      <SelectTrigger className="w-[220px] bg-background border-border/70">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="recommended">Template rekomendasi</SelectItem>
+                        <SelectItem value="technical">Template technical</SelectItem>
+                        <SelectItem value="fundamental">Template fundamental</SelectItem>
+                        <SelectItem value="all">Semua kolom</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="text-sm text-muted-foreground xl:max-w-md xl:text-right">
+                    Template rekomendasi menampilkan kolom yang paling relevan untuk screening harian.
+                  </div>
+                </div>
+
+                {columnPickerOpen ? (
+                  <div className="grid gap-4 lg:grid-cols-3">
+                    {COLUMN_GROUPS.map((group) => {
+                      const Icon = group.icon
+                      const selectedColumns = group.columnIds.filter((columnId) => visibleColumnIds.includes(columnId))
+                      const availableColumns = group.columnIds.filter((columnId) => !visibleColumnIds.includes(columnId))
+
+                      return (
+                        <div key={group.id} className="rounded-lg border border-border/70 bg-card p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-4 w-4 text-[#d07225]" />
+                              <div>
+                                <div className="text-sm font-medium text-foreground">{group.label}</div>
+                                <div className="text-xs text-muted-foreground">{selectedColumns.length} aktif</div>
+                              </div>
+                            </div>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8 gap-2">
+                                  <Plus className="h-3.5 w-3.5" />
+                                  {group.addLabel}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-64">
+                                <DropdownMenuLabel>{group.addLabel}</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {availableColumns.length === 0 ? (
+                                  <div className="px-2 py-3 text-xs text-muted-foreground">
+                                    Semua kolom di grup ini sudah aktif.
+                                  </div>
+                                ) : (
+                                  availableColumns.map((columnId) => (
+                                    <DropdownMenuItem
+                                      key={columnId}
+                                      onClick={() => toggleColumnVisibility(columnId, true)}
+                                      className="flex items-center justify-between gap-3"
+                                    >
+                                      <span>{COLUMN_LABELS[columnId]}</span>
+                                      <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                                    </DropdownMenuItem>
+                                  ))
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {selectedColumns.length === 0 ? (
+                              <span className="text-xs text-muted-foreground">Belum ada kolom dipilih.</span>
+                            ) : (
+                              selectedColumns.map((columnId) => (
+                                <button
+                                  key={columnId}
+                                  type="button"
+                                  onClick={() => toggleColumnVisibility(columnId, false)}
+                                  className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-background px-2.5 py-1 text-xs text-foreground transition-colors hover:border-[#d07225]/40 hover:bg-[#d07225]/5"
+                                  title={`Hapus kolom ${COLUMN_LABELS[columnId]}`}
+                                >
+                                  <span>{COLUMN_LABELS[columnId]}</span>
+                                  <X className="h-3 w-3 text-muted-foreground" />
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {activeOptionalColumns.length === 0 ? (
+                      <span className="text-xs text-muted-foreground">
+                        Belum ada kolom tambahan aktif. Buka Pilih kolom untuk menambah indikator.
+                      </span>
+                    ) : (
+                      activeOptionalColumns.map((columnId) => (
+                        <button
                           key={columnId}
-                          checked={visibleColumnIds.includes(columnId)}
-                          onCheckedChange={(checked) => toggleColumnVisibility(columnId, checked === true)}
+                          type="button"
+                          onClick={() => setColumnPickerOpen(true)}
+                          className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-card px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-[#d07225]/40 hover:text-foreground"
                         >
                           {COLUMN_LABELS[columnId]}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <div className="text-sm text-muted-foreground">
-                  Template rekomendasi menampilkan kolom yang paling relevan untuk screening harian.
-                </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -745,7 +813,7 @@ export function ScreenerPage() {
             data={paginatedRows}
             getRowId={(row) => row.ticker}
             emptyMessage="Tidak ada saham yang cocok dengan filter saat ini."
-            tableClassName="min-w-[1320px]"
+            tableClassName="min-w-[1120px]"
           />
 
           <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -779,86 +847,6 @@ export function ScreenerPage() {
             </div>
           </div>
 
-          <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-xl border border-border/70 bg-card shadow-sm">
-              <div className="p-5 sm:p-6">
-                <div className="flex items-center justify-between gap-4 mb-4">
-                  <div>
-                    <h2 className="text-lg font-semibold">Radar Saya</h2>
-                    <p className="text-sm text-muted-foreground">Saham yang sedang kamu pantau untuk alert atau follow-up analisis.</p>
-                  </div>
-                  <Badge variant="secondary" className="font-mono">{radarRows.length} stocks</Badge>
-                </div>
-
-                <div className="space-y-3">
-                  {radarRows.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground bg-background/40">
-                      Belum ada saham di radar. Tambahkan dari tabel di atas, lalu buat alert untuk ticker yang ingin dipantau.
-                    </div>
-                  ) : (
-                    radarRows.map((row) => (
-                      <div key={row.ticker} className="rounded-lg border border-border/70 bg-background/50 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <div className="font-ibm-plex-mono font-semibold">{row.ticker}</div>
-                          <div className="text-sm text-muted-foreground">{row.company}</div>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="outline" className="font-mono">Tech {row.technicalScore}</Badge>
-                          <Badge variant="outline" className="font-mono">RSI {row.rsi.toFixed(1)}</Badge>
-                          <Badge variant="outline" className="font-mono">ROE {row.roe.toFixed(1)}%</Badge>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" className="border-border/70 bg-background" asChild>
-                            <Link href={`/analyze-v2?ticker=${row.ticker}`}>Lihat</Link>
-                          </Button>
-                          <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => openAlertDialog(row.ticker)}>
-                            <Bell className="h-3.5 w-3.5 mr-1" />
-                            Buat alert
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-border/70 bg-card shadow-sm">
-              <div className="p-5 sm:p-6">
-                <div className="flex items-center justify-between gap-4 mb-4">
-                  <div>
-                    <h2 className="text-lg font-semibold">Alert Aktif</h2>
-                    <p className="text-sm text-muted-foreground">Versi awal: alert disimpan lokal di browser.</p>
-                  </div>
-                  <Badge variant="secondary" className="font-mono">{alerts.length}</Badge>
-                </div>
-
-                <div className="space-y-3">
-                  {alerts.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground bg-background/40">
-                      Belum ada alert aktif.
-                    </div>
-                  ) : (
-                    alerts.map((alert) => (
-                      <div key={alert.id} className="rounded-lg border border-border/70 bg-background/50 p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="font-ibm-plex-mono font-semibold">{alert.ticker}</div>
-                            <div className="mt-1 text-sm text-muted-foreground">
-                              {alert.type === "masuk-radar" && "Kirim notifikasi saat saham masuk radar"}
-                              {alert.type === "technical-score" && `Kirim notifikasi saat technical score >= ${alert.threshold}`}
-                              {alert.type === "rsi" && `Kirim notifikasi saat RSI <= ${alert.threshold}`}
-                            </div>
-                          </div>
-                          <Badge variant={alert.isActive ? "secondary" : "outline"}>{alert.isActive ? "Aktif" : "Paused"}</Badge>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
         </div>
       </main>
 

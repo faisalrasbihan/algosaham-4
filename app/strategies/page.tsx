@@ -28,6 +28,15 @@ import {
 // Dialog states: 'confirm' | 'loading' | 'success'
 type SubscribeDialogState = 'confirm' | 'loading' | 'success'
 
+const OFFICIAL_CREATOR_KEYWORDS = ["algosaham"]
+const EXPLORE_SKELETON_COUNT = 3
+
+function isOfficialStrategy(strategy: Strategy) {
+  const normalizedCreator = strategy.creator?.trim().toLowerCase() || ""
+
+  return OFFICIAL_CREATOR_KEYWORDS.some((keyword) => normalizedCreator.includes(keyword))
+}
+
 export default function Strategies() {
   const [exploreStrategies, setExploreStrategies] = useState<Strategy[]>([])
   const [showcaseStrategies, setShowcaseStrategies] = useState<Strategy[]>([])
@@ -204,6 +213,8 @@ export default function Strategies() {
 
   const subscriptionQuotaReached = limits.subscriptions !== -1 && usage.subscriptions >= limits.subscriptions
   const subscriptionsRemaining = limits.subscriptions === -1 ? '∞' : (limits.subscriptions - usage.subscriptions)
+  const officialStrategies = exploreStrategies.filter(isOfficialStrategy)
+  const communityStrategies = exploreStrategies.filter((strategy) => !isOfficialStrategy(strategy))
 
   // Handler for opening strategy preview
   const handleCardClick = (strategy: Strategy) => {
@@ -242,33 +253,84 @@ export default function Strategies() {
           {/* Marketplace / Explore Section */}
           <section>
             <div className="px-6">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-foreground mb-1">Explore Strategies</h2>
-                <p className="text-muted-foreground">Discover more strategies from the community</p>
-              </div>
-
               {isLoadingExplore ? (
-                <CardCarousel className="-mx-6 pt-1">
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <StrategyCardSkeleton key={i} />
-                  ))}
-                </CardCarousel>
+                <div className="space-y-10">
+                  <div>
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-foreground mb-1">Algosaham Official Strategies</h2>
+                      <p className="text-muted-foreground">Strategi yang dibuat dan diuji oleh tim kami, dipilih dari banyak simulasi untuk menampilkan yang paling menarik. Tetap perlu diingat, performa masa lalu tidak menjamin hasil di masa depan.</p>
+                    </div>
+                    <CardCarousel className="-mx-6 pt-1">
+                      {Array.from({ length: EXPLORE_SKELETON_COUNT }, (_, index) => (
+                        <StrategyCardSkeleton key={`official-skeleton-${index}`} />
+                      ))}
+                    </CardCarousel>
+                  </div>
+
+                  <div>
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-foreground mb-1">Community Strategies</h2>
+                      <p className="text-muted-foreground">Kumpulan strategi yang dibagikan oleh komunitas untuk dijelajahi, dipelajari, dan dibandingkan berdasarkan gaya serta pendekatan masing-masing pembuatnya.</p>
+                    </div>
+                    <CardCarousel className="-mx-6 pt-1">
+                      {Array.from({ length: EXPLORE_SKELETON_COUNT }, (_, index) => (
+                        <StrategyCardSkeleton key={`community-skeleton-${index}`} />
+                      ))}
+                    </CardCarousel>
+                  </div>
+                </div>
               ) : exploreStrategies.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">No public strategies found.</div>
               ) : (
-                <CardCarousel className="-mx-6 pt-1">
-                  {exploreStrategies.map((strategy) => (
-                    <MarketplaceStrategyCard
-                      key={strategy.id}
-                      strategy={strategy}
-                      className="w-80 flex-shrink-0"
-                      isSubscribed={subscribedIds.includes(strategy.id)}
-                      isLoading={subscriptionLoading[strategy.id]}
-                      onSubscribe={handleSubscribeClick}
-                      onCardClick={() => handleCardClick(strategy)}
-                    />
-                  ))}
-                </CardCarousel>
+                <div className="space-y-10">
+                  <div>
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-foreground mb-1">Algosaham Official Strategies</h2>
+                      <p className="text-muted-foreground">Strategi yang dibuat dan diuji oleh tim kami, dipilih dari banyak simulasi untuk menampilkan yang paling menarik. Tetap perlu diingat, performa masa lalu tidak menjamin hasil di masa depan.</p>
+                    </div>
+                    {officialStrategies.length > 0 ? (
+                      <CardCarousel className="-mx-6 pt-1">
+                        {officialStrategies.map((strategy) => (
+                          <MarketplaceStrategyCard
+                            key={strategy.id}
+                            strategy={strategy}
+                            className="w-80 flex-shrink-0"
+                            isSubscribed={subscribedIds.includes(strategy.id)}
+                            isLoading={subscriptionLoading[strategy.id]}
+                            onSubscribe={handleSubscribeClick}
+                            onCardClick={() => handleCardClick(strategy)}
+                          />
+                        ))}
+                      </CardCarousel>
+                    ) : (
+                      <div className="py-6 text-sm text-muted-foreground">No official strategies available.</div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-foreground mb-1">Community Strategies</h2>
+                      <p className="text-muted-foreground">Kumpulan strategi yang dibagikan oleh komunitas untuk dijelajahi, dipelajari, dan dibandingkan berdasarkan gaya serta pendekatan masing-masing pembuatnya.</p>
+                    </div>
+                    {communityStrategies.length > 0 ? (
+                      <CardCarousel className="-mx-6 pt-1">
+                        {communityStrategies.map((strategy) => (
+                          <MarketplaceStrategyCard
+                            key={strategy.id}
+                            strategy={strategy}
+                            className="w-80 flex-shrink-0"
+                            isSubscribed={subscribedIds.includes(strategy.id)}
+                            isLoading={subscriptionLoading[strategy.id]}
+                            onSubscribe={handleSubscribeClick}
+                            onCardClick={() => handleCardClick(strategy)}
+                          />
+                        ))}
+                      </CardCarousel>
+                    ) : (
+                      <div className="py-6 text-sm text-muted-foreground">No community strategies available.</div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </section>

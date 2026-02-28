@@ -22,7 +22,7 @@ import { MonthlyPerformanceHeatmap } from "@/components/monthly-performance-heat
 import { TradeHistoryTable } from "@/components/trade-history-table"
 import { Loader2, AlertCircle, TrendingUp, BarChart3, Activity, Target, Zap, Clock, Trophy, TrendingDown, Pencil, LogIn } from "lucide-react"
 import { BacktestResult } from "@/lib/api"
-import { useUser, SignInButton } from "@clerk/nextjs"
+import { useUser, useClerk } from "@clerk/nextjs"
 import { useUserTier } from "@/context/user-tier-context"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -53,7 +53,15 @@ export function StrategyPreviewDialog({
     const [previewState, setPreviewState] = useState<'confirm' | 'showing'>('confirm')
 
     const { isSignedIn, isLoaded } = useUser()
+    const { openSignIn } = useClerk()
     const { limits, usage, refreshTier } = useUserTier()
+
+    useEffect(() => {
+        if (open && isLoaded && !isSignedIn) {
+            onOpenChange(false)
+            openSignIn()
+        }
+    }, [open, isLoaded, isSignedIn, onOpenChange, openSignIn])
 
     // Elapsed time ticker
     useEffect(() => {
@@ -221,30 +229,7 @@ export function StrategyPreviewDialog({
                     <>
                         {!isLoaded ? (
                             <div className="flex justify-center p-6"><Loader2 className="w-6 h-6 animate-spin" /></div>
-                        ) : !isSignedIn ? (
-                            <>
-                                <DialogHeader className="items-center text-center">
-                                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#d07225]/10">
-                                        <LogIn className="h-8 w-8 text-[#d07225]" />
-                                    </div>
-                                    <DialogTitle className="font-mono text-xl">Login Dibutuhkan</DialogTitle>
-                                    <DialogDescription className="font-mono text-sm text-muted-foreground text-center pt-2">
-                                        Silakan login untuk melihat preview strategi.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="flex flex-col gap-3 pt-4 w-full">
-                                    <SignInButton mode="modal">
-                                        <Button className="w-full font-mono bg-[#d07225] text-white hover:bg-[#a65b1d]">
-                                            <LogIn className="h-4 w-4 mr-2" />
-                                            Login
-                                        </Button>
-                                    </SignInButton>
-                                    <Button variant="outline" className="w-full font-mono" onClick={() => onOpenChange(false)}>
-                                        Batal
-                                    </Button>
-                                </div>
-                            </>
-                        ) : (
+                        ) : !isSignedIn ? null : (
                             <>
                                 <DialogHeader className="items-center text-center">
                                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">

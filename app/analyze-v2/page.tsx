@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Navbar } from "@/components/navbar"
 import { TickerTape } from "@/components/ticker-tape"
 import { StockSearch } from "@/components/stock-search"
-import { useUser, SignInButton } from "@clerk/nextjs"
+import { useUser, useClerk } from "@clerk/nextjs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import Image from "next/image"
 import {
@@ -331,10 +331,11 @@ function AnalyzeV2Content() {
     const [loading, setLoading] = useState(false)
     const [showLoginPrompt, setShowLoginPrompt] = useState(false)
     const { isSignedIn, isLoaded } = useUser()
+    const { openSignIn } = useClerk()
 
     const handleSearch = async (ticker: string) => {
         if (isLoaded && !isSignedIn) {
-            setShowLoginPrompt(true)
+            openSignIn()
             return
         }
         setLoading(true)
@@ -354,38 +355,6 @@ function AnalyzeV2Content() {
                 <div className="flex-1 flex flex-col items-center justify-center -mt-10 md:-mt-16">
                     <StockSearch onSearch={handleSearch} loading={loading} />
                 </div>
-
-                <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
-                    <DialogContent className="sm:max-w-md border-border/70 bg-card/95 backdrop-blur-md shadow-[0_18px_50px_rgba(0,0,0,0.22)]">
-                        <DialogHeader className="items-center text-center">
-                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#d07225]/10">
-                                <LogIn className="h-8 w-8 text-[#d07225]" />
-                            </div>
-                            <DialogTitle className="font-mono text-xl">Login Dibutuhkan</DialogTitle>
-                            <DialogDescription className="font-mono text-sm text-muted-foreground text-center pt-2">
-                                Silakan login untuk menganalisis saham.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="flex flex-col gap-3 pt-4">
-                            <SignInButton mode="modal">
-                                <Button
-                                    onClick={() => setShowLoginPrompt(false)}
-                                    className="w-full font-mono bg-[#d07225] hover:bg-[#a65b1d]"
-                                >
-                                    <LogIn className="h-4 w-4 mr-2" />
-                                    Sign In
-                                </Button>
-                            </SignInButton>
-                            <Button
-                                variant="outline"
-                                onClick={() => setShowLoginPrompt(false)}
-                                className="w-full font-mono"
-                            >
-                                Cancel
-                            </Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
             </div>
         )
     }

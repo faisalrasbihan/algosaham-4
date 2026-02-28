@@ -1,111 +1,170 @@
 import type { Metadata } from "next"
-import Link from "next/link"
-import { Database, Eye, LockKeyhole, Orbit, UserRoundCheck } from "lucide-react"
 
 import { PageChrome } from "@/components/page-chrome"
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | algosaham.ai",
+  title: "Kebijakan Privasi | algosaham.ai",
   description:
-    "Ringkasan kebijakan privasi dan prinsip pengelolaan data pengguna di algosaham.ai.",
+    "Kebijakan Privasi algosaham.ai terkait pengelolaan Data Pribadi pengguna.",
 }
-
-const principles = [
-  {
-    title: "Data seperlunya",
-    body: "Kami hanya perlu data yang relevan untuk autentikasi, pengelolaan akses, dan operasional layanan.",
-    icon: Database,
-  },
-  {
-    title: "Visibilitas yang jelas",
-    body: "Pengguna berhak memahami mengapa data dipakai dan bagaimana kaitannya dengan fungsi produk.",
-    icon: Eye,
-  },
-  {
-    title: "Keamanan operasional",
-    body: "Pengelolaan data harus mendukung keamanan akun, investigasi error, dan pencegahan penyalahgunaan.",
-    icon: LockKeyhole,
-  },
-  {
-    title: "Hak untuk bertanya",
-    body: "Jika ada area yang belum jelas, jalur kontak harus tersedia dan tidak disembunyikan di balik copy legal yang kabur.",
-    icon: UserRoundCheck,
-  },
-]
 
 export default function PrivacyPage() {
   return (
     <PageChrome>
-      <section className="border-b border-border bg-gradient-to-br from-background via-cambridge-blue/5 to-background">
-        <div className="container mx-auto grid gap-8 px-6 py-16 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="max-w-3xl space-y-6">
-            <p className="text-sm uppercase tracking-[0.22em] text-cambridge-blue">
-              Privacy
-            </p>
-            <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
-              Privasi perlu dijelaskan dengan bahasa yang bisa dipahami manusia.
+      <section className="bg-background">
+        <div className="container mx-auto max-w-4xl px-6 py-12">
+          <div className="mb-8 space-y-2">
+            <h1 className="text-3xl font-bold text-foreground">
+              Kebijakan Privasi
             </h1>
-            <p className="text-lg leading-8 text-muted-foreground">
-              Halaman ini adalah ringkasan prinsip, bukan dokumen legal yang
-              sengaja dibuat sulit dibaca. Tujuannya memberi kejelasan lebih dulu.
-            </p>
-          </div>
-
-          <div className="rounded-[2rem] border border-border bg-card p-6">
-            <Orbit className="mb-4 h-7 w-7 text-cambridge-blue" />
-            <h2 className="mb-3 text-xl font-semibold text-foreground">
-              Prinsip dasarnya sederhana.
+            <h2 className="text-lg font-semibold text-muted-foreground">
+              ALGOSAHAM.AI
             </h2>
-            <p className="text-sm leading-7 text-muted-foreground">
-              Data dipakai untuk menjalankan produk, menjaga akses, dan memahami
-              area yang perlu diperbaiki. Jika melampaui itu, harus ada alasan yang jelas.
+            <p className="text-sm text-muted-foreground">
+              Platform Analisis &amp; Trading Saham
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Terakhir diperbarui: 23 Februari 2026
             </p>
           </div>
-        </div>
-      </section>
 
-      <section>
-        <div className="container mx-auto px-6 py-12">
-          <div className="grid gap-6 md:grid-cols-2">
-            {principles.map((principle) => (
-              <div
-                key={principle.title}
-                className="rounded-[2rem] border border-border bg-card p-6"
-              >
-                <principle.icon className="mb-4 h-6 w-6 text-cambridge-blue" />
-                <h2 className="mb-3 text-2xl font-semibold text-foreground">
-                  {principle.title}
-                </h2>
-                <p className="text-base leading-7 text-muted-foreground">
-                  {principle.body}
-                </p>
+          <div className="space-y-6 text-foreground/90">
+            <p>
+              Algosaham.ai berkomitmen untuk melindungi Data Pribadi pengguna
+              sesuai dengan Undang-Undang Nomor 27 Tahun 2022 tentang
+              Perlindungan Data Pribadi (UU PDP). Kebijakan Privasi ini
+              menjelaskan bagaimana kami mengelola Data Pribadi Anda saat
+              menggunakan layanan kami.
+            </p>
+
+            <section className="space-y-3">
+              <h3 className="text-lg font-semibold text-foreground">
+                1. Data Pribadi yang Kami Kumpulkan
+              </h3>
+              <p>Kami dapat mengumpulkan Data Pribadi berikut:</p>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-foreground">
+                    Data yang dikumpulkan secara otomatis
+                  </h4>
+                  <ul className="list-disc space-y-1 pl-6">
+                    <li>Alamat IP, informasi perangkat, data log, email, dan nomor HP</li>
+                    <li>Aktivitas penggunaan platform (halaman, fitur, waktu akses)</li>
+                    <li>Cookies dan teknologi pelacakan serupa</li>
+                  </ul>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-foreground">
+                    Data yang Anda berikan
+                  </h4>
+                  <ul className="list-disc space-y-1 pl-6">
+                    <li>Nama dan alamat email</li>
+                    <li>Pesan atau komunikasi melalui formulir kontak</li>
+                    <li>Data pencarian saham, ticker, dan parameter analisis</li>
+                  </ul>
+                </div>
               </div>
-            ))}
-          </div>
+              <p>
+                Kami tidak mengumpulkan data keuangan pribadi atau kredensial
+                broker Anda.
+              </p>
+            </section>
 
-          <div className="mt-8 rounded-[2rem] border border-border bg-secondary/30 p-6">
-            <h2 className="mb-3 text-xl font-semibold text-foreground">
-              Butuh konteks legal yang lebih lengkap?
-            </h2>
-            <p className="mb-5 max-w-2xl text-sm leading-7 text-muted-foreground">
-              Halaman syarat dan ketentuan tetap menjadi referensi formal yang
-              paling dekat saat ini. Jika ada pertanyaan spesifik tentang data,
-              hubungi tim agar penjelasannya tidak berhenti di asumsi.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/syarat-ketentuan"
-                className="rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90"
-              >
-                Lihat syarat
-              </Link>
-              <Link
-                href="/contact"
-                className="rounded-full border border-border px-5 py-3 text-sm font-medium text-foreground transition-colors hover:border-cambridge-blue/30 hover:text-cambridge-blue"
-              >
-                Tanyakan ke tim
-              </Link>
-            </div>
+            <section className="space-y-3">
+              <h3 className="text-lg font-semibold text-foreground">
+                2. Tujuan dan Dasar Pemrosesan Data
+              </h3>
+              <p>
+                Data Pribadi diproses berdasarkan persetujuan Anda, kepentingan
+                sah, dan kewajiban hukum untuk:
+              </p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Menyediakan layanan analisis dan simulasi trading</li>
+                <li>Menjaga keamanan, stabilitas, dan performa platform</li>
+                <li>Memberikan dukungan pengguna dan komunikasi layanan</li>
+                <li>Mengembangkan fitur dan meningkatkan pengalaman pengguna</li>
+                <li>Mematuhi ketentuan hukum dan regulasi yang berlaku</li>
+              </ul>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-lg font-semibold text-foreground">
+                3. Cookies dan Teknologi Pelacakan
+              </h3>
+              <p>Kami menggunakan cookies untuk:</p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Menjalankan fungsi dasar platform</li>
+                <li>Menganalisis penggunaan dan performa sistem</li>
+                <li>Menyimpan preferensi pengguna</li>
+              </ul>
+              <p>
+                Anda dapat mengelola preferensi cookies melalui pengaturan
+                browser atau banner persetujuan cookies.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-lg font-semibold text-foreground">
+                4. Keamanan dan Penyimpanan Data
+              </h3>
+              <p>
+                Kami menerapkan langkah-langkah keamanan teknis dan organisasi
+                yang wajar untuk melindungi Data Pribadi Anda.
+              </p>
+              <p>
+                Data disimpan hanya selama diperlukan untuk tujuan pemrosesan
+                atau sesuai ketentuan hukum, dan akan dihapus atau dianonimkan
+                setelahnya.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-lg font-semibold text-foreground">
+                5. Hak Pengguna
+              </h3>
+              <p>Sesuai UU PDP, Anda berhak untuk:</p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Mengakses dan memperbarui Data Pribadi</li>
+                <li>Menarik persetujuan pemrosesan</li>
+                <li>Meminta penghapusan Data Pribadi tertentu</li>
+                <li>Mengajukan keberatan atas pemrosesan Data Pribadi</li>
+                <li>Permintaan dapat diajukan melalui kontak resmi kami.</li>
+              </ul>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-lg font-semibold text-foreground">
+                6. Pengungkapan kepada Pihak Ketiga
+              </h3>
+              <p>Kami tidak menjual Data Pribadi Anda.</p>
+              <p>
+                Data hanya dapat dibagikan kepada mitra pendukung operasional
+                platform dengan kewajiban perlindungan data sesuai UU PDP.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-lg font-semibold text-foreground">
+                7. Perubahan Kebijakan
+              </h3>
+              <p>
+                Kebijakan Privasi ini dapat diperbarui dari waktu ke waktu.
+                Penggunaan layanan secara berkelanjutan dianggap sebagai
+                persetujuan atas kebijakan yang diperbarui.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-lg font-semibold text-foreground">
+                8. Kontak Pengendali Data
+              </h3>
+              <p>
+                Untuk pertanyaan atau permintaan terkait Data Pribadi, silakan
+                hubungi:
+              </p>
+              <p>Email: algosaham.ai@gmail.com</p>
+              <p>Subjek: Kebijakan Privasi / Data Pribadi</p>
+            </section>
           </div>
         </div>
       </section>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useState, useMemo } from "react"
 import { Lock, ArrowUpRight } from "lucide-react"
 import Link from "next/link"
+import { useUser, useClerk } from "@clerk/nextjs"
 import { Strategy } from "./types"
 import { generateSparklineData, generateHeatmapData } from "./utils"
 import {
@@ -14,16 +15,11 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"
-import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
 } from "@/components/ui/dialog"
 
 // Bandar tier colors — consistent with navbar
@@ -49,8 +45,10 @@ interface ShowcaseStrategyCardProps {
 
 export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSubscribed = false, isLoading = false, userTier = 'ritel' }: ShowcaseStrategyCardProps) {
     const [hoveredBar, setHoveredBar] = useState<number | null>(null)
-    const [isPopoverOpen, setIsPopoverOpen] = useState(false)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+    const { isSignedIn, isLoaded } = useUser()
+    const { openSignIn } = useClerk()
 
     // Memoize the data so it doesn't regenerate on hover
     const sparklineData = useMemo(() => generateSparklineData(strategy.totalReturn), [strategy.totalReturn])
@@ -285,45 +283,6 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
         </Card>
     )
 
-    const popoverContent = (
-        <PopoverContent
-            side="bottom"
-            className="w-[260px] p-4 z-50 pointer-events-auto"
-            onClick={(e) => e.stopPropagation()}
-            onMouseEnter={() => setIsPopoverOpen(true)}
-            onMouseLeave={() => setIsPopoverOpen(false)}
-        >
-            <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                    <div
-                        className="flex h-6 w-6 items-center justify-center rounded-md border"
-                        style={{
-                            background: BANDAR_COLORS.badgeBg,
-                            borderColor: BANDAR_COLORS.badgeBorder,
-                            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.28)",
-                        }}
-                    >
-                        <span className="text-xs font-semibold" style={{ color: BANDAR_COLORS.badgeText }}>B</span>
-                    </div>
-                    <span className="text-sm font-semibold text-foreground">Bandar Exclusive</span>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                    Strategi showcase eksklusif ini hanya tersedia untuk pengguna <strong className="text-foreground">Bandar Plan</strong>. Upgrade sekarang untuk akses penuh.
-                </p>
-                <Link href="/harga">
-                    <Button
-                        size="sm"
-                        className="w-full text-white font-medium transition-colors group"
-                        style={{ backgroundColor: BANDAR_COLORS.button }}
-                    >
-                        Upgrade Plan
-                        <ArrowUpRight className="w-3.5 h-3.5 ml-1.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                    </Button>
-                </Link>
-            </div>
-        </PopoverContent>
-    )
-
     const dialogContent = (
         <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
@@ -337,15 +296,15 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
                 >
                     <span className="text-lg font-semibold" style={{ color: BANDAR_COLORS.badgeText }}>B</span>
                 </div>
-                <DialogTitle className="text-center text-xl font-bold font-ibm-plex-mono">Akses Eksklusif Bandar</DialogTitle>
+                <DialogTitle className="text-center text-xl font-bold font-ibm-plex-mono">Bandar Exclusive</DialogTitle>
                 <DialogDescription className="text-center pt-2 text-muted-foreground">
-                    Strategi pada The Master Vault ini merupakan fitur premium yang dikurasi khusus untuk pengguna <strong>Bandar Plan</strong>. Masing-masing strategi disempurnakan oleh tim ahli kami. Upgrade ke paket Bandar untuk mendapat performa terbaik.
+                    Strategi showcase eksklusif ini hanya tersedia untuk pengguna <strong>Bandar Plan</strong>. Upgrade sekarang untuk akses penuh.
                 </DialogDescription>
             </DialogHeader>
             <div className="flex justify-center mt-2 pb-2">
                 <Link href="/harga" className="w-full">
                     <Button className="w-full text-white transition-colors font-semibold" style={{ backgroundColor: BANDAR_COLORS.button }}>
-                        Upgrade ke Bandar
+                        Upgrade Plan
                         <ArrowUpRight className="w-4 h-4 ml-2" />
                     </Button>
                 </Link>
@@ -356,24 +315,24 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
     if (!isBandarUser) {
         return (
             <>
-                <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                    <div
-                        onMouseEnter={() => setIsPopoverOpen(true)}
-                        onMouseLeave={() => setIsPopoverOpen(false)}
-                        onClickCapture={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setIsPopoverOpen(false)
-                            setIsDialogOpen(true)
-                        }}
-                        className="inline-block"
-                    >
-                        <PopoverTrigger asChild>
-                            <div>{cardContent}</div>
-                        </PopoverTrigger>
-                    </div>
-                    {popoverContent}
-                </Popover>
+                <div
+                    className="inline-block"
+                    onClickCapture={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+
+                        if (!isLoaded) return
+
+                        if (!isSignedIn) {
+                            openSignIn()
+                            return
+                        }
+
+                        setIsDialogOpen(true)
+                    }}
+                >
+                    <div>{cardContent}</div>
+                </div>
 
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     {dialogContent}

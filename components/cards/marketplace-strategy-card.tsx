@@ -201,12 +201,12 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                         }}
                         disabled={isLoading}
                         size="sm"
+                        variant="outline"
                         className={
                             isSubscribed
-                                ? "w-full text-white text-xs hover:opacity-90"
-                                : "w-full bg-primary hover:bg-primary/90 text-xs"
+                                ? "w-full border-[#d07225] bg-[#d07225] text-white text-xs hover:bg-[#b8641f] hover:text-white"
+                                : "w-full border-[#d07225]/60 bg-[#fbf1e8] text-[#9a541d] text-xs hover:border-[#d07225] hover:bg-[#f6e2d2] hover:text-[#7c4316]"
                         }
-                        style={isSubscribed ? { backgroundColor: '#487b78' } : undefined}
                     >
                         {isLoading ? (
                             "Loading..."
