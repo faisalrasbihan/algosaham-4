@@ -69,8 +69,6 @@ export function AdvancedMultiChart({ data: _data, symbol = "BBCA" }: AdvancedMul
                     withdateranges: true,
                     container_id: tradingViewContainerId.current,
                     studies: [
-                        "MASimple@tv-basicstudies",
-                        "MASimple@tv-basicstudies",
                         "RSI@tv-basicstudies",
                         "MACD@tv-basicstudies",
                     ],

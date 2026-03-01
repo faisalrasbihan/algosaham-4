@@ -52,14 +52,14 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
               <h1 className="mb-3 text-3xl font-bold tracking-tight text-balance font-ibm-plex-mono md:text-4xl">
                 analisa saham indonesia
               </h1>
-              <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground font-mono md:text-base">
+              <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
                 Masukkan kode saham untuk melihat analisis teknikal dan fundamental.
               </p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-6 w-full transition-all">
-            <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
+            <div className={`flex flex-col gap-3 md:items-stretch ${loading ? "items-center md:justify-center" : "md:flex-row"}`}>
               {!loading && (
                 <div className="relative flex-1 transition-all duration-500">
                   <Input
@@ -77,7 +77,7 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
                 size="lg"
                 disabled={loading || !ticker.trim()}
                 className={`h-13 text-base transition-all duration-500 disabled:cursor-not-allowed disabled:opacity-100 md:h-14 ${loading
-                  ? "w-full rounded-xl border border-border bg-secondary px-6 text-muted-foreground md:w-auto md:min-w-[320px]"
+                  ? "mx-auto w-full rounded-xl border border-border bg-secondary px-6 text-muted-foreground md:w-auto md:min-w-[320px]"
                   : "rounded-xl bg-primary px-7 text-white shadow-sm hover:bg-primary/90 md:min-w-[220px] md:px-8"
                   }`}
               >

@@ -6,6 +6,11 @@ let cachedTickers: { value: string; label: string; sector: string; marketCap: nu
 let cacheTimestamp = 0;
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
+type TickerRow = {
+  stock_code: string;
+  stock_name: string | null;
+};
+
 export async function GET() {
   try {
     const now = Date.now();
@@ -15,16 +20,18 @@ export async function GET() {
       return NextResponse.json({ tickers: cachedTickers });
     }
 
-    // dim_stock is empty in this DB — pull distinct tickers from fact_stock_daily
-    const result = await genkiClient`
-      SELECT DISTINCT stock_code
-      FROM fact_stock_daily
+    const result = await genkiClient<TickerRow[]>`
+      SELECT DISTINCT stock_code, stock_name
+      FROM core.screener
+      WHERE stock_code IS NOT NULL
       ORDER BY stock_code ASC
     `;
 
     const tickers = result.map((row) => ({
       value: row.stock_code,
-      label: row.stock_code,
+      label: row.stock_name?.trim()
+        ? `${row.stock_code} - ${row.stock_name.trim()}`
+        : row.stock_code,
       sector: "Unknown",
       marketCap: 0,
     }));

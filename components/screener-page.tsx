@@ -44,6 +44,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import type { BacktestRequest } from "@/lib/api"
+import {
+  technicalIndicatorCategories,
+  technicalIndicatorNameToApiType,
+  technicalIndicatorNameToKey,
+} from "@/lib/technical-indicators"
 import { useClerk, useUser } from "@clerk/nextjs"
 
 type ScreenerRow = {
@@ -82,7 +87,13 @@ type SavedAlert = AlertDraft & {
 }
 
 type RuleCategory = "technical" | "fundamental"
-type RuleMode = "range" | "select"
+type RuleMode = "range" | "select" | "params"
+
+type FilterOption = { label: string; value: string }
+type FilterParamDefinition = {
+  label: string
+  options?: FilterOption[]
+}
 
 type FilterDefinition = {
   label: string
@@ -90,16 +101,27 @@ type FilterDefinition = {
   mode: RuleMode
   description: string
   defaultParams: Record<string, string>
-  options?: { label: string; value: string }[]
+  options?: FilterOption[]
+  paramDefinitions?: Record<string, FilterParamDefinition>
+  groupLabel?: string
+  apiType?: string
 }
 
-const FILTER_LIBRARY = {
+function formatParamLabel(paramKey: string) {
+  return paramKey
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/Pct/g, " %")
+    .replace(/^./, (value) => value.toUpperCase())
+}
+
+const QUICK_FILTER_LIBRARY: Record<string, FilterDefinition> = {
   changePct: {
     label: "Chg.",
     category: "technical",
     mode: "range",
     description: "Perubahan harga harian.",
     defaultParams: { min: "0", max: "" },
+    groupLabel: "Screener Metrics",
   },
   monthChangePct: {
     label: "1M Chg",
@@ -107,6 +129,7 @@ const FILTER_LIBRARY = {
     mode: "range",
     description: "Performa satu bulan.",
     defaultParams: { min: "0", max: "" },
+    groupLabel: "Screener Metrics",
   },
   ytdChangePct: {
     label: "1Y Chg",
@@ -114,6 +137,7 @@ const FILTER_LIBRARY = {
     mode: "range",
     description: "Performa satu tahun berjalan.",
     defaultParams: { min: "0", max: "" },
+    groupLabel: "Screener Metrics",
   },
   rsi: {
     label: "RSI",
@@ -121,6 +145,7 @@ const FILTER_LIBRARY = {
     mode: "range",
     description: "Momentum oscillator.",
     defaultParams: { min: "40", max: "70" },
+    groupLabel: "Screener Metrics",
   },
   ma20GapPct: {
     label: "MA-20",
@@ -128,6 +153,7 @@ const FILTER_LIBRARY = {
     mode: "range",
     description: "Jarak harga terhadap MA-20.",
     defaultParams: { min: "0", max: "" },
+    groupLabel: "Screener Metrics",
   },
   ma5GapPct: {
     label: "MA-5",
@@ -135,6 +161,7 @@ const FILTER_LIBRARY = {
     mode: "range",
     description: "Jarak harga terhadap MA-5.",
     defaultParams: { min: "0", max: "" },
+    groupLabel: "Screener Metrics",
   },
   trend: {
     label: "Trend",
@@ -147,6 +174,7 @@ const FILTER_LIBRARY = {
       { label: "Sideways", value: "sideways" },
       { label: "Downtrend", value: "downtrend" },
     ],
+    groupLabel: "Screener Metrics",
   },
   technicalScore: {
     label: "Technical Score",
@@ -154,6 +182,7 @@ const FILTER_LIBRARY = {
     mode: "range",
     description: "Skor teknikal internal.",
     defaultParams: { min: "70", max: "" },
+    groupLabel: "Screener Metrics",
   },
   pe: {
     label: "PE",
@@ -202,9 +231,84 @@ const FILTER_LIBRARY = {
     description: "Skor fundamental internal.",
     defaultParams: { min: "70", max: "" },
   },
-} satisfies Record<string, FilterDefinition>
+}
+
+const technicalParamOptions: Record<string, Record<string, FilterOption[]>> = {
+  [technicalIndicatorNameToKey("Foreign Flow")]: {
+    flowType: [
+      { label: "Accumulation", value: "accumulation" },
+      { label: "Distribution", value: "distribution" },
+    ],
+  },
+  [technicalIndicatorNameToKey("Volatility Regime")]: {
+    mode: [
+      { label: "Both", value: "BOTH" },
+      { label: "Low", value: "LOW" },
+      { label: "High", value: "HIGH" },
+    ],
+  },
+  [technicalIndicatorNameToKey("Calendar Effect")]: {
+    mode: [
+      { label: "Month End", value: "MONTH_END" },
+      { label: "Month Start", value: "MONTH_START" },
+      { label: "Turn Of Month", value: "TURN_OF_MONTH" },
+    ],
+  },
+}
+
+const importedTechnicalFilterLibrary: Record<string, FilterDefinition> = Object.fromEntries(
+  technicalIndicatorCategories.flatMap((category) =>
+    category.indicators.map((indicator) => {
+      const key = technicalIndicatorNameToKey(indicator.name)
+      return [
+        key,
+        {
+          label: indicator.name,
+          category: "technical",
+          mode: "params",
+          description: indicator.description,
+          defaultParams: Object.fromEntries(
+            Object.entries(indicator.params).map(([paramKey, value]) => [paramKey, String(value)]),
+          ),
+          paramDefinitions: Object.fromEntries(
+            Object.keys(indicator.params).map((paramKey) => [
+              paramKey,
+              {
+                label: formatParamLabel(paramKey),
+                options: technicalParamOptions[key]?.[paramKey],
+              },
+            ]),
+          ),
+          groupLabel: category.name,
+          apiType: technicalIndicatorNameToApiType(indicator.name),
+        } as FilterDefinition,
+      ]
+    }),
+  ),
+)
+
+const FILTER_LIBRARY: Record<string, FilterDefinition> = {
+  ...QUICK_FILTER_LIBRARY,
+  ...importedTechnicalFilterLibrary,
+}
 
 type FilterKey = keyof typeof FILTER_LIBRARY
+
+const technicalFilterGroups = Array.from(
+  (Object.entries(FILTER_LIBRARY) as [FilterKey, FilterDefinition][])
+    .filter(([, definition]) => definition.category === "technical")
+    .reduce((groups, [key, definition]) => {
+      const groupLabel = definition.groupLabel ?? "Technical"
+      const existing = groups.get(groupLabel)
+      if (existing) {
+        existing.push([key, definition])
+      } else {
+        groups.set(groupLabel, [[key, definition]])
+      }
+      return groups
+    }, new Map<string, [FilterKey, FilterDefinition][]>())
+    .entries(),
+).map(([groupLabel, entries]) => ({ groupLabel, entries }))
 
 type ScreenerRule = {
   id: string
@@ -345,6 +449,22 @@ function parseOptionalNumber(value: string | undefined) {
   return Number.isFinite(parsed) ? parsed : undefined
 }
 
+function parseRuleParamValue(value: string | undefined) {
+  if (value === undefined) return undefined
+  const trimmed = value.trim()
+  if (trimmed === "") return undefined
+  const parsed = Number(trimmed)
+  return Number.isFinite(parsed) ? parsed : trimmed
+}
+
+function getConfiguredRuleParams(params: Record<string, string>) {
+  return Object.fromEntries(
+    Object.entries(params)
+      .map(([paramKey, value]) => [paramKey, parseRuleParamValue(value)] as const)
+      .filter(([, value]) => value !== undefined),
+  )
+}
+
 function getRuleNumericValue(row: ScreenerRow, key: FilterKey) {
   switch (key) {
     case "ma5GapPct":
@@ -360,6 +480,8 @@ function getRuleNumericValue(row: ScreenerRow, key: FilterKey) {
 
 function matchesRule(row: ScreenerRow, rule: ScreenerRule) {
   const definition = FILTER_LIBRARY[rule.key]
+
+  if (definition.mode === "params") return true
 
   if (definition.mode === "range") {
     const value = getRuleNumericValue(row, rule.key)
@@ -386,6 +508,11 @@ function matchesRule(row: ScreenerRow, rule: ScreenerRule) {
 
 function formatRuleSummary(rule: ScreenerRule) {
   const definition = FILTER_LIBRARY[rule.key]
+
+  if (definition.mode === "params") {
+    const configuredCount = Object.values(rule.params).filter((value) => value.trim() !== "").length
+    return configuredCount > 0 ? `${definition.label} (${configuredCount})` : definition.label
+  }
 
   if (definition.mode === "select") {
     const selected = definition.options?.find((option) => option.value === rule.params.value)?.label ?? rule.params.value
@@ -448,6 +575,7 @@ export function ScreenerPage() {
   const [strategyName, setStrategyName] = useState("")
   const [strategyDescription, setStrategyDescription] = useState("")
   const [savingStrategy, setSavingStrategy] = useState(false)
+  const [indicatorSearch, setIndicatorSearch] = useState("")
 
   useEffect(() => {
     const storedRadar = window.localStorage.getItem("algosaham-screener-radar")
@@ -504,6 +632,24 @@ export function ScreenerPage() {
   }, [columnTemplate])
 
   const sectors = Array.from(new Set(SCREENER_ROWS.map((row) => row.sector))).sort()
+  const normalizedIndicatorSearch = indicatorSearch.trim().toLowerCase()
+  const filteredTechnicalFilterGroups = technicalFilterGroups
+    .map(({ groupLabel, entries }) => ({
+      groupLabel,
+      entries: entries.filter(([, definition]) =>
+        !normalizedIndicatorSearch ||
+        definition.label.toLowerCase().includes(normalizedIndicatorSearch) ||
+        definition.description.toLowerCase().includes(normalizedIndicatorSearch),
+      ),
+    }))
+    .filter((group) => group.entries.length > 0)
+  const filteredFundamentalFilters = (Object.entries(FILTER_LIBRARY) as [FilterKey, FilterDefinition][])
+    .filter(([, definition]) => definition.category === "fundamental")
+    .filter(([, definition]) =>
+      !normalizedIndicatorSearch ||
+      definition.label.toLowerCase().includes(normalizedIndicatorSearch) ||
+      definition.description.toLowerCase().includes(normalizedIndicatorSearch),
+    )
 
   const filteredRows = SCREENER_ROWS.filter((row) => {
     const matchesSearch = !search || row.ticker.toLowerCase().includes(search.toLowerCase()) || row.company.toLowerCase().includes(search.toLowerCase())
@@ -622,6 +768,15 @@ export function ScreenerPage() {
       technicalIndicators: activeRules
         .filter((rule) => rule.category === "technical")
         .map((rule) => {
+          const definition = FILTER_LIBRARY[rule.key]
+
+          if (definition.mode === "params") {
+            return {
+              type: definition.apiType ?? technicalIndicatorNameToApiType(definition.label),
+              ...getConfiguredRuleParams(rule.params),
+            }
+          }
+
           switch (rule.key) {
             case "rsi":
               return { type: "RSI", oversold: parseOptionalNumber(rule.params.min), overbought: parseOptionalNumber(rule.params.max) }
@@ -928,7 +1083,7 @@ export function ScreenerPage() {
                 </Badge>
                 <div>
                   <h1 className="text-3xl sm:text-4xl font-bold font-ibm-plex-mono tracking-tight text-balance">pantau semua saham dalam satu radar</h1>
-                  <p className="mt-2 text-sm sm:text-base text-muted-foreground font-mono max-w-2xl">
+                  <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
                     Filter, urutkan, dan tandai saham berdasarkan data fundamental dan teknikal. Alert disimpan lokal untuk versi awal halaman ini.
                   </p>
                 </div>
@@ -984,15 +1139,53 @@ export function ScreenerPage() {
                       Indicator
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-72">
+                  <DropdownMenuContent align="start" className="w-80 max-h-[32rem] overflow-y-auto">
                     <DropdownMenuLabel>Tambah filter screener</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                      Technical
-                    </DropdownMenuLabel>
-                    {(Object.entries(FILTER_LIBRARY) as [FilterKey, FilterDefinition][])
-                      .filter(([, definition]) => definition.category === "technical")
-                      .map(([key, definition]) => {
+                    <div className="px-2 pb-2">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={indicatorSearch}
+                          onChange={(event) => setIndicatorSearch(event.target.value)}
+                          placeholder="Cari indicator..."
+                          className="h-9 border-border/70 bg-background pl-8 text-sm"
+                        />
+                      </div>
+                    </div>
+                    {filteredTechnicalFilterGroups.map(({ groupLabel, entries }) => (
+                      <div key={groupLabel}>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                          {groupLabel}
+                        </DropdownMenuLabel>
+                        {entries.map(([key, definition]) => {
+                          const alreadyActive = activeRules.some((rule) => rule.key === key)
+                          return (
+                            <DropdownMenuItem
+                              key={key}
+                              disabled={alreadyActive}
+                              onClick={() => addRule(key)}
+                              className="flex items-start justify-between gap-3 py-2"
+                            >
+                              <div>
+                                <div className="text-sm font-medium">{definition.label}</div>
+                                <div className="text-xs text-muted-foreground">{definition.description}</div>
+                              </div>
+                              <Plus className="h-3.5 w-3.5 self-center text-muted-foreground" />
+                            </DropdownMenuItem>
+                          )
+                        })}
+                      </div>
+                    ))}
+                    {filteredFundamentalFilters.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                          Fundamental
+                        </DropdownMenuLabel>
+                      </>
+                    )}
+                    {filteredFundamentalFilters.map(([key, definition]) => {
                         const alreadyActive = activeRules.some((rule) => rule.key === key)
                         return (
                           <DropdownMenuItem
@@ -1005,33 +1198,15 @@ export function ScreenerPage() {
                               <div className="text-sm font-medium">{definition.label}</div>
                               <div className="text-xs text-muted-foreground">{definition.description}</div>
                             </div>
-                            <Plus className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
+                            <Plus className="h-3.5 w-3.5 self-center text-muted-foreground" />
                           </DropdownMenuItem>
                         )
                       })}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                      Fundamental
-                    </DropdownMenuLabel>
-                    {(Object.entries(FILTER_LIBRARY) as [FilterKey, FilterDefinition][])
-                      .filter(([, definition]) => definition.category === "fundamental")
-                      .map(([key, definition]) => {
-                        const alreadyActive = activeRules.some((rule) => rule.key === key)
-                        return (
-                          <DropdownMenuItem
-                            key={key}
-                            disabled={alreadyActive}
-                            onClick={() => addRule(key)}
-                            className="flex items-start justify-between gap-3 py-2"
-                          >
-                            <div>
-                              <div className="text-sm font-medium">{definition.label}</div>
-                              <div className="text-xs text-muted-foreground">{definition.description}</div>
-                            </div>
-                            <Plus className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
-                          </DropdownMenuItem>
-                        )
-                      })}
+                    {filteredTechnicalFilterGroups.length === 0 && filteredFundamentalFilters.length === 0 && (
+                      <div className="px-3 py-6 text-sm text-muted-foreground">
+                        Tidak ada indicator yang cocok.
+                      </div>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
 
@@ -1044,6 +1219,8 @@ export function ScreenerPage() {
                     activeRules.map((rule) => {
                       const definition = FILTER_LIBRARY[rule.key]
                       const isRange = definition.mode === "range"
+                      const isSelect = definition.mode === "select"
+                      const paramEntries = Object.entries(definition.paramDefinitions ?? {}) as [string, FilterParamDefinition][]
 
                       return (
                         <Popover
@@ -1099,7 +1276,7 @@ export function ScreenerPage() {
                                   />
                                 </div>
                               </div>
-                            ) : (
+                            ) : isSelect ? (
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-muted-foreground">Value</label>
                                 <Select
@@ -1117,6 +1294,44 @@ export function ScreenerPage() {
                                     ))}
                                   </SelectContent>
                                 </Select>
+                              </div>
+                            ) : paramEntries.length > 0 ? (
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                {paramEntries.map(([paramKey, paramDefinition]) => (
+                                  <div key={paramKey} className="space-y-2">
+                                    <label className="text-xs font-medium text-muted-foreground">
+                                      {paramDefinition.label}
+                                    </label>
+                                    {paramDefinition.options ? (
+                                      <Select
+                                        value={rule.params[paramKey] ?? ""}
+                                        onValueChange={(value) => updateRuleParam(rule.id, paramKey, value)}
+                                      >
+                                        <SelectTrigger className="h-9 bg-background font-ibm-plex-mono text-sm">
+                                          <SelectValue placeholder={`Pilih ${paramDefinition.label}`} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {paramDefinition.options.map((option) => (
+                                            <SelectItem key={option.value} value={option.value}>
+                                              {option.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    ) : (
+                                      <Input
+                                        value={rule.params[paramKey] ?? ""}
+                                        onChange={(event) => updateRuleParam(rule.id, paramKey, event.target.value)}
+                                        className="h-9 bg-background font-ibm-plex-mono text-sm"
+                                        placeholder="Kosongkan"
+                                      />
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-xs text-muted-foreground">
+                                Indicator ini tidak memiliki parameter tambahan.
                               </div>
                             )}
                           </PopoverContent>
