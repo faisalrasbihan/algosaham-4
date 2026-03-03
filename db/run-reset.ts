@@ -16,14 +16,14 @@ envContent.split('\n').forEach(line => {
     }
 });
 
-if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is not set');
+if (!process.env.FRONTEND_DB_URL) {
+    throw new Error('FRONTEND_DB_URL is not set');
 }
 
 async function resetDatabase() {
     console.log('🔄 Starting database reset...\n');
 
-    const sql = postgres(process.env.DATABASE_URL!, {
+    const sql = postgres(process.env.FRONTEND_DB_URL!, {
         ssl: 'require',
         max: 1,
     });

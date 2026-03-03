@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Bell, BellPlus, ArrowUpDown, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save } from "lucide-react"
+import { Bell, BellPlus, ArrowUpDown, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Sparkles, Check } from "lucide-react"
+import { toast } from "sonner"
 
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -52,26 +53,70 @@ import {
 import { useClerk, useUser } from "@clerk/nextjs"
 
 type ScreenerRow = {
-  ticker: string
-  company: string
-  sector: string
-  marketCapGroup: "Large" | "Mid" | "Small"
-  syariah: boolean
-  price: number
-  changePct: number
-  monthChangePct: number
-  ytdChangePct: number
-  technicalScore: number
-  fundamentalScore: number
-  trend: "uptrend" | "sideways" | "downtrend"
-  valuation: "value" | "fair" | "premium"
-  rsi: number
-  ma20GapPct: number
-  ma50GapPct: number
-  pe: number
-  pbv: number
-  roe: number
-  epsGrowth: number
+  stockCode: string
+  open: number | null
+  high: number | null
+  low: number | null
+  close: number | null
+  volume: number | null
+  freq: number | null
+  valuasi: number | null
+  nbsa: number | null
+  prevClose: number | null
+  gapPct: number | null
+  prevDailyValue: number | null
+  isValidOhlcv: boolean
+  isZeroOhlc: boolean
+  month: number | null
+  sector: string | null
+  assets: number | null
+  liabilities: number | null
+  equity: number | null
+  sales: number | null
+  ebt: number | null
+  profit: number | null
+  profitAttributable: number | null
+  bookValue: number | null
+  eps: number | null
+  peRatio: number | null
+  pbv: number | null
+  der: number | null
+  roa: number | null
+  roe: number | null
+  npm: number | null
+  financialDate: string | null
+  marketCap: number | null
+  marketCapGroup: string | null
+  isSyariah: boolean
+  sma20: number | null
+  sma50: number | null
+  volumeSma20: number | null
+  valueSma20: number | null
+  nbsa5d: number | null
+  value5d: number | null
+  nbsaRatio5d: number | null
+  changeD1Pct: number | null
+  change5DPct: number | null
+  change1MPct: number | null
+  change1YPct: number | null
+}
+
+type ScreenerApiResponse = {
+  screeningId: string
+  latestDate: string | null
+  rows: ScreenerRow[]
+  summary: {
+    totalSignals: number
+    uniqueStocks: number
+    byDay: Record<string, number>
+    stocksScanned: number
+    passedFilters: number
+    passedFundamentals: number
+  }
+  dateRange: {
+    from?: string
+    to?: string
+  } | null
 }
 
 type AlertDraft = {
@@ -106,6 +151,143 @@ type FilterDefinition = {
   groupLabel?: string
   apiType?: string
 }
+
+type PresetIndicatorConfig = {
+  type: string
+  [key: string]: string | number | boolean | undefined
+}
+
+type ScreenerPreset = {
+  id: string
+  name: string
+  group: string
+  summary: string
+  config: {
+    screeningId: string
+    fundamentalIndicators: PresetIndicatorConfig[]
+    technicalIndicators: PresetIndicatorConfig[]
+    filters?: {
+      marketCap?: string[]
+      sectors?: string[]
+      syariah?: boolean
+    }
+  }
+}
+
+type ColumnKind = "currency" | "number" | "percent" | "text" | "boolean" | "date"
+
+type ColumnConfig = {
+  id: Exclude<ColumnId, "action">
+  label: string
+  kind: ColumnKind
+  sortable?: boolean
+  headClassName?: string
+  cellClassName?: string
+}
+
+type SortKey = keyof ScreenerRow
+
+const COLUMN_LABELS = {
+  stockCode: "Saham",
+  open: "Open",
+  high: "High",
+  low: "Low",
+  close: "Harga",
+  changeD1Pct: "1D Chg",
+  change5DPct: "5D Chg",
+  change1MPct: "1M Chg",
+  change1YPct: "1Y Chg",
+  freq: "Freq",
+  valuasi: "Mkt Cap",
+  nbsa: "NBSA",
+  prevClose: "Prev Close",
+  gapPct: "Gap %",
+  prevDailyValue: "Prev Value",
+  isValidOhlcv: "Valid OHLCV",
+  isZeroOhlc: "Zero OHLC",
+  month: "Month",
+  assets: "Assets",
+  liabilities: "Liabilities",
+  equity: "Equity",
+  sales: "Sales",
+  ebt: "EBT",
+  profit: "Profit",
+  profitAttributable: "Profit Attr.",
+  bookValue: "Book Value",
+  eps: "EPS",
+  peRatio: "PE",
+  pbv: "PBV",
+  der: "DER",
+  roa: "ROA",
+  roe: "ROE",
+  npm: "NPM",
+  financialDate: "Financial Date",
+  marketCap: "Market Cap",
+  sma20: "SMA 20",
+  sma50: "SMA 50",
+  volumeSma20: "Vol SMA 20",
+  valueSma20: "Value SMA 20",
+  nbsa5d: "NBSA 5D",
+  value5d: "Value 5D",
+  nbsaRatio5d: "NBSA Ratio 5D",
+  action: "Action",
+} as const
+
+type ColumnId = keyof typeof COLUMN_LABELS
+
+const COLUMN_CONFIGS: ColumnConfig[] = [
+  { id: "changeD1Pct", label: "1D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "change5DPct", label: "5D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "change1MPct", label: "1M Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "change1YPct", label: "1Y Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "close", label: "Harga", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "open", label: "Open", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "high", label: "High", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "low", label: "Low", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "freq", label: "Freq", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "valuasi", label: "Mkt Cap", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "nbsa", label: "NBSA", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "prevClose", label: "Prev Close", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "gapPct", label: "Gap %", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "prevDailyValue", label: "Prev Value", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "isValidOhlcv", label: "Valid OHLCV", kind: "boolean", sortable: true, headClassName: "min-w-[112px]" },
+  { id: "isZeroOhlc", label: "Zero OHLC", kind: "boolean", sortable: true, headClassName: "min-w-[104px]" },
+  { id: "month", label: "Month", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "assets", label: "Assets", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "liabilities", label: "Liabilities", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "equity", label: "Equity", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "sales", label: "Sales", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "ebt", label: "EBT", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "profit", label: "Profit", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "profitAttributable", label: "Profit Attr.", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "bookValue", label: "Book Value", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "eps", label: "EPS", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "peRatio", label: "PE", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "pbv", label: "PBV", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "der", label: "DER", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "roa", label: "ROA", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "roe", label: "ROE", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "npm", label: "NPM", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "financialDate", label: "Financial Date", kind: "date", sortable: true, headClassName: "min-w-[118px]" },
+  { id: "marketCap", label: "Market Cap", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "sma20", label: "SMA 20", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "sma50", label: "SMA 50", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "volumeSma20", label: "Vol SMA 20", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "valueSma20", label: "Value SMA 20", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "nbsa5d", label: "NBSA 5D", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "value5d", label: "Value 5D", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "nbsaRatio5d", label: "NBSA Ratio 5D", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+]
+
+const COLUMN_TEMPLATES = {
+  recommended: ["stockCode", "changeD1Pct", "change5DPct", "change1MPct", "change1YPct", "close", "valuasi", "peRatio", "pbv", "roe", "marketCap", "sma20", "sma50", "nbsaRatio5d", "action"],
+  technical: ["stockCode", "changeD1Pct", "change5DPct", "change1MPct", "change1YPct", "close", "gapPct", "prevDailyValue", "sma20", "sma50", "volumeSma20", "valueSma20", "nbsa5d", "nbsaRatio5d", "action"],
+  fundamental: ["stockCode", "change1MPct", "change1YPct", "close", "marketCap", "assets", "liabilities", "equity", "sales", "profit", "eps", "peRatio", "pbv", "der", "roa", "roe", "npm", "action"],
+  all: ["stockCode", ...COLUMN_CONFIGS.map((column) => column.id), "action"],
+} as const
+
+type ColumnTemplateKey = keyof typeof COLUMN_TEMPLATES
+const FIXED_COLUMN_IDS: ColumnId[] = ["stockCode", "action"]
 
 function formatParamLabel(paramKey: string) {
   return paramKey
@@ -317,29 +499,246 @@ type ScreenerRule = {
   params: Record<string, string>
 }
 
-
-const SCREENER_ROWS: ScreenerRow[] = [
-  { ticker: "BBCA", company: "Bank Central Asia", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 9725, changePct: 1.83, monthChangePct: 6.4, ytdChangePct: 12.8, technicalScore: 74, fundamentalScore: 78, trend: "uptrend", valuation: "premium", rsi: 58.4, ma20GapPct: 1.6, ma50GapPct: 4.8, pe: 24.1, pbv: 4.8, roe: 22.4, epsGrowth: 8.7 },
-  { ticker: "BMRI", company: "Bank Mandiri", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 6225, changePct: 0.96, monthChangePct: 5.1, ytdChangePct: 11.4, technicalScore: 71, fundamentalScore: 76, trend: "uptrend", valuation: "fair", rsi: 56.2, ma20GapPct: 1.1, ma50GapPct: 4.2, pe: 13.6, pbv: 2.1, roe: 19.1, epsGrowth: 12.3 },
-  { ticker: "BBRI", company: "Bank Rakyat Indonesia", sector: "Financials", marketCapGroup: "Large", syariah: false, price: 5030, changePct: -0.42, monthChangePct: 1.8, ytdChangePct: 4.6, technicalScore: 64, fundamentalScore: 74, trend: "sideways", valuation: "fair", rsi: 49.8, ma20GapPct: -0.5, ma50GapPct: 2.4, pe: 11.8, pbv: 2.2, roe: 18.3, epsGrowth: 10.8 },
-  { ticker: "TLKM", company: "Telkom Indonesia", sector: "Infrastructure", marketCapGroup: "Large", syariah: true, price: 3650, changePct: 1.39, monthChangePct: 4.9, ytdChangePct: 9.7, technicalScore: 69, fundamentalScore: 72, trend: "uptrend", valuation: "fair", rsi: 57.7, ma20GapPct: 3.1, ma50GapPct: 6.4, pe: 12.9, pbv: 2.3, roe: 17.2, epsGrowth: 7.1 },
-  { ticker: "ASII", company: "Astra International", sector: "Industrials", marketCapGroup: "Large", syariah: true, price: 4920, changePct: 0.61, monthChangePct: 2.8, ytdChangePct: 7.2, technicalScore: 67, fundamentalScore: 75, trend: "uptrend", valuation: "value", rsi: 54.1, ma20GapPct: 1.4, ma50GapPct: 3.6, pe: 8.9, pbv: 1.2, roe: 14.8, epsGrowth: 6.5 },
-  { ticker: "ICBP", company: "Indofood CBP", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 11400, changePct: -0.87, monthChangePct: -2.3, ytdChangePct: 1.4, technicalScore: 59, fundamentalScore: 73, trend: "sideways", valuation: "fair", rsi: 47.2, ma20GapPct: -1.7, ma50GapPct: 1.1, pe: 14.2, pbv: 2.0, roe: 13.2, epsGrowth: 5.2 },
-  { ticker: "ANTM", company: "Aneka Tambang", sector: "Materials", marketCapGroup: "Large", syariah: true, price: 2010, changePct: 2.45, monthChangePct: 9.6, ytdChangePct: 18.5, technicalScore: 77, fundamentalScore: 66, trend: "uptrend", valuation: "fair", rsi: 63.8, ma20GapPct: 4.5, ma50GapPct: 8.2, pe: 15.3, pbv: 1.6, roe: 11.4, epsGrowth: 18.1 },
-  { ticker: "MDKA", company: "Merdeka Copper Gold", sector: "Materials", marketCapGroup: "Mid", syariah: true, price: 2320, changePct: -1.28, monthChangePct: -6.8, ytdChangePct: -12.4, technicalScore: 55, fundamentalScore: 52, trend: "downtrend", valuation: "premium", rsi: 42.3, ma20GapPct: -3.8, ma50GapPct: -6.2, pe: 31.5, pbv: 2.9, roe: 6.7, epsGrowth: -4.2 },
-  { ticker: "CPIN", company: "Charoen Pokphand Indonesia", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 4860, changePct: 0.83, monthChangePct: 2.1, ytdChangePct: 5.9, technicalScore: 62, fundamentalScore: 68, trend: "sideways", valuation: "fair", rsi: 51.4, ma20GapPct: 0.8, ma50GapPct: 2.0, pe: 18.6, pbv: 2.7, roe: 12.6, epsGrowth: 9.4 },
-  { ticker: "INDF", company: "Indofood Sukses Makmur", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 6550, changePct: 1.12, monthChangePct: 3.7, ytdChangePct: 8.8, technicalScore: 66, fundamentalScore: 71, trend: "uptrend", valuation: "value", rsi: 55.6, ma20GapPct: 1.2, ma50GapPct: 3.5, pe: 7.4, pbv: 0.9, roe: 11.1, epsGrowth: 8.1 },
-  { ticker: "ADRO", company: "Alamtri Resources", sector: "Energy", marketCapGroup: "Large", syariah: true, price: 2890, changePct: -0.69, monthChangePct: -1.9, ytdChangePct: 3.1, technicalScore: 61, fundamentalScore: 70, trend: "sideways", valuation: "value", rsi: 48.9, ma20GapPct: -0.7, ma50GapPct: 1.5, pe: 5.8, pbv: 1.1, roe: 21.2, epsGrowth: 4.9 },
-  { ticker: "PTBA", company: "Bukit Asam", sector: "Energy", marketCapGroup: "Mid", syariah: true, price: 2710, changePct: 0.37, monthChangePct: 1.4, ytdChangePct: 4.8, technicalScore: 58, fundamentalScore: 69, trend: "sideways", valuation: "value", rsi: 46.7, ma20GapPct: -1.1, ma50GapPct: 0.9, pe: 6.3, pbv: 1.3, roe: 19.5, epsGrowth: 3.8 },
-  { ticker: "UNTR", company: "United Tractors", sector: "Industrials", marketCapGroup: "Large", syariah: true, price: 24450, changePct: 0.74, monthChangePct: 4.1, ytdChangePct: 10.3, technicalScore: 68, fundamentalScore: 74, trend: "uptrend", valuation: "value", rsi: 57.1, ma20GapPct: 1.8, ma50GapPct: 4.1, pe: 6.8, pbv: 1.2, roe: 17.8, epsGrowth: 7.9 },
-  { ticker: "EXCL", company: "XL Axiata", sector: "Infrastructure", marketCapGroup: "Mid", syariah: true, price: 2250, changePct: 1.58, monthChangePct: 7.3, ytdChangePct: 14.1, technicalScore: 73, fundamentalScore: 60, trend: "uptrend", valuation: "fair", rsi: 61.2, ma20GapPct: 3.3, ma50GapPct: 5.7, pe: 17.1, pbv: 1.4, roe: 8.9, epsGrowth: 15.6 },
-  { ticker: "SIDO", company: "Industri Jamu Sido Muncul", sector: "Healthcare", marketCapGroup: "Mid", syariah: true, price: 620, changePct: 0.32, monthChangePct: 0.8, ytdChangePct: 2.6, technicalScore: 57, fundamentalScore: 67, trend: "sideways", valuation: "premium", rsi: 45.8, ma20GapPct: -0.9, ma50GapPct: 1.8, pe: 18.3, pbv: 4.3, roe: 24.6, epsGrowth: 5.5 },
-  { ticker: "KLBF", company: "Kalbe Farma", sector: "Healthcare", marketCapGroup: "Large", syariah: true, price: 1560, changePct: -0.64, monthChangePct: -1.1, ytdChangePct: 2.2, technicalScore: 60, fundamentalScore: 70, trend: "sideways", valuation: "premium", rsi: 48.3, ma20GapPct: -0.3, ma50GapPct: 2.2, pe: 22.4, pbv: 3.4, roe: 15.7, epsGrowth: 6.2 },
-  { ticker: "ERAA", company: "Erajaya Swasembada", sector: "Consumer", marketCapGroup: "Mid", syariah: true, price: 484, changePct: 3.42, monthChangePct: 12.6, ytdChangePct: 24.8, technicalScore: 79, fundamentalScore: 64, trend: "uptrend", valuation: "fair", rsi: 66.9, ma20GapPct: 5.2, ma50GapPct: 9.4, pe: 9.8, pbv: 1.7, roe: 16.8, epsGrowth: 14.7 },
-  { ticker: "AMRT", company: "Sumber Alfaria Trijaya", sector: "Consumer", marketCapGroup: "Large", syariah: true, price: 2890, changePct: 1.05, monthChangePct: 6.2, ytdChangePct: 13.6, technicalScore: 72, fundamentalScore: 69, trend: "uptrend", valuation: "premium", rsi: 59.1, ma20GapPct: 2.6, ma50GapPct: 5.5, pe: 30.4, pbv: 8.1, roe: 18.4, epsGrowth: 13.1 },
-  { ticker: "BRIS", company: "Bank Syariah Indonesia", sector: "Financials", marketCapGroup: "Large", syariah: true, price: 2480, changePct: 2.12, monthChangePct: 8.4, ytdChangePct: 17.9, technicalScore: 75, fundamentalScore: 71, trend: "uptrend", valuation: "fair", rsi: 62.4, ma20GapPct: 3.9, ma50GapPct: 7.6, pe: 17.5, pbv: 2.4, roe: 15.3, epsGrowth: 16.2 },
-  { ticker: "MAPI", company: "Mitra Adiperkasa", sector: "Consumer", marketCapGroup: "Mid", syariah: true, price: 1645, changePct: -1.15, monthChangePct: -4.6, ytdChangePct: -7.8, technicalScore: 54, fundamentalScore: 63, trend: "downtrend", valuation: "fair", rsi: 41.9, ma20GapPct: -2.7, ma50GapPct: -4.4, pe: 12.7, pbv: 1.9, roe: 10.4, epsGrowth: 4.1 },
+const SCREENER_PRESETS: ScreenerPreset[] = [
+  {
+    id: "calm-volume-dry-up",
+    name: "Volume Dry-Up",
+    group: "Calm Before the Move",
+    summary: "Cari saham yang volume-nya mengecil sebelum potensi gerak berikutnya.",
+    config: {
+      screeningId: "calm_before_the_move__volume_dry_up",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "VOLUME_DRY_UP", period: 20, dryUpThreshold: 0.5, consecutiveDays: 3 },
+      ],
+    },
+  },
+  {
+    id: "calm-low-vol-regime",
+    name: "Low Volatility Regime",
+    group: "Calm Before the Move",
+    summary: "Fokus ke regime volatilitas rendah untuk fase kompresi harga.",
+    config: {
+      screeningId: "calm_before_the_move__low_volatility_regime",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "VOLATILITY_REGIME", period: 20, lookback: 60, lowThreshold: -0.5, highThreshold: 1, mode: "LOW" },
+      ],
+    },
+  },
+  {
+    id: "fresh-breakout-base",
+    name: "Base Breakout",
+    group: "Fresh Breakout with Volume",
+    summary: "Breakout dari base rapat dengan validasi volume.",
+    config: {
+      screeningId: "fresh_breakout_with_volume__base_breakout",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "BASE_BREAKOUT", basePeriod: 20, breakoutPct: 1.5, maxBaseRange: 15, volumeMultiplier: 1.5 },
+      ],
+    },
+  },
+  {
+    id: "fresh-breakout-volume-spike",
+    name: "Volume Spike",
+    group: "Fresh Breakout with Volume",
+    summary: "Sorot saham yang baru menunjukkan lonjakan volume signifikan.",
+    config: {
+      screeningId: "fresh_breakout_with_volume__volume_spike",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "VOLUME_SMA", period: 20, threshold: 1.5 },
+      ],
+    },
+  },
+  {
+    id: "fresh-breakout-volume-adx",
+    name: "Volume Spike + ADX Trend",
+    group: "Fresh Breakout with Volume",
+    summary: "Gabungkan volume spike dengan kekuatan trend yang sudah terkonfirmasi.",
+    config: {
+      screeningId: "fresh_breakout_with_volume__volume_spike_adx_trend",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "VOLUME_SMA", period: 20, threshold: 1.5 },
+        { type: "ADX", period: 14, threshold: 25 },
+      ],
+    },
+  },
+  {
+    id: "undervalued-quality",
+    name: "Quality Value",
+    group: "Undervalued Picks",
+    summary: "Saring saham value dengan profitabilitas yang tetap sehat.",
+    config: {
+      screeningId: "undervalued_picks__quality_value",
+      fundamentalIndicators: [
+        { type: "PBV", max: 1.8 },
+        { type: "ROE", min: 15 },
+      ],
+      technicalIndicators: [],
+    },
+  },
+  {
+    id: "undervalued-momentum",
+    name: "Value with Momentum",
+    group: "Undervalued Picks",
+    summary: "Value setup yang mulai didukung momentum teknikal.",
+    config: {
+      screeningId: "undervalued_picks__value_with_momentum",
+      fundamentalIndicators: [
+        { type: "PE_RATIO", max: 15 },
+      ],
+      technicalIndicators: [
+        { type: "MACD", fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
+      ],
+    },
+  },
+  {
+    id: "level-vwap",
+    name: "VWAP Reclaim",
+    group: "Level-Based Entries",
+    summary: "Masuk saat harga kembali reclaim area VWAP sebagai level acuan.",
+    config: {
+      screeningId: "level_based_entries__vwap_reclaim",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "VWAP", period: 20 },
+      ],
+    },
+  },
+  {
+    id: "level-pivot",
+    name: "Pivot Support Bounce",
+    group: "Level-Based Entries",
+    summary: "Cari bounce dari pivot support untuk entry dekat level defensif.",
+    config: {
+      screeningId: "level_based_entries__pivot_support_bounce",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "PIVOT_POINTS" },
+      ],
+    },
+  },
+  {
+    id: "trend-supertrend",
+    name: "Supertrend Continuation",
+    group: "Trend With Conviction",
+    summary: "Trend-following setup untuk saham yang masih melanjutkan impuls.",
+    config: {
+      screeningId: "trend_with_conviction__supertrend_continuation",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "SUPERTREND", period: 10, multiplier: 3 },
+      ],
+    },
+  },
+  {
+    id: "trend-adx",
+    name: "ADX Trend Strength",
+    group: "Trend With Conviction",
+    summary: "Pilih saham dengan trend kuat dan noise lebih rendah.",
+    config: {
+      screeningId: "trend_with_conviction__adx_trend_strength",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "ADX", period: 14, threshold: 25 },
+      ],
+    },
+  },
+  {
+    id: "trend-parabolic",
+    name: "Parabolic SAR Trend",
+    group: "Trend With Conviction",
+    summary: "Setup trend continuation berbasis flip SAR yang bersih.",
+    config: {
+      screeningId: "trend_with_conviction__parabolic_sar_trend",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "PARABOLIC_SAR", afStart: 0.02, afStep: 0.02, afMax: 0.2 },
+      ],
+    },
+  },
+  {
+    id: "momentum-macd",
+    name: "MACD Momentum",
+    group: "Ride the Momentum",
+    summary: "Cari percepatan tren lewat crossover MACD standar.",
+    config: {
+      screeningId: "ride_the_momentum__macd_momentum",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "MACD", fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
+      ],
+    },
+  },
+  {
+    id: "momentum-rsi-macd",
+    name: "RSI + MACD Momentum",
+    group: "Ride the Momentum",
+    summary: "Momentum combo untuk setup yang sudah mulai pulih dari tekanan jual.",
+    config: {
+      screeningId: "ride_the_momentum__rsi_macd_momentum",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "RSI", period: 14, oversold: 35, overbought: 70 },
+        { type: "MACD", fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
+      ],
+    },
+  },
+  {
+    id: "dip-stochastic",
+    name: "Stochastic Oversold Bounce",
+    group: "Buy the Dip",
+    summary: "Pantau saham yang rebound dari area oversold oscillator.",
+    config: {
+      screeningId: "buy_the_dip__stochastic_oversold_bounce",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "STOCHASTIC", kPeriod: 14, dPeriod: 3, oversold: 20, overbought: 80 },
+      ],
+    },
+  },
+  {
+    id: "dip-bollinger",
+    name: "Bollinger Band Bounce",
+    group: "Buy the Dip",
+    summary: "Mean reversion setup dari sentuhan lower band.",
+    config: {
+      screeningId: "buy_the_dip__bollinger_band_bounce",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "BOLLINGER_BANDS", period: 20, stdDev: 2 },
+      ],
+    },
+  },
+  {
+    id: "dip-rsi",
+    name: "RSI Oversold Bounce",
+    group: "Buy the Dip",
+    summary: "Cari oversold pullback yang mulai siap memantul.",
+    config: {
+      screeningId: "buy_the_dip__rsi_oversold_bounce",
+      fundamentalIndicators: [],
+      technicalIndicators: [
+        { type: "RSI", period: 14, oversold: 30, overbought: 70 },
+      ],
+    },
+  },
 ]
+
+const PRESET_GROUPS = Array.from(
+  SCREENER_PRESETS.reduce((groups, preset) => {
+    const existing = groups.get(preset.group)
+    if (existing) {
+      existing.push(preset)
+    } else {
+      groups.set(preset.group, [preset])
+    }
+    return groups
+  }, new Map<string, ScreenerPreset[]>()),
+)
 
 const defaultAlertDraft: AlertDraft = {
   ticker: "",
@@ -348,89 +747,28 @@ const defaultAlertDraft: AlertDraft = {
   isActive: true,
 }
 
-const SORT_OPTIONS = [
-  "ticker",
-  "price",
-  "changePct",
-  "monthChangePct",
-  "ytdChangePct",
-  "technicalScore",
-  "fundamentalScore",
-  "rsi",
-  "pe",
-  "roe",
-  "epsGrowth",
-] as const
-
-type SortKey = (typeof SORT_OPTIONS)[number]
-
-const COLUMN_LABELS = {
-  ticker: "Saham",
-  marketCap: "Mkt Cap",
-  sector: "Sector",
-  price: "Harga",
-  changePct: "Chg.",
-  monthChangePct: "1M Chg",
-  ytdChangePct: "1Y Chg",
-  rsi: "RSI",
-  value: "Value",
-  ma20: "MA-20",
-  ma5: "MA-5",
-  trend: "Trend",
-  pe: "PE",
-  pbv: "PBV",
-  roe: "ROE",
-  epsGrowth: "EPS YoY",
-  action: "Action",
-} as const
-
-const COLUMN_TEMPLATES = {
-  recommended: ["ticker", "marketCap", "sector", "price", "changePct", "monthChangePct", "ytdChangePct", "value", "ma20", "ma5", "rsi", "trend", "pe", "roe", "action"],
-  technical: ["ticker", "marketCap", "sector", "price", "changePct", "monthChangePct", "rsi", "ma20", "ma5", "trend", "action"],
-  fundamental: ["ticker", "marketCap", "sector", "price", "monthChangePct", "ytdChangePct", "value", "pe", "pbv", "roe", "epsGrowth", "action"],
-  all: ["ticker", "marketCap", "sector", "price", "changePct", "monthChangePct", "ytdChangePct", "value", "rsi", "ma20", "ma5", "trend", "pe", "pbv", "roe", "epsGrowth", "action"],
-} as const
-
-type ColumnTemplateKey = keyof typeof COLUMN_TEMPLATES
-type ColumnId = keyof typeof COLUMN_LABELS
-const FIXED_COLUMN_IDS: ColumnId[] = ["ticker", "action"]
-
 function getColumnTemplate(template: ColumnTemplateKey): ColumnId[] {
   return [...COLUMN_TEMPLATES[template]]
 }
 
-function formatPercent(value: number, digits = 1) {
+function formatPercent(value: number | null, digits = 1) {
+  if (value === null) return "—"
   const sign = value > 0 ? "+" : ""
   return `${sign}${value.toFixed(digits)}%`
 }
 
 function normalizeStoredColumnIds(columnId: string): ColumnId[] {
-  if (columnId === "meta") return ["marketCap", "sector"]
-  if (columnId === "ma50") return ["ma5"]
+  if (columnId === "ticker") return ["stockCode"]
+  if (columnId === "price") return ["close"]
+  if (columnId === "changePct") return ["gapPct"]
+  if (columnId === "monthChangePct") return ["change1MPct"]
+  if (columnId === "ytdChangePct") return ["change1YPct"]
+  if (columnId === "value") return ["valuasi"]
+  if (columnId === "ma20") return ["sma20"]
+  if (columnId === "ma5" || columnId === "ma50") return ["sma50"]
+  if (columnId === "pe") return ["peRatio"]
   if (columnId in COLUMN_LABELS) return [columnId as ColumnId]
   return []
-}
-
-function trendTone(trend: ScreenerRow["trend"]) {
-  if (trend === "uptrend") return "text-emerald-600"
-  if (trend === "downtrend") return "text-rose-600"
-  return "text-amber-600"
-}
-
-function valueTone(valuation: ScreenerRow["valuation"]) {
-  if (valuation === "value") return "text-emerald-600"
-  if (valuation === "premium") return "text-rose-600"
-  return "text-amber-600"
-}
-
-function formatValueLabel(valuation: ScreenerRow["valuation"]) {
-  if (valuation === "value") return "Value"
-  if (valuation === "premium") return "Premium"
-  return "Fair"
-}
-
-function getMa5GapPct(row: ScreenerRow) {
-  return Number((row.changePct * 0.65 + row.ma20GapPct * 0.35).toFixed(1))
 }
 
 function createRule(key: FilterKey): ScreenerRule {
@@ -440,6 +778,16 @@ function createRule(key: FilterKey): ScreenerRule {
     key,
     category: definition.category,
     params: { ...definition.defaultParams },
+  }
+}
+
+function createRuleWithParams(key: FilterKey, params: Record<string, string>): ScreenerRule {
+  const definition = FILTER_LIBRARY[key]
+  return {
+    id: `${key}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    key,
+    category: definition.category,
+    params,
   }
 }
 
@@ -465,45 +813,44 @@ function getConfiguredRuleParams(params: Record<string, string>) {
   )
 }
 
-function getRuleNumericValue(row: ScreenerRow, key: FilterKey) {
-  switch (key) {
-    case "ma5GapPct":
-      return getMa5GapPct(row)
-    case "ma20GapPct":
-      return row.ma20GapPct
-    default: {
-      const value = row[key as keyof ScreenerRow]
-      return typeof value === "number" ? value : undefined
-    }
+function findFilterKeyByApiType(type: string, category: RuleCategory): FilterKey | null {
+  const matchedEntry = (Object.entries(FILTER_LIBRARY) as [FilterKey, FilterDefinition][])
+    .find(([_, definition]) => definition.category === category && definition.apiType === type)
+
+  if (matchedEntry) return matchedEntry[0]
+
+  const fallbackMap: Partial<Record<string, FilterKey>> = {
+    PE_RATIO: "pe",
+    PBV: "pbv",
+    ROE: "roe",
+    EPS_GROWTH: "epsGrowth",
+    VALUATION: "valuation",
+    FUNDAMENTAL_SCORE: "fundamentalScore",
+    TECHNICAL_SCORE: "technicalScore",
+    TREND: "trend",
+    DAILY_CHANGE: "changePct",
+    MONTH_CHANGE: "monthChangePct",
+    YEAR_CHANGE: "ytdChangePct",
+    MA20_GAP: "ma20GapPct",
+    MA5_GAP: "ma5GapPct",
   }
+
+  return fallbackMap[type] ?? null
 }
 
-function matchesRule(row: ScreenerRow, rule: ScreenerRule) {
-  const definition = FILTER_LIBRARY[rule.key]
+function createRuleFromPresetIndicator(indicator: PresetIndicatorConfig, category: RuleCategory): ScreenerRule | null {
+  const filterKey = findFilterKeyByApiType(indicator.type, category)
+  if (!filterKey) return null
 
-  if (definition.mode === "params") return true
+  const definition = FILTER_LIBRARY[filterKey]
+  const nextParams = { ...definition.defaultParams }
 
-  if (definition.mode === "range") {
-    const value = getRuleNumericValue(row, rule.key)
-    if (value === undefined) return true
-    const min = parseOptionalNumber(rule.params.min)
-    const max = parseOptionalNumber(rule.params.max)
-    if (min !== undefined && value < min) return false
-    if (max !== undefined && value > max) return false
-    return true
-  }
+  Object.entries(indicator).forEach(([paramKey, value]) => {
+    if (paramKey === "type" || value === undefined) return
+    nextParams[paramKey] = String(value)
+  })
 
-  const selected = rule.params.value
-  if (!selected) return true
-
-  switch (rule.key) {
-    case "trend":
-      return row.trend === selected
-    case "valuation":
-      return row.valuation === selected
-    default:
-      return true
-  }
+  return createRuleWithParams(filterKey, nextParams)
 }
 
 function formatRuleSummary(rule: ScreenerRule) {
@@ -557,7 +904,8 @@ export function ScreenerPage() {
   const [search, setSearch] = useState("")
   const [sectorFilter, setSectorFilter] = useState("all")
   const [marketCapFilter, setMarketCapFilter] = useState("all")
-  const [sortKey, setSortKey] = useState<SortKey>("technicalScore")
+  const [syariahFilter, setSyariahFilter] = useState("all")
+  const [sortKey, setSortKey] = useState<SortKey>("close")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const [radarTickers, setRadarTickers] = useState<string[]>([])
   const [alerts, setAlerts] = useState<SavedAlert[]>([])
@@ -565,17 +913,20 @@ export function ScreenerPage() {
   const [alertDraft, setAlertDraft] = useState<AlertDraft>(defaultAlertDraft)
   const [columnTemplate, setColumnTemplate] = useState<ColumnTemplateKey>("recommended")
   const [visibleColumnIds, setVisibleColumnIds] = useState<ColumnId[]>(() => getColumnTemplate("recommended"))
-  const [activeRules, setActiveRules] = useState<ScreenerRule[]>([
-    createRule("trend"),
-    createRule("rsi"),
-    createRule("pe"),
-  ])
+  const [activeRules, setActiveRules] = useState<ScreenerRule[]>([])
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
   const [saveStrategyOpen, setSaveStrategyOpen] = useState(false)
   const [strategyName, setStrategyName] = useState("")
   const [strategyDescription, setStrategyDescription] = useState("")
   const [savingStrategy, setSavingStrategy] = useState(false)
   const [indicatorSearch, setIndicatorSearch] = useState("")
+  const [activePresetId, setActivePresetId] = useState<string | null>(null)
+  const [screenerRows, setScreenerRows] = useState<ScreenerRow[]>([])
+  const [latestSnapshotDate, setLatestSnapshotDate] = useState<string | null>(null)
+  const [screeningSummary, setScreeningSummary] = useState<ScreenerApiResponse["summary"] | null>(null)
+  const [screeningDateRange, setScreeningDateRange] = useState<ScreenerApiResponse["dateRange"]>(null)
+  const [isRunning, setIsRunning] = useState(false)
+  const [runError, setRunError] = useState<string | null>(null)
 
   useEffect(() => {
     const storedRadar = window.localStorage.getItem("algosaham-screener-radar")
@@ -631,7 +982,17 @@ export function ScreenerPage() {
     window.localStorage.setItem("algosaham-screener-column-template", columnTemplate)
   }, [columnTemplate])
 
-  const sectors = Array.from(new Set(SCREENER_ROWS.map((row) => row.sector))).sort()
+  const sectors = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          screenerRows
+            .map((row) => row.sector)
+            .filter((sector): sector is string => Boolean(sector)),
+        ),
+      ).sort(),
+    [screenerRows],
+  )
   const normalizedIndicatorSearch = indicatorSearch.trim().toLowerCase()
   const filteredTechnicalFilterGroups = technicalFilterGroups
     .map(({ groupLabel, entries }) => ({
@@ -651,98 +1012,12 @@ export function ScreenerPage() {
       definition.description.toLowerCase().includes(normalizedIndicatorSearch),
     )
 
-  const filteredRows = SCREENER_ROWS.filter((row) => {
-    const matchesSearch = !search || row.ticker.toLowerCase().includes(search.toLowerCase()) || row.company.toLowerCase().includes(search.toLowerCase())
-    const matchesSector = sectorFilter === "all" || row.sector === sectorFilter
-    const matchesMarketCap = marketCapFilter === "all" || row.marketCapGroup === marketCapFilter
-    const matchesRules = activeRules.every((rule) => matchesRule(row, rule))
-    return matchesSearch && matchesSector && matchesMarketCap && matchesRules
-  }).sort((a, b) => {
-    const aValue = a[sortKey]
-    const bValue = b[sortKey]
-
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      const result = aValue.localeCompare(bValue)
-      return sortDirection === "asc" ? result : -result
-    }
-
-    const result = Number(aValue) - Number(bValue)
-    return sortDirection === "asc" ? result : -result
-  })
-
-  function toggleRadar(ticker: string) {
-    setRadarTickers((current) => current.includes(ticker) ? current.filter((item) => item !== ticker) : [...current, ticker])
-  }
-
-  function handleSort(nextKey: SortKey) {
-    if (sortKey === nextKey) {
-      setSortDirection((current) => current === "asc" ? "desc" : "asc")
-      return
-    }
-    setSortKey(nextKey)
-    setSortDirection(nextKey === "ticker" || nextKey === "pe" ? "asc" : "desc")
-  }
-
-  function openAlertDialog(ticker: string) {
-    setAlertDraft({ ...defaultAlertDraft, ticker, threshold: ticker ? "75" : defaultAlertDraft.threshold })
-    setDialogOpen(true)
-  }
-
-  function saveAlert() {
-    if (!alertDraft.ticker) return
-
-    const alert: SavedAlert = {
-      ...alertDraft,
-      id: `${alertDraft.ticker}-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    }
-
-    setAlerts((current) => [alert, ...current])
-    setDialogOpen(false)
-    setAlertDraft(defaultAlertDraft)
-  }
-
-  function toggleColumnVisibility(columnId: ColumnId, checked: boolean) {
-    if (FIXED_COLUMN_IDS.includes(columnId)) return
-
-    setVisibleColumnIds((current) => {
-      const next = checked
-        ? Array.from(new Set([...current, columnId])) as ColumnId[]
-        : current.filter((id) => id !== columnId)
-
-      return Array.from(new Set([...FIXED_COLUMN_IDS, ...next])) as ColumnId[]
-    })
-    setColumnTemplate("recommended")
-  }
-
-  function addRule(key: FilterKey) {
-    setActiveRules((current) => {
-      if (current.some((rule) => rule.key === key)) return current
-      return [...current, createRule(key)]
-    })
-  }
-
-  function updateRuleParam(ruleId: string, paramKey: string, value: string) {
-    setActiveRules((current) =>
-      current.map((rule) => (rule.id === ruleId ? { ...rule, params: { ...rule.params, [paramKey]: value } } : rule)),
-    )
-  }
-
-  function removeRule(ruleId: string) {
-    setActiveRules((current) => current.filter((rule) => rule.id !== ruleId))
-    setEditingRuleId((current) => (current === ruleId ? null : current))
-  }
-
-  async function handleSaveStrategy() {
-    if (!strategyName.trim()) return
-
-    setSavingStrategy(true)
-
-    const config: BacktestRequest = {
-      backtestId: `screener_${Date.now()}`,
+  function buildScreenerConfig(): BacktestRequest {
+    return {
+      backtestId: activePresetId ? `screener_${activePresetId}` : `screener_${Date.now()}`,
       filters: {
         marketCap: marketCapFilter === "all" ? [] : [marketCapFilter.toLowerCase()],
-        syariah: false,
+        syariah: syariahFilter === "all" ? undefined : syariahFilter === "yes",
         sectors: sectorFilter === "all" ? undefined : [sectorFilter],
       },
       fundamentalIndicators: activeRules
@@ -819,6 +1094,171 @@ export function ScreenerPage() {
         },
       },
     }
+  }
+
+  async function runScreener() {
+    setIsRunning(true)
+    setRunError(null)
+
+    try {
+      const response = await fetch("/api/screener", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config: buildScreenerConfig() }),
+      })
+
+      const result = await response.json() as ScreenerApiResponse & { error?: string; details?: string }
+      if (!response.ok) {
+        throw new Error(result.details || result.error || "Gagal menjalankan screener.")
+      }
+
+      setScreenerRows(result.rows)
+      setLatestSnapshotDate(result.latestDate)
+      setScreeningSummary(result.summary)
+      setScreeningDateRange(result.dateRange)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gagal menjalankan screener."
+      setRunError(message)
+      toast.error(message)
+    } finally {
+      setIsRunning(false)
+    }
+  }
+
+  useEffect(() => {
+    void runScreener()
+  }, [])
+
+  const filteredRows = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase()
+
+    return [...screenerRows]
+      .filter((row) => {
+        const matchesSearch =
+          !normalizedSearch ||
+          row.stockCode.toLowerCase().includes(normalizedSearch) ||
+          row.sector?.toLowerCase().includes(normalizedSearch)
+        const matchesSector = sectorFilter === "all" || row.sector === sectorFilter
+        const matchesMarketCap = marketCapFilter === "all" || row.marketCapGroup?.toLowerCase() === marketCapFilter.toLowerCase()
+        const matchesSyariah =
+          syariahFilter === "all" ||
+          (syariahFilter === "yes" && row.isSyariah) ||
+          (syariahFilter === "no" && !row.isSyariah)
+        return matchesSearch && matchesSector && matchesMarketCap && matchesSyariah
+      })
+      .sort((a, b) => {
+        const aValue = a[sortKey]
+        const bValue = b[sortKey]
+
+        if (typeof aValue === "string" || typeof bValue === "string") {
+          const result = String(aValue ?? "").localeCompare(String(bValue ?? ""))
+          return sortDirection === "asc" ? result : -result
+        }
+
+        const result = Number(aValue ?? 0) - Number(bValue ?? 0)
+        return sortDirection === "asc" ? result : -result
+      })
+  }, [marketCapFilter, screenerRows, search, sectorFilter, sortDirection, sortKey, syariahFilter])
+
+  function toggleRadar(ticker: string) {
+    setRadarTickers((current) => current.includes(ticker) ? current.filter((item) => item !== ticker) : [...current, ticker])
+  }
+
+  function handleSort(nextKey: SortKey) {
+    if (sortKey === nextKey) {
+      setSortDirection((current) => current === "asc" ? "desc" : "asc")
+      return
+    }
+    setSortKey(nextKey)
+    setSortDirection(nextKey === "stockCode" || nextKey === "peRatio" || nextKey === "pbv" ? "asc" : "desc")
+  }
+
+  function openAlertDialog(ticker: string) {
+    setAlertDraft({ ...defaultAlertDraft, ticker, threshold: ticker ? "75" : defaultAlertDraft.threshold })
+    setDialogOpen(true)
+  }
+
+  function saveAlert() {
+    if (!alertDraft.ticker) return
+
+    const alert: SavedAlert = {
+      ...alertDraft,
+      id: `${alertDraft.ticker}-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    }
+
+    setAlerts((current) => [alert, ...current])
+    setDialogOpen(false)
+    setAlertDraft(defaultAlertDraft)
+  }
+
+  function toggleColumnVisibility(columnId: ColumnId, checked: boolean) {
+    if (FIXED_COLUMN_IDS.includes(columnId)) return
+
+    setVisibleColumnIds((current) => {
+      const next = checked
+        ? Array.from(new Set([...current, columnId])) as ColumnId[]
+        : current.filter((id) => id !== columnId)
+
+      return Array.from(new Set([...FIXED_COLUMN_IDS, ...next])) as ColumnId[]
+    })
+    setColumnTemplate("recommended")
+  }
+
+  function addRule(key: FilterKey) {
+    setActivePresetId(null)
+    setActiveRules((current) => {
+      if (current.some((rule) => rule.key === key)) return current
+      return [...current, createRule(key)]
+    })
+  }
+
+  function updateRuleParam(ruleId: string, paramKey: string, value: string) {
+    setActivePresetId(null)
+    setActiveRules((current) =>
+      current.map((rule) => (rule.id === ruleId ? { ...rule, params: { ...rule.params, [paramKey]: value } } : rule)),
+    )
+  }
+
+  function removeRule(ruleId: string) {
+    setActivePresetId(null)
+    setActiveRules((current) => current.filter((rule) => rule.id !== ruleId))
+    setEditingRuleId((current) => (current === ruleId ? null : current))
+  }
+
+  function applyPreset(preset: ScreenerPreset) {
+    const nextRules = [
+      ...preset.config.fundamentalIndicators
+        .map((indicator) => createRuleFromPresetIndicator(indicator, "fundamental"))
+        .filter((rule): rule is ScreenerRule => rule !== null),
+      ...preset.config.technicalIndicators
+        .map((indicator) => createRuleFromPresetIndicator(indicator, "technical"))
+        .filter((rule): rule is ScreenerRule => rule !== null),
+    ]
+
+    setEditingRuleId(null)
+    setActiveRules(nextRules)
+    setActivePresetId(preset.id)
+
+    if (preset.config.filters?.marketCap?.length === 1) {
+      const [marketCap] = preset.config.filters.marketCap
+      setMarketCapFilter(marketCap.toLowerCase())
+    }
+
+    if (preset.config.filters?.sectors?.length === 1) {
+      setSectorFilter(preset.config.filters.sectors[0])
+    }
+
+    if (typeof preset.config.filters?.syariah === "boolean") {
+      setSyariahFilter(preset.config.filters.syariah ? "yes" : "no")
+    }
+  }
+
+  async function handleSaveStrategy() {
+    if (!strategyName.trim()) return
+
+    setSavingStrategy(true)
+    const config = buildScreenerConfig()
 
     try {
       const response = await fetch("/api/strategies/save", {
@@ -831,7 +1271,7 @@ export function ScreenerPage() {
           backtestResults: {
             recentSignals: {
               signals: filteredRows.slice(0, 10).map((row) => ({
-                ticker: row.ticker,
+                ticker: row.stockCode,
                 date: new Date().toISOString(),
               })),
             },
@@ -864,186 +1304,102 @@ export function ScreenerPage() {
   }
 
   function handleRunScreener() {
+    void runScreener()
     const table = document.getElementById("screener-results")
     table?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
+  function formatNumericValue(value: number | null, digits = 0) {
+    if (value === null) return "—"
+    return value.toLocaleString("id-ID", {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    })
+  }
+
+  function formatColumnValue(row: ScreenerRow, column: ColumnConfig) {
+    const value = row[column.id]
+
+    if (value === null || value === undefined) return "—"
+
+    if (column.kind === "boolean") {
+      return value ? "Yes" : "No"
+    }
+
+    if (column.kind === "date") {
+      return typeof value === "string" ? value : "—"
+    }
+
+    if (column.kind === "text") {
+      return String(value)
+    }
+
+    if (column.kind === "percent") {
+      return formatPercent(typeof value === "number" ? value : null, 2)
+    }
+
+    if (column.kind === "currency") {
+      return formatNumericValue(typeof value === "number" ? value : null, 2)
+    }
+
+    return formatNumericValue(typeof value === "number" ? value : null)
+  }
+
   const columns: DataTableColumn<ScreenerRow>[] = [
     {
-      id: "ticker",
+      id: "stockCode",
       headClassName: "min-w-[160px]",
       header: (
-        <button className="inline-flex items-center gap-2" onClick={() => handleSort("ticker")}>
+        <button className="inline-flex items-center gap-2" onClick={() => handleSort("stockCode")}>
           Saham <ArrowUpDown className="h-3.5 w-3.5" />
         </button>
       ),
       cellClassName: "py-2",
       cell: (row) => (
         <div className="flex items-center gap-3">
-          <TickerCircleIcon ticker={row.ticker} />
-          <Link href={`/analyze-v2?ticker=${row.ticker}`} className="font-ibm-plex-mono text-sm font-semibold tracking-[0.1em] text-foreground hover:text-[#d07225]">
-            {row.ticker}
+          <TickerCircleIcon ticker={row.stockCode} />
+          <Link href={`/analyze-v2?ticker=${row.stockCode}`} className="font-ibm-plex-mono text-sm font-semibold tracking-[0.1em] text-foreground hover:text-[#d07225]">
+            {row.stockCode}
           </Link>
         </div>
       ),
     },
-    {
-      id: "marketCap",
-      headClassName: "min-w-[90px]",
-      header: "Mkt Cap",
-      cellClassName: "text-sm text-muted-foreground",
-      cell: (row) => row.marketCapGroup,
-    },
-    {
-      id: "sector",
-      headClassName: "min-w-[120px]",
-      header: "Sector",
-      cellClassName: "text-sm text-muted-foreground",
-      cell: (row) => row.sector,
-    },
-    {
-      id: "price",
-      headClassName: "text-right",
-      cellClassName: "text-right font-ibm-plex-mono",
-      header: (
-        <button className="inline-flex items-center gap-2" onClick={() => handleSort("price")}>
-          Harga <ArrowUpDown className="h-3.5 w-3.5" />
+    ...COLUMN_CONFIGS.map((column) => ({
+      id: column.id,
+      headClassName: column.headClassName,
+      cellClassName: column.cellClassName,
+      header: column.sortable ? (
+        <button className="inline-flex items-center gap-2" onClick={() => handleSort(column.id as SortKey)}>
+          {column.label} <ArrowUpDown className="h-3.5 w-3.5" />
         </button>
-      ),
-      cell: (row) => row.price.toLocaleString("id-ID"),
-    },
-    {
-      id: "changePct",
-      headClassName: "text-right",
-      cellClassName: "text-right font-ibm-plex-mono",
-      header: (
-        <button className="inline-flex items-center gap-2" onClick={() => handleSort("changePct")}>
-          Chg. <ArrowUpDown className="h-3.5 w-3.5" />
-        </button>
-      ),
-      cell: (row) => (
-        <span className={`inline-flex w-full items-center justify-end font-medium ${row.changePct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-          {formatPercent(row.changePct, 2)}
-        </span>
-      ),
-    },
-    {
-      id: "monthChangePct",
-      headClassName: "text-right",
-      cellClassName: "text-right font-ibm-plex-mono",
-      header: (
-        <button className="inline-flex items-center gap-2" onClick={() => handleSort("monthChangePct")}>
-          1M Chg <ArrowUpDown className="h-3.5 w-3.5" />
-        </button>
-      ),
-      cell: (row) => <span className={row.monthChangePct >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(row.monthChangePct, 1)}</span>,
-    },
-    {
-      id: "ytdChangePct",
-      headClassName: "text-right",
-      cellClassName: "text-right font-ibm-plex-mono",
-      header: (
-        <button className="inline-flex items-center gap-2" onClick={() => handleSort("ytdChangePct")}>
-          1Y Chg <ArrowUpDown className="h-3.5 w-3.5" />
-        </button>
-      ),
-      cell: (row) => <span className={row.ytdChangePct >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(row.ytdChangePct, 1)}</span>,
-    },
-    {
-      id: "value",
-      headClassName: "text-right",
-      cellClassName: "text-right",
-      header: "Value",
-      cell: (row) => <span className={`text-sm font-medium ${valueTone(row.valuation)}`}>{formatValueLabel(row.valuation)}</span>,
-    },
-    {
-      id: "rsi",
-      headClassName: "text-right",
-      cellClassName: "text-right font-ibm-plex-mono",
-      header: (
-        <button className="inline-flex items-center gap-2" onClick={() => handleSort("rsi")}>
-          RSI <ArrowUpDown className="h-3.5 w-3.5" />
-        </button>
-      ),
-      cell: (row) => row.rsi.toFixed(1),
-    },
-    {
-      id: "ma20",
-      headClassName: "text-right",
-      cellClassName: "text-right font-ibm-plex-mono",
-      header: "MA-20",
-      cell: (row) => <span className={row.ma20GapPct >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(row.ma20GapPct)}</span>,
-    },
-    {
-      id: "ma5",
-      headClassName: "text-right",
-      cellClassName: "text-right font-ibm-plex-mono",
-      header: "MA-5",
-      cell: (row) => {
-        const ma5GapPct = getMa5GapPct(row)
-        return <span className={ma5GapPct >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(ma5GapPct)}</span>
+      ) : column.label,
+      cell: (row: ScreenerRow) => {
+        const value = row[column.id]
+        const isPositivePercent = column.kind === "percent" && typeof value === "number" && value > 0
+        const isNegativePercent = column.kind === "percent" && typeof value === "number" && value < 0
+
+        return (
+          <span className={isPositivePercent ? "text-emerald-600" : isNegativePercent ? "text-rose-600" : undefined}>
+            {formatColumnValue(row, column)}
+          </span>
+        )
       },
-    },
-    {
-      id: "trend",
-      header: "Trend",
-      cell: (row) => <span className={`capitalize text-sm font-medium ${trendTone(row.trend)}`}>{row.trend}</span>,
-    },
-    {
-      id: "pe",
-      headClassName: "text-right",
-      cellClassName: "text-right font-ibm-plex-mono",
-      header: (
-        <button className="inline-flex items-center gap-2" onClick={() => handleSort("pe")}>
-          PE <ArrowUpDown className="h-3.5 w-3.5" />
-        </button>
-      ),
-      cell: (row) => `${row.pe.toFixed(1)}x`,
-    },
-    {
-      id: "pbv",
-      headClassName: "text-right",
-      cellClassName: "text-right font-ibm-plex-mono",
-      header: "PBV",
-      cell: (row) => `${row.pbv.toFixed(1)}x`,
-    },
-    {
-      id: "roe",
-      headClassName: "text-right",
-      cellClassName: "text-right font-ibm-plex-mono",
-      header: (
-        <button className="inline-flex items-center gap-2" onClick={() => handleSort("roe")}>
-          ROE <ArrowUpDown className="h-3.5 w-3.5" />
-        </button>
-      ),
-      cell: (row) => `${row.roe.toFixed(1)}%`,
-    },
-    {
-      id: "epsGrowth",
-      headClassName: "text-right",
-      cellClassName: "text-right font-ibm-plex-mono",
-      header: (
-        <button className="inline-flex items-center gap-2" onClick={() => handleSort("epsGrowth")}>
-          EPS YoY <ArrowUpDown className="h-3.5 w-3.5" />
-        </button>
-      ),
-      cell: (row) => <span className={row.epsGrowth >= 0 ? "text-emerald-600" : "text-rose-600"}>{formatPercent(row.epsGrowth)}</span>,
-    },
+    })),
     {
       id: "action",
       headClassName: "min-w-[96px] text-right",
       cellClassName: "text-right",
       header: "Action",
       cell: (row) => {
-        const inRadar = radarTickers.includes(row.ticker)
+        const inRadar = radarTickers.includes(row.stockCode)
         return (
           <div className="flex items-center justify-end gap-1">
             <Button
               variant={inRadar ? "secondary" : "ghost"}
               size="icon"
               className={`h-7 w-7 ${inRadar ? "text-[#d07225]" : "text-muted-foreground"}`}
-              onClick={() => toggleRadar(row.ticker)}
-              aria-label={inRadar ? `Hapus ${row.ticker} dari radar` : `Tambah ${row.ticker} ke radar`}
+              onClick={() => toggleRadar(row.stockCode)}
+              aria-label={inRadar ? `Hapus ${row.stockCode} dari radar` : `Tambah ${row.stockCode} ke radar`}
               title={inRadar ? "Radar aktif" : "Tambah radar"}
             >
               {inRadar ? <Star className="h-3.5 w-3.5 fill-current" /> : <StarOff className="h-3.5 w-3.5" />}
@@ -1052,9 +1408,9 @@ export function ScreenerPage() {
               variant="outline"
               size="icon"
               className="h-7 w-7"
-              onClick={() => openAlertDialog(row.ticker)}
+              onClick={() => openAlertDialog(row.stockCode)}
               disabled={!inRadar}
-              aria-label={`Buat alert untuk ${row.ticker}`}
+              aria-label={`Buat alert untuk ${row.stockCode}`}
               title="Buat alert"
             >
               <BellPlus className="h-3.5 w-3.5" />
@@ -1066,6 +1422,13 @@ export function ScreenerPage() {
   ]
 
   const visibleColumns = columns.filter((column) => visibleColumnIds.includes(column.id as ColumnId))
+  const activePreset = SCREENER_PRESETS.find((preset) => preset.id === activePresetId) ?? null
+  const screenerTableClassName =
+    visibleColumns.length <= 8
+      ? "w-max min-w-[720px] md:min-w-[980px]"
+      : visibleColumns.length <= 14
+        ? "w-max min-w-[1040px] md:min-w-[1480px]"
+        : "w-max min-w-[1500px] md:min-w-[2200px]"
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -1084,7 +1447,7 @@ export function ScreenerPage() {
                 <div>
                   <h1 className="text-3xl sm:text-4xl font-bold font-ibm-plex-mono tracking-tight text-balance">pantau semua saham dalam satu radar</h1>
                   <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-                    Filter, urutkan, dan tandai saham berdasarkan data fundamental dan teknikal. Alert disimpan lokal untuk versi awal halaman ini.
+                    Screening tetap dijalankan via API, lalu hasilnya diperkaya dengan snapshot terbaru dari `core.mv_stock_daily` di Genki.
                   </p>
                 </div>
               </div>
@@ -1105,27 +1468,70 @@ export function ScreenerPage() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-10 gap-2 border-[#3f3f46] bg-[#3f3f46] px-3 text-white hover:border-[#35353b] hover:bg-[#35353b] hover:text-white"
+                      className="h-10 gap-2 border-border/70 bg-transparent px-3 text-foreground hover:border-[#d07225]/35 hover:bg-[#d07225]/5"
                     >
-                      <Columns3 className="h-4 w-4" />
-                      Pilih kolom
-                      <ChevronDown className="h-4 w-4 text-white/80" />
+                      <Sparkles className="h-4 w-4 text-[#d07225]" />
+                      Preset
+                      {activePreset ? (
+                        <span className="hidden max-w-[170px] truncate text-xs text-muted-foreground md:inline">
+                          {activePreset.name}
+                        </span>
+                      ) : null}
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    <DropdownMenuGroup>
-                      {Object.entries(COLUMN_LABELS)
-                        .filter(([columnId]) => !FIXED_COLUMN_IDS.includes(columnId as ColumnId))
-                        .map(([columnId, label]) => (
-                          <DropdownMenuCheckboxItem
-                            key={columnId}
-                            checked={visibleColumnIds.includes(columnId as ColumnId)}
-                            onCheckedChange={(checked) => toggleColumnVisibility(columnId as ColumnId, checked)}
-                          >
-                            {label}
-                          </DropdownMenuCheckboxItem>
-                        ))}
-                    </DropdownMenuGroup>
+                  <DropdownMenuContent align="start" className="w-[380px] max-h-[34rem] overflow-y-auto border-border/70 p-1.5">
+                    <DropdownMenuLabel className="px-2 py-2 text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                      Preset Screener
+                    </DropdownMenuLabel>
+                    {(activePreset || activeRules.length > 0) ? (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setActivePresetId(null)
+                            setEditingRuleId(null)
+                            setActiveRules([])
+                          }}
+                          className="mb-1 rounded-md text-rose-600 focus:text-rose-600"
+                        >
+                          Reset filter builder
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    ) : null}
+                    {PRESET_GROUPS.map(([groupLabel, presets], index) => (
+                      <div key={groupLabel}>
+                        <DropdownMenuLabel className="px-2 pb-1 pt-3 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                          {groupLabel}
+                        </DropdownMenuLabel>
+                        {presets.map((preset) => {
+                          const isActive = activePresetId === preset.id
+                          return (
+                            <DropdownMenuItem
+                              key={preset.id}
+                              onClick={() => applyPreset(preset)}
+                              className="items-start gap-3 rounded-lg px-3 py-3"
+                            >
+                              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#d07225]/10 text-[#d07225]">
+                                {isActive ? <Check className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                              </div>
+                              <div className="min-w-0 flex-1 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-foreground">{preset.name}</span>
+                                  {isActive ? (
+                                    <span className="rounded-full bg-[#d07225]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#d07225]">
+                                      Active
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <p className="text-xs leading-relaxed text-muted-foreground">{preset.summary}</p>
+                              </div>
+                            </DropdownMenuItem>
+                          )
+                        })}
+                        {index < PRESET_GROUPS.length - 1 ? <DropdownMenuSeparator /> : null}
+                      </div>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
 
@@ -1343,14 +1749,14 @@ export function ScreenerPage() {
 
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <div className="xl:col-span-2 relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Cari ticker atau nama saham"
-                    className="pl-9 bg-background border-border/70 focus-visible:ring-[#d07225]"
+                    placeholder="Cari ticker atau sector"
+                    className="pl-9 bg-background border-border/70 text-sm focus-visible:ring-[#d07225]"
                   />
                 </div>
 
@@ -1368,13 +1774,24 @@ export function ScreenerPage() {
 
                 <Select value={marketCapFilter} onValueChange={setMarketCapFilter}>
                   <SelectTrigger className="bg-background border-border/70">
-                    <SelectValue placeholder="Semua market cap" />
+                    <SelectValue placeholder="market_cap_group" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua market cap</SelectItem>
-                    <SelectItem value="Large">Large cap</SelectItem>
-                    <SelectItem value="Mid">Mid cap</SelectItem>
-                    <SelectItem value="Small">Small cap</SelectItem>
+                    <SelectItem value="large">Large cap</SelectItem>
+                    <SelectItem value="mid">Mid cap</SelectItem>
+                    <SelectItem value="small">Small cap</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={syariahFilter} onValueChange={setSyariahFilter}>
+                  <SelectTrigger className="bg-background border-border/70">
+                    <SelectValue placeholder="is_syariah" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua syariah</SelectItem>
+                    <SelectItem value="yes">Syariah</SelectItem>
+                    <SelectItem value="no">Non-syariah</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -1387,31 +1804,65 @@ export function ScreenerPage() {
                     <SelectValue placeholder="Urutkan" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="technicalScore:desc">Technical score tertinggi</SelectItem>
-                    <SelectItem value="fundamentalScore:desc">Fundamental score tertinggi</SelectItem>
-                    <SelectItem value="changePct:desc">Perubahan harian tertinggi</SelectItem>
-                    <SelectItem value="rsi:desc">RSI tertinggi</SelectItem>
-                    <SelectItem value="pe:asc">PE ratio terendah</SelectItem>
+                    <SelectItem value="close:desc">Close tertinggi</SelectItem>
+                    <SelectItem value="changeD1Pct:desc">D-1 change tertinggi</SelectItem>
+                    <SelectItem value="change5DPct:desc">5D change tertinggi</SelectItem>
+                    <SelectItem value="change1MPct:desc">1M change tertinggi</SelectItem>
+                    <SelectItem value="change1YPct:desc">1Y change tertinggi</SelectItem>
+                    <SelectItem value="marketCap:desc">market_cap terbesar</SelectItem>
+                    <SelectItem value="peRatio:asc">pe_ratio terendah</SelectItem>
                     <SelectItem value="roe:desc">ROE tertinggi</SelectItem>
-                    <SelectItem value="ticker:asc">Ticker A-Z</SelectItem>
+                    <SelectItem value="stockCode:asc">Ticker A-Z</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="flex flex-col gap-4 border-t border-border/70 pt-6 sm:flex-row sm:items-end sm:justify-between">
-                <div className="font-ibm-plex-mono text-sm text-muted-foreground">
-                  <span>{activeRules.length} filter aktif</span>
-                  <span className="px-2">→</span>
-                  <span className="text-[#487b78]">{filteredRows.length} saham ditemukan</span>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="h-11 gap-2 rounded-md border-border/70 bg-white px-4 text-foreground shadow-sm hover:border-border/70 hover:bg-white"
+                      >
+                        <Columns3 className="h-4 w-4 text-muted-foreground" />
+                        Pilih kolom
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuGroup>
+                        {Object.entries(COLUMN_LABELS)
+                          .filter(([columnId]) => !FIXED_COLUMN_IDS.includes(columnId as ColumnId))
+                          .map(([columnId, label]) => (
+                            <DropdownMenuCheckboxItem
+                              key={columnId}
+                              checked={visibleColumnIds.includes(columnId as ColumnId)}
+                              onCheckedChange={(checked) => toggleColumnVisibility(columnId as ColumnId, checked)}
+                            >
+                              {label}
+                            </DropdownMenuCheckboxItem>
+                          ))}
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <div className="font-ibm-plex-mono text-sm text-muted-foreground">
+                    <span>{activeRules.length} filter aktif</span>
+                    <span className="px-2">→</span>
+                    <span className="text-[#487b78]">{filteredRows.length} saham ditemukan</span>
+                    {latestSnapshotDate ? <span className="pl-2">latest: {latestSnapshotDate}</span> : null}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-end gap-2 self-end">
                   <Button
                     className="h-11 gap-2 rounded-md bg-[#d07225] px-4 text-white shadow-sm hover:bg-[#b8641f]"
                     onClick={handleRunScreener}
+                    disabled={isRunning}
                   >
                     <Search className="h-4 w-4" />
-                    Run Screening
+                    {isRunning ? "Running..." : "Run Screening"}
                   </Button>
 
                   <Button
@@ -1422,7 +1873,7 @@ export function ScreenerPage() {
                     aria-label="Create New Strategy"
                     title="Create New Strategy"
                   >
-                    <Save className="h-4 w-4" />
+                    <Bell className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -1430,16 +1881,50 @@ export function ScreenerPage() {
             </div>
           </section>
 
+          {(screeningSummary || runError) && (
+            <section className="rounded-xl border border-border/70 bg-card shadow-sm">
+              <div className="grid gap-3 p-5 text-sm sm:grid-cols-2 xl:grid-cols-5">
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Rows Returned</div>
+                  <div className="mt-1 font-ibm-plex-mono text-lg">{screeningSummary?.totalSignals ?? 0}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Unique Stocks</div>
+                  <div className="mt-1 font-ibm-plex-mono text-lg">{screeningSummary?.uniqueStocks ?? 0}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Stocks Scanned</div>
+                  <div className="mt-1 font-ibm-plex-mono text-lg">{screeningSummary?.stocksScanned ?? 0}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Matched Universe</div>
+                  <div className="mt-1 font-ibm-plex-mono text-lg">{screeningSummary?.passedFundamentals ?? 0}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Snapshot Date</div>
+                  <div className="mt-1 font-ibm-plex-mono text-sm">
+                    {screeningDateRange?.from && screeningDateRange?.to ? `${screeningDateRange.from} → ${screeningDateRange.to}` : "—"}
+                  </div>
+                </div>
+                {runError ? (
+                  <div className="sm:col-span-2 xl:col-span-5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700">
+                    {runError}
+                  </div>
+                ) : null}
+              </div>
+            </section>
+          )}
+
           <div id="screener-results">
             <DataTable
               columns={visibleColumns}
               data={filteredRows}
-              getRowId={(row) => row.ticker}
+              getRowId={(row) => row.stockCode}
               emptyMessage="Tidak ada saham yang cocok dengan filter saat ini."
-              tableClassName="min-w-[1120px]"
+              tableClassName={screenerTableClassName}
               initialPageSize={20}
               pageSizeOptions={[20, 40, 60, 80]}
-              paginationResetKey={`${search}|${sectorFilter}|${marketCapFilter}|${sortKey}|${sortDirection}|${activeRules.map((rule) => `${rule.key}:${JSON.stringify(rule.params)}`).join("|")}`}
+              paginationResetKey={`${search}|${sectorFilter}|${marketCapFilter}|${syariahFilter}|${sortKey}|${sortDirection}|${activeRules.map((rule) => `${rule.key}:${JSON.stringify(rule.params)}`).join("|")}`}
             />
           </div>
 

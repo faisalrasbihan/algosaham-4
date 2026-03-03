@@ -1,0 +1,33 @@
+#!/usr/bin/expect -f
+
+set timeout -1
+
+spawn npx drizzle-kit push --dialect=postgresql --schema=./db/schema.ts --url="postgresql://postgres:rJeLMJtcFDQPvRYEpFcmfxJPlVCTQnfN@nozomi.proxy.rlwy.net:17267/railway?sslmode=require"
+
+expect {
+    "Is payments table created or renamed from another table?" {
+        send "\r"
+        exp_continue
+    }
+    "Is subscriptions table created or renamed from another table?" {
+        send "\r"
+        exp_continue
+    }
+    "Is strategies table created or renamed from another table?" {
+        send "\r"
+        exp_continue
+    }
+    "Is users table created or renamed from another table?" {
+        send "\r"
+        exp_continue
+    }
+    "Is test_serial table created or renamed from another table?" {
+        send "\r"
+        exp_continue
+    }
+    "Are you sure you want to proceed?" {
+        send "y\r"
+        exp_continue
+    }
+    eof
+}

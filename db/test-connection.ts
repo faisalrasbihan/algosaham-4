@@ -44,7 +44,7 @@ async function testConnection() {
     }
 
     console.log("\n💡 Please check:");
-    console.log("  1. DATABASE_URL is set correctly in .env");
+    console.log("  1. FRONTEND_DB_URL is set correctly in .env");
     console.log("  2. Database server is running and accessible");
     console.log("  3. Credentials are correct");
     console.log("  4. Network/firewall allows the connection");

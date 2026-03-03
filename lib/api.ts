@@ -7,7 +7,7 @@ export interface BacktestRequest {
   backtestId: string
   filters: {
     marketCap: string[]
-    syariah: boolean
+    syariah?: boolean
     minDailyValue?: number
     tickers?: string[]
     sectors?: string[]

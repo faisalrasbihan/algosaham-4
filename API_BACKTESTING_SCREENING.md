@@ -8,6 +8,11 @@ Run a backtest simulation with the given strategy configuration.
 ### POST `/screen_stocks`  
 Scan for stocks matching filters and generating buy signals.
 
+**App integration note:** for the web screener, universe-mode results can be built
+from the latest snapshot in `DB_KA_GENKI.core.mv_stock_daily` by applying the
+selected base/fundamental filters directly on that table. Signal-mode results can
+still use `/screen_stocks` when you specifically want BUY candidates only.
+
 Both endpoints use the same configuration structure.
 
 ---
@@ -798,6 +803,33 @@ Snapshot of open (unsold) positions at the end of the backtest period.
 | `stocksScanned` | Total stocks scanned (latest snapshot per ticker) |
 | `passedFilters` | Stocks passing market cap/sector/etc filters |
 | `passedFundamentals` | Stocks also passing fundamental criteria |
+
+#### Suggested Post-Processing For Screener UI
+
+After `/screen_stocks` returns:
+
+1. Deduplicate `signals[].ticker`.
+2. Query `core.mv_stock_daily` on `DB_KA_GENKI`.
+3. Filter to the latest available `date`.
+4. Return/display the latest rows for those tickers.
+
+Example query pattern:
+
+```sql
+WITH latest_date AS (
+  SELECT MAX(date) AS latest_date
+  FROM core.mv_stock_daily
+)
+SELECT *
+FROM core.mv_stock_daily
+CROSS JOIN latest_date
+WHERE core.mv_stock_daily.date = latest_date.latest_date
+  AND core.mv_stock_daily.stock_code = ANY(:tickers)
+ORDER BY core.mv_stock_daily.stock_code ASC;
+```
+
+For the screener table, the `date` column usually does not need to be shown
+because all rows already come from the same latest snapshot.
 
 ---
 
