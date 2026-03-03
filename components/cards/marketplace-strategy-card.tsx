@@ -204,20 +204,20 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                         variant="outline"
                         className={
                             isSubscribed
-                                ? "w-full border-[#d07225] bg-[#d07225] text-white text-xs hover:bg-[#b8641f] hover:text-white"
-                                : "w-full border-[#d07225]/60 bg-[#fbf1e8] text-[#9a541d] text-xs hover:border-[#d07225] hover:bg-[#f6e2d2] hover:text-[#7c4316]"
+                                ? "w-full border-[#d8b08a] bg-white text-foreground text-xs hover:bg-[#fcf8f3] hover:border-[#c99769]"
+                                : "w-full border-[#e6d8ca] bg-white text-foreground text-xs hover:bg-[#fcf8f3] hover:border-[#d8b08a]"
                         }
                     >
                         {isLoading ? (
                             "Loading..."
                         ) : isSubscribed ? (
                             <>
-                                <Heart className="w-3 h-3 mr-1 fill-current" />
+                                <Heart className="w-3 h-3 mr-1 text-[#b46a2c]" />
                                 Subscribed
                             </>
                         ) : (
                             <>
-                                <Heart className="w-3 h-3 mr-1" />
+                                <Heart className="w-3 h-3 mr-1 text-[#b46a2c]" />
                                 Subscribe
                             </>
                         )}

@@ -1,7 +1,5 @@
 "use client"
 
-import { Navbar } from "@/components/navbar"
-import { TickerTape } from "@/components/ticker-tape"
 import { BacktestStrategyBuilder } from "@/components/backtest-strategy-builder"
 import { ResultsPanel } from "@/components/results-panel"
 import { useBacktest } from "@/lib/hooks/useBacktest"
@@ -16,9 +14,7 @@ export default function BacktestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dotted-background flex flex-col">
-      <Navbar />
-      <TickerTape />
+    <div className="flex flex-1 flex-col bg-white dotted-background">
 
       {/* Mobile Warning - Visible only on small screens */}
       <div className="flex lg:hidden flex-1 items-center justify-center p-6 mt-12">

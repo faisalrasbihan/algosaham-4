@@ -6,9 +6,7 @@ import Link from "next/link"
 import { Bell, BellPlus, ArrowUpDown, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Sparkles, Check } from "lucide-react"
 import { toast } from "sonner"
 
-import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
-import { TickerTape } from "@/components/ticker-tape"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -1431,10 +1429,7 @@ export function ScreenerPage() {
         : "w-max min-w-[1500px] md:min-w-[2200px]"
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <TickerTape />
-
+    <div className="flex flex-1 flex-col bg-background">
       <main className="flex-1 dotted-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
           <section className="rounded-2xl border border-border/70 bg-card shadow-sm overflow-hidden">
@@ -1447,7 +1442,7 @@ export function ScreenerPage() {
                 <div>
                   <h1 className="text-3xl sm:text-4xl font-bold font-ibm-plex-mono tracking-tight text-balance">pantau semua saham dalam satu radar</h1>
                   <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-                    Screening tetap dijalankan via API, lalu hasilnya diperkaya dengan snapshot terbaru dari `core.mv_stock_daily` di Genki.
+                    Filter, urutkan, dan tandai saham berdasarkan data fundamental dan teknikal. Alert disimpan lokal untuk versi awal halaman ini.
                   </p>
                 </div>
               </div>

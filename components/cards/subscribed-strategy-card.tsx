@@ -11,9 +11,10 @@ import { Strategy } from "./types"
 interface SubscribedStrategyCardProps {
     strategy: Strategy
     onUnsubscribe?: (id: string) => void
+    onClick?: (strategy: Strategy) => void
 }
 
-export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedStrategyCardProps) {
+export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: SubscribedStrategyCardProps) {
     const recommendedStocks = strategy.snapshotHoldings || strategy.topHoldings || [
         { symbol: "BBCA", color: "bg-blue-600" },
         { symbol: "BBRI", color: "bg-orange-500" },
@@ -21,7 +22,10 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe }: SubscribedSt
     ];
 
     return (
-        <Card className="flex-shrink-0 w-80 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer">
+        <Card
+            className="flex-shrink-0 w-80 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer"
+            onClick={() => onClick?.(strategy)}
+        >
             <CardContent className="p-4">
                 <div className="space-y-3">
                     <div className="flex items-start justify-between">

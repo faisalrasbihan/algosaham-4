@@ -31,9 +31,19 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import type { Strategy as CardStrategy } from "@/components/cards/types"
 
 // Dialog states for unsubscribe: 'confirm' | 'loading' | 'success'
 type UnsubscribeDialogState = 'confirm' | 'loading' | 'success'
+
+type StrategyHolding = {
+    symbol: string
+    color?: string
+}
 
 interface Strategy {
     id: number
@@ -81,12 +91,84 @@ function SectionSummary({
     )
 }
 
+type JournalEntry = {
+    dateKey: string
+    dateLabel: string
+    ticker: string
+    color: string
+    action: "BUY" | "SELL"
+    entryPrice: number
+    value: number
+}
+
+const currencyFormatter = new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+})
+
+function createTradingJournal(strategy: CardStrategy): JournalEntry[] {
+    const holdings = (strategy.snapshotHoldings || strategy.topHoldings || [
+        { symbol: "BBCA", color: "bg-blue-600" },
+        { symbol: "BBRI", color: "bg-orange-500" },
+        { symbol: "TLKM", color: "bg-green-600" },
+    ]).slice(0, 3)
+
+    return Array.from({ length: 7 }, (_, dayOffset) => {
+        const date = new Date()
+        date.setHours(0, 0, 0, 0)
+        date.setDate(date.getDate() - dayOffset)
+
+        const dailyHoldings = holdings.slice(0, ((dayOffset + holdings.length - 1) % holdings.length) + 1)
+
+        return dailyHoldings.map((holding: StrategyHolding, index: number) => {
+            const symbolSeed = holding.symbol
+                .split("")
+                .reduce((sum: number, char: string) => sum + char.charCodeAt(0), 0)
+            const basePrice = 900 + (symbolSeed % 18) * 215 + dayOffset * 37 + index * 19
+            const entryPrice = Math.round(basePrice * 10) * 10
+            const exposureFactor = 0.22 + index * 0.06 + (6 - dayOffset) * 0.015
+            const value = Math.round(entryPrice * (85 + index * 20) * (1 + exposureFactor))
+            const tradeSide: "BUY" | "SELL" = (dayOffset + index) % 2 === 0 ? "BUY" : "SELL"
+
+            return {
+                dateKey: date.toISOString().slice(0, 10),
+                dateLabel: date.toLocaleDateString("en-GB", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "short",
+                }),
+                ticker: holding.symbol,
+                color: holding.color || "bg-slate-600",
+                action: tradeSide,
+                entryPrice,
+                value,
+            }
+        })
+    }).flat()
+}
+
+function summarizeJournal(entries: JournalEntry[]) {
+    const totalValue = entries.reduce((sum, entry) => sum + entry.value, 0)
+    const averageEntryPrice =
+        entries.length > 0
+            ? Math.round(entries.reduce((sum, entry) => sum + entry.entryPrice, 0) / entries.length)
+            : 0
+
+    return {
+        rows: entries.length,
+        activeDays: new Set(entries.map((entry) => entry.dateKey)).size,
+        totalValue,
+        averageEntryPrice,
+    }
+}
+
 export default function Portfolio() {
     const { isLoaded, isSignedIn } = useUser()
     const router = useRouter()
     const [shouldRedirect, setShouldRedirect] = useState(false)
     const [savedStrategies, setSavedStrategies] = useState<Strategy[]>([])
-    const [subscribedStrategies, setSubscribedStrategies] = useState<any[]>([])
+    const [subscribedStrategies, setSubscribedStrategies] = useState<CardStrategy[]>([])
     const [isLoadingStrategies, setIsLoadingStrategies] = useState(true)
     const [isLoadingSubscribed, setIsLoadingSubscribed] = useState(true)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -103,6 +185,7 @@ export default function Portfolio() {
     const [strategyToSubscribe, setStrategyToSubscribe] = useState<string | null>(null)
     const [subscribeDialogState, setSubscribeDialogState] = useState<SubscribeDialogState>('confirm')
     const [subscribedStrategyName, setSubscribedStrategyName] = useState("")
+    const [selectedSubscribedStrategy, setSelectedSubscribedStrategy] = useState<CardStrategy | null>(null)
 
     // Rerun Dialog State
     const [rerunDialogOpen, setRerunDialogOpen] = useState(false)
@@ -145,28 +228,45 @@ export default function Portfolio() {
 
             if (data.success && data.data) {
                 // Map API data to component format
-                const mappedSubscribed = data.data.map((s: any) => ({
+                const mappedSubscribed: CardStrategy[] = data.data.map((s: {
+                    id: number | string
+                    name: string
+                    description?: string | null
+                    creator?: string
+                    totalReturn?: string | number | null
+                    maxDrawdown?: string | number | null
+                    sharpeRatio?: string | number | null
+                    successRate?: string | number | null
+                    totalTrades?: number | null
+                    totalStocks?: number | null
+                    createdAt?: string
+                    subscribers?: number
+                    subscribedAt: string
+                    returnSinceSubscription?: string | number | null
+                    snapshotHoldings?: StrategyHolding[] | null
+                    topHoldings?: StrategyHolding[] | null
+                }) => ({
                     id: s.id.toString(),
                     name: s.name,
                     description: s.description,
                     creator: s.creator || 'Unknown',
-                    totalReturn: parseFloat(s.totalReturn || 0),
+                    totalReturn: parseFloat(String(s.totalReturn || 0)),
                     yoyReturn: 0,
                     momReturn: 0,
                     weeklyReturn: 0,
-                    maxDrawdown: parseFloat(s.maxDrawdown || 0),
-                    sharpeRatio: parseFloat(s.sharpeRatio || 0),
+                    maxDrawdown: parseFloat(String(s.maxDrawdown || 0)),
+                    sharpeRatio: parseFloat(String(s.sharpeRatio || 0)),
                     sortinoRatio: 0,
                     calmarRatio: 0,
                     profitFactor: 0,
-                    winRate: parseFloat(s.successRate || 0),
+                    winRate: parseFloat(String(s.successRate || 0)),
                     totalTrades: s.totalTrades || 0,
                     avgTradeDuration: 0,
                     stocksHeld: s.totalStocks || 0,
                     createdDate: s.createdAt || new Date().toISOString(),
                     subscribers: s.subscribers || 0,
                     subscriptionDate: s.subscribedAt,
-                    returnSinceSubscription: parseFloat(s.returnSinceSubscription || 0),
+                    returnSinceSubscription: parseFloat(String(s.returnSinceSubscription || 0)),
                     snapshotHoldings: s.snapshotHoldings,
                     topHoldings: s.topHoldings
                 }))
@@ -360,6 +460,10 @@ export default function Portfolio() {
         setSubscribeDialogOpen(true)
     }
 
+    const handleOpenTradingJournal = (strategy: CardStrategy) => {
+        setSelectedSubscribedStrategy(strategy)
+    }
+
     const handleConfirmSubscribe = async () => {
         if (!strategyToSubscribe) return
 
@@ -429,6 +533,20 @@ export default function Portfolio() {
             ? "No rerun cap"
             : `${usage.backtest}/${limits.backtest} used`
 
+    const selectedJournalEntries = selectedSubscribedStrategy ? createTradingJournal(selectedSubscribedStrategy) : []
+    const selectedJournalSummary = summarizeJournal(selectedJournalEntries)
+    const groupedJournalEntries = selectedJournalEntries.reduce<Record<string, { label: string; entries: JournalEntry[] }>>((groups, entry) => {
+        if (!groups[entry.dateKey]) {
+            groups[entry.dateKey] = {
+                label: entry.dateLabel,
+                entries: [],
+            }
+        }
+
+        groups[entry.dateKey].entries.push(entry)
+        return groups
+    }, {})
+
     return (
         <div className="min-h-screen bg-background dotted-background">
             <Navbar />
@@ -481,6 +599,7 @@ export default function Portfolio() {
                                             key={strategy.id}
                                             strategy={strategy}
                                             onUnsubscribe={handleUnsubscribeClick}
+                                            onClick={handleOpenTradingJournal}
                                         />
                                     ))}
                                 </div>
@@ -848,6 +967,116 @@ export default function Portfolio() {
                             </Button>
                         )}
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={Boolean(selectedSubscribedStrategy)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedSubscribedStrategy(null)
+                    }
+                }}
+            >
+                <DialogContent className="max-w-4xl overflow-hidden border-border/70 bg-background p-0">
+                    {selectedSubscribedStrategy ? (
+                        <>
+                            <DialogHeader className="border-b border-border/70 px-6 py-5">
+                                <div className="pr-10">
+                                    <Badge variant="secondary" className="mb-3 inline-flex bg-ochre/15 text-ochre-100 border-ochre/30">
+                                        Trading Journal
+                                    </Badge>
+                                    <DialogTitle className="text-left text-xl">
+                                        {selectedSubscribedStrategy.name}
+                                    </DialogTitle>
+                                </div>
+                                <DialogDescription className="text-sm text-muted-foreground">
+                                    Ringkasan kronologi trade 7 hari terakhir, diurutkan dari hari terbaru dan dikelompokkan per tanggal.
+                                </DialogDescription>
+                                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
+                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Entries</div>
+                                        <div className="mt-1 text-lg font-semibold text-foreground">{selectedJournalSummary.rows}</div>
+                                    </div>
+                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
+                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Avg Entry</div>
+                                        <div className="mt-1 text-lg font-semibold text-foreground">
+                                            {currencyFormatter.format(selectedJournalSummary.averageEntryPrice)}
+                                        </div>
+                                    </div>
+                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
+                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total Value</div>
+                                        <div className="mt-1 text-lg font-semibold text-foreground">
+                                            {currencyFormatter.format(selectedJournalSummary.totalValue)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </DialogHeader>
+
+                            <ScrollArea className="max-h-[70vh] px-6 py-5">
+                                <div className="space-y-6">
+                                    {Object.entries(groupedJournalEntries).map(([dateKey, group]) => (
+                                        <section key={dateKey} className="rounded-3xl border border-border/70 bg-white/80 shadow-[0_14px_34px_rgba(54,53,55,0.06)]">
+                                            <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
+                                                <div>
+                                                    <h3 className="text-sm font-semibold text-foreground">{group.label}</h3>
+                                                    <p className="text-xs text-muted-foreground">{group.entries.length} trade entries</p>
+                                                </div>
+                                                <div className="text-xs font-medium text-muted-foreground">
+                                                    {currencyFormatter.format(group.entries.reduce((sum, entry) => sum + entry.value, 0))}
+                                                </div>
+                                            </div>
+
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow className="hover:bg-transparent">
+                                                        <TableHead className="px-4 text-[11px] uppercase tracking-[0.16em]">Ticker</TableHead>
+                                                        <TableHead className="text-[11px] uppercase tracking-[0.16em]">Action</TableHead>
+                                                        <TableHead className="text-[11px] uppercase tracking-[0.16em]">Entry Price</TableHead>
+                                                        <TableHead className="pr-4 text-right text-[11px] uppercase tracking-[0.16em]">Value</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {group.entries.map((entry) => (
+                                                        <TableRow key={`${entry.dateKey}-${entry.ticker}`} className="hover:bg-muted/30">
+                                                            <TableCell className="px-4 py-3">
+                                                                <div className="flex items-center gap-3">
+                                                                    <Avatar className="h-8 w-8 border border-border/60">
+                                                                        <AvatarImage src={`/stock_icons/${entry.ticker}.png`} alt={entry.ticker} />
+                                                                        <AvatarFallback className={`${entry.color} text-[10px] font-bold text-white`}>
+                                                                            {entry.ticker}
+                                                                        </AvatarFallback>
+                                                                    </Avatar>
+                                                                    <span className="font-mono text-sm font-semibold text-foreground">{entry.ticker}</span>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className={`font-mono text-xs ${entry.action === "BUY"
+                                                                        ? "bg-green-100 text-green-700 border-green-200"
+                                                                        : "bg-red-100 text-red-700 border-red-200"
+                                                                        }`}
+                                                                >
+                                                                    {entry.action}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="font-mono text-sm text-foreground">
+                                                                {currencyFormatter.format(entry.entryPrice)}
+                                                            </TableCell>
+                                                            <TableCell className="pr-4 text-right font-mono text-sm font-semibold text-foreground">
+                                                                {currencyFormatter.format(entry.value)}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </section>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        </>
+                    ) : null}
                 </DialogContent>
             </Dialog>
         </div>

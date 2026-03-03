@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { WalletCards, Zap, Heart, BookMarked, ArrowUpRight, Loader2, Settings, Menu } from "lucide-react";
 import { AccountManagementPage } from "@/components/account-management-page";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
+import { useRouter } from "next/navigation";
 
 import { useUserTier } from "@/context/user-tier-context";
 
@@ -15,6 +16,15 @@ export function Navbar() {
   const { isSignedIn } = useUser();
   const [showCredits, setShowCredits] = useState(false);
   const { tier, credits, limits, usage, isLoading, isRefreshing, refreshTier, subscriptionPeriodEnd } = useUserTier();
+  const router = useRouter();
+
+  useEffect(() => {
+    const routesToPrefetch = ["/", "/backtest", "/strategies", "/screener", "/analyze-v2", "/harga", "/features"];
+
+    routesToPrefetch.forEach((route) => {
+      router.prefetch(route);
+    });
+  }, [router]);
 
   // Display tier name in uppercase
   const userPlan = tier.toUpperCase();
@@ -107,9 +117,9 @@ export function Navbar() {
         <Link href="/screener" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Screener
         </Link>
-        <a href="/analyze-v2" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
+        <Link href="/analyze-v2" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Analisis
-        </a>
+        </Link>
         {/* <SignedIn>
           <Link href="/portfolio" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
             Portfolio

@@ -40,24 +40,7 @@ export function Footer() {
                         </ul>
                     </div>
 
-                    {/* Company Links */}
-                    <div className="space-y-4">
-                        <h3 className="font-semibold text-foreground">Company</h3>
-                        <ul className="space-y-2 text-sm">
-                            <li>
-                                <Link href="/blog" className="text-muted-foreground hover:text-primary transition-colors">
-                                    Blog
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/careers" className="text-muted-foreground hover:text-primary transition-colors">
-                                    Careers
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-
-                    {/* Legal & Support */}
+                    {/* Support Links */}
                     <div className="space-y-4">
                         <h3 className="font-semibold text-foreground">Support</h3>
                         <ul className="space-y-2 text-sm">
@@ -71,7 +54,6 @@ export function Footer() {
                                     Privacy Policy
                                 </Link>
                             </li>
-
                             <li>
                                 <Link href="/syarat-ketentuan" className="text-muted-foreground hover:text-primary transition-colors">
                                     Syarat & Ketentuan
@@ -80,6 +62,28 @@ export function Footer() {
                             <li>
                                 <Link href="/status" className="text-muted-foreground hover:text-primary transition-colors">
                                     System Status
+                                </Link>
+                            </li>
+                        </ul>
+                    </div>
+
+                    {/* Company Links */}
+                    <div className="space-y-4">
+                        <h3 className="font-semibold text-foreground">Company</h3>
+                        <ul className="space-y-2 text-sm">
+                            <li>
+                                <Link href="/about" className="text-muted-foreground hover:text-primary transition-colors">
+                                    About Us
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/blog" className="text-muted-foreground hover:text-primary transition-colors">
+                                    Blog
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/careers" className="text-muted-foreground hover:text-primary transition-colors">
+                                    Careers
                                 </Link>
                             </li>
                         </ul>

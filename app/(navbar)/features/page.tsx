@@ -13,7 +13,6 @@ import {
   WalletCards,
 } from "lucide-react"
 
-import { PageChrome } from "@/components/page-chrome"
 import { Button } from "@/components/ui/button"
 
 export const metadata: Metadata = {
@@ -121,7 +120,7 @@ const principles = [
 
 export default function FeaturesPage() {
   return (
-    <PageChrome>
+    <>
       <section className="relative overflow-hidden border-b border-border bg-secondary/25">
         <div className="absolute inset-0 -z-10">
           <div className="absolute left-[-8rem] top-10 h-72 w-72 rounded-full bg-ochre/10 blur-3xl" />
@@ -369,6 +368,6 @@ export default function FeaturesPage() {
           </div>
         </div>
       </section>
-    </PageChrome>
+    </>
   )
 }
