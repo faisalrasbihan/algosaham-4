@@ -1,5 +1,8 @@
 "use client"
 
+import { Navbar } from "@/components/navbar"
+import { TickerTape } from "@/components/ticker-tape"
+import { Footer } from "@/components/footer"
 import { ShowcaseStrategyCard } from "@/components/cards/showcase-strategy-card"
 import { MarketplaceStrategyCard } from "@/components/cards/marketplace-strategy-card"
 import { MinimalStrategyCard } from "@/components/cards/minimal-strategy-card"
@@ -231,7 +234,9 @@ export default function Strategies() {
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-background dotted-background">
+      <Navbar />
+      <TickerTape />
       <div className="flex-1 overflow-y-auto mt-8 pb-8">
         <div className="space-y-12">
           {/* Featured / Showcase Section */}
@@ -356,6 +361,8 @@ export default function Strategies() {
           </section> */}
         </div>
       </div>
+
+      <Footer />
 
       {/* Subscribe Confirmation Dialog */}
       <Dialog open={subscribeDialogOpen} onOpenChange={(open) => {
@@ -486,6 +493,6 @@ export default function Strategies() {
         strategyId={previewStrategyId}
         strategyName={previewStrategyName}
       />
-    </>
+    </div>
   )
 }

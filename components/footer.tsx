@@ -3,7 +3,7 @@ import { Twitter, Github, Linkedin, Mail } from "lucide-react"
 
 export function Footer() {
     return (
-        <footer className="border-t border-border bg-background">
+        <footer className="relative z-20 border-t border-border bg-background">
             <div className="container mx-auto px-6 py-12">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
                     {/* Brand Section */}
@@ -23,17 +23,17 @@ export function Footer() {
                         <h3 className="font-semibold text-foreground">Product</h3>
                         <ul className="space-y-2 text-sm">
                             <li>
-                                <Link href="/features" className="inline-flex text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/features" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
                                     Features
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/harga" className="inline-flex text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/harga" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
                                     Pricing
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/strategies" className="inline-flex text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/strategies" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
                                     Strategies
                                 </Link>
                             </li>
@@ -45,25 +45,25 @@ export function Footer() {
                         <h3 className="font-semibold text-foreground">Support</h3>
                         <ul className="space-y-2 text-sm">
                             <li>
-                                <Link href="/help" className="text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/help" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
                                     Contact Us
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/privacy" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
                                     Privacy Policy
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/syarat-ketentuan" className="text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/syarat-ketentuan" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
                                     Syarat & Ketentuan
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/status" className="text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/status" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
                                     System Status
                                 </Link>
-                            </li>
+                                </li>
                         </ul>
                     </div>
 
@@ -72,17 +72,17 @@ export function Footer() {
                         <h3 className="font-semibold text-foreground">Company</h3>
                         <ul className="space-y-2 text-sm">
                             <li>
-                                <Link href="/about" className="text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/about" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
                                     About Us
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/blog" className="text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/blog" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
                                     Blog
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/careers" className="text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/careers" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
                                     Careers
                                 </Link>
                             </li>
@@ -102,7 +102,7 @@ export function Footer() {
                             href="https://twitter.com"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-muted-foreground hover:text-primary transition-colors"
+                            className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary"
                         >
                             <Twitter className="h-5 w-5" />
                             <span className="sr-only">Twitter</span>
@@ -111,7 +111,7 @@ export function Footer() {
                             href="https://github.com"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-muted-foreground hover:text-primary transition-colors"
+                            className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary"
                         >
                             <Github className="h-5 w-5" />
                             <span className="sr-only">GitHub</span>
@@ -120,14 +120,14 @@ export function Footer() {
                             href="https://linkedin.com"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-muted-foreground hover:text-primary transition-colors"
+                            className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary"
                         >
                             <Linkedin className="h-5 w-5" />
                             <span className="sr-only">LinkedIn</span>
                         </Link>
                         <Link
                             href="/help"
-                            className="text-muted-foreground hover:text-primary transition-colors"
+                            className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary"
                         >
                             <Mail className="h-5 w-5" />
                             <span className="sr-only">Email</span>

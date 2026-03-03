@@ -1,10 +1,8 @@
-import { Footer } from "@/components/footer"
-import { Navbar } from "@/components/navbar"
+import { PageChrome } from "@/components/page-chrome"
 
 export default function SyaratKetentuanPage() {
     return (
-        <div className="min-h-screen bg-background flex flex-col">
-            <Navbar />
+        <PageChrome>
             <main className="flex-1 container mx-auto max-w-4xl px-6 py-12">
                 <h1 className="mb-2 text-3xl font-bold">Ketentuan Layanan Algosaham.ai</h1>
                 <h2 className="mb-2 text-xl font-semibold text-muted-foreground">Syarat dan Ketentuan Penggunaan Platform</h2>
@@ -139,7 +137,6 @@ export default function SyaratKetentuanPage() {
                     </section>
                 </div>
             </main>
-            <Footer />
-        </div>
+        </PageChrome>
     )
 }

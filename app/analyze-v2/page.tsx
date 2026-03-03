@@ -23,6 +23,8 @@ import {
     TrendingDown,
     TrendingUp,
 } from "lucide-react"
+import { Navbar } from "@/components/navbar"
+import { TickerTape } from "@/components/ticker-tape"
 import { StockSearch } from "@/components/stock-search"
 import { AdvancedMultiChart } from "@/components/advanced-multi-chart"
 import { Badge } from "@/components/ui/badge"
@@ -292,7 +294,9 @@ function AnalyzeV2Content() {
 
     if (!urlTicker || (loading && !data)) {
         return (
-            <div className="flex flex-1 flex-col bg-background dotted-background">
+            <div className="min-h-screen bg-background dotted-background flex flex-col">
+                <Navbar />
+                <TickerTape />
                 <div className="flex-1 flex flex-col items-center justify-center -mt-10 md:-mt-16">
                     <StockSearch onSearch={handleSearch} loading={loading} />
                 </div>
@@ -319,7 +323,9 @@ function AnalyzeV2Content() {
 
     if (error || !data) {
         return (
-            <div className="flex flex-1 flex-col bg-background dotted-background">
+            <div className="min-h-screen bg-background dotted-background flex flex-col">
+                <Navbar />
+                <TickerTape />
                 <div className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
                     <button
                         onClick={() => router.push("/analyze-v2")}
@@ -351,7 +357,9 @@ function AnalyzeV2Content() {
     const BiasIcon = bias.icon
 
     return (
-        <div className="flex flex-1 flex-col bg-background dotted-background">
+        <div className="min-h-screen bg-background dotted-background flex flex-col">
+            <Navbar />
+            <TickerTape />
             <div className="flex-1 pb-12">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-5 md:mt-7 space-y-5">
                     <button

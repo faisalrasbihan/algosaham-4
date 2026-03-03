@@ -6,6 +6,9 @@ import Link from "next/link"
 import { Bell, BellPlus, ArrowUpDown, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Sparkles, Check } from "lucide-react"
 import { toast } from "sonner"
 
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
+import { TickerTape } from "@/components/ticker-tape"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -1428,7 +1431,9 @@ export function ScreenerPage() {
         : "w-max min-w-[1500px] md:min-w-[2200px]"
 
   return (
-    <div className="flex flex-1 flex-col bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
+      <Navbar />
+      <TickerTape />
       <main className="flex-1 dotted-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
           <section className="rounded-2xl border border-border/70 bg-card shadow-sm overflow-hidden">
@@ -1924,6 +1929,8 @@ export function ScreenerPage() {
 
         </div>
       </main>
+
+      <Footer />
 
       <Dialog open={saveStrategyOpen} onOpenChange={setSaveStrategyOpen}>
         <DialogContent className="border-border/70 bg-card shadow-xl">
