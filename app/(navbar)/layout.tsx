@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 
+import { Footer } from "@/components/footer"
 import { Navbar } from "@/components/navbar"
 import { TickerTape } from "@/components/ticker-tape"
 
@@ -9,6 +10,7 @@ export default function NavbarLayout({ children }: { children: ReactNode }) {
       <Navbar />
       <TickerTape />
       <main className="flex-1 flex flex-col">{children}</main>
+      <Footer />
     </div>
   )
 }

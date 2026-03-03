@@ -6,7 +6,6 @@ import Link from "next/link"
 import { Bell, BellPlus, ArrowUpDown, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Sparkles, Check } from "lucide-react"
 import { toast } from "sonner"
 
-import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -1925,8 +1924,6 @@ export function ScreenerPage() {
 
         </div>
       </main>
-
-      <Footer />
 
       <Dialog open={saveStrategyOpen} onOpenChange={setSaveStrategyOpen}>
         <DialogContent className="border-border/70 bg-card shadow-xl">

@@ -1,6 +1,5 @@
 "use client"
 
-import { Footer } from "@/components/footer"
 import { ShowcaseStrategyCard } from "@/components/cards/showcase-strategy-card"
 import { MarketplaceStrategyCard } from "@/components/cards/marketplace-strategy-card"
 import { MinimalStrategyCard } from "@/components/cards/minimal-strategy-card"
@@ -357,8 +356,6 @@ export default function Strategies() {
           </section> */}
         </div>
       </div>
-
-      <Footer />
 
       {/* Subscribe Confirmation Dialog */}
       <Dialog open={subscribeDialogOpen} onOpenChange={(open) => {

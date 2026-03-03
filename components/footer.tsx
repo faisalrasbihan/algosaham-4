@@ -7,7 +7,7 @@ export function Footer() {
             <div className="container mx-auto px-6 py-12">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
                     {/* Brand Section */}
-                    <div className="space-y-4">
+                    <div className="min-w-0 space-y-4">
                         <Link href="/" className="text-2xl font-bold">
                             <span style={{ fontFamily: "var(--font-ibm-plex-mono)" }}>
                                 algosaham<span className="text-ochre">.ai</span>
@@ -19,21 +19,21 @@ export function Footer() {
                     </div>
 
                     {/* Product Links */}
-                    <div className="space-y-4">
+                    <div className="min-w-0 space-y-4">
                         <h3 className="font-semibold text-foreground">Product</h3>
                         <ul className="space-y-2 text-sm">
                             <li>
-                                <Link href="/features" className="text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/features" className="inline-flex text-muted-foreground hover:text-primary transition-colors">
                                     Features
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/harga" className="text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/harga" className="inline-flex text-muted-foreground hover:text-primary transition-colors">
                                     Pricing
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/strategies" className="text-muted-foreground hover:text-primary transition-colors">
+                                <Link href="/strategies" className="inline-flex text-muted-foreground hover:text-primary transition-colors">
                                     Strategies
                                 </Link>
                             </li>
@@ -41,7 +41,7 @@ export function Footer() {
                     </div>
 
                     {/* Support Links */}
-                    <div className="space-y-4">
+                    <div className="min-w-0 space-y-4">
                         <h3 className="font-semibold text-foreground">Support</h3>
                         <ul className="space-y-2 text-sm">
                             <li>
@@ -68,7 +68,7 @@ export function Footer() {
                     </div>
 
                     {/* Company Links */}
-                    <div className="space-y-4">
+                    <div className="min-w-0 space-y-4">
                         <h3 className="font-semibold text-foreground">Company</h3>
                         <ul className="space-y-2 text-sm">
                             <li>
