@@ -32,6 +32,18 @@ type SubscribeDialogState = 'confirm' | 'loading' | 'success'
 const OFFICIAL_CREATOR_KEYWORDS = ["algosaham"]
 const EXPLORE_SKELETON_COUNT = 5
 
+function SectionHeading({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="mb-6">
+      <h2 className="flex items-center gap-2 font-ibm-plex-mono text-2xl font-bold text-foreground mb-1">
+        <span className="h-5 w-[3px] rounded-full bg-gradient-to-b from-[#d07225] to-[#487b78]" aria-hidden="true" />
+        <span>{title.toLowerCase()}</span>
+      </h2>
+      <p className="font-sans text-muted-foreground">{description}</p>
+    </div>
+  )
+}
+
 function isOfficialStrategy(strategy: Strategy) {
   const normalizedCreator = strategy.creator?.trim().toLowerCase() || ""
 
@@ -242,10 +254,10 @@ export default function Strategies() {
           {/* Featured / Showcase Section */}
           <section>
             <div className="px-6">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-foreground mb-1">Strategy Showcase</h2>
-                <p className="text-muted-foreground">Top-performing strategies we curated for you</p>
-              </div>
+              <SectionHeading
+                title="Strategy Showcase"
+                description="Top-performing strategies we curated for you"
+              />
               <CardCarousel className="-mx-6 pt-1">
                 {isLoadingShowcase ? (
                   [1, 2, 3].map((i) => <StrategyCardSkeleton key={i} type="showcase" />)
@@ -266,10 +278,10 @@ export default function Strategies() {
               {isLoadingExplore ? (
                 <div className="space-y-10">
                   <div>
-                    <div className="mb-6">
-                      <h2 className="text-2xl font-bold text-foreground mb-1">Algosaham Official Strategies</h2>
-                      <p className="text-muted-foreground">Strategi yang dibuat dan diuji oleh tim kami, dipilih dari banyak simulasi untuk menampilkan yang paling menarik. Tetap perlu diingat, performa masa lalu tidak menjamin hasil di masa depan.</p>
-                    </div>
+                    <SectionHeading
+                      title="Algosaham Official Strategies"
+                      description="Strategi yang dibuat dan diuji oleh tim kami, dipilih dari banyak simulasi untuk menampilkan yang paling menarik. Tetap perlu diingat, performa masa lalu tidak menjamin hasil di masa depan."
+                    />
                     <CardCarousel className="-mx-6 pt-1">
                       {Array.from({ length: EXPLORE_SKELETON_COUNT }, (_, index) => (
                         <StrategyCardSkeleton key={`official-skeleton-${index}`} />
@@ -278,10 +290,10 @@ export default function Strategies() {
                   </div>
 
                   <div>
-                    <div className="mb-6">
-                      <h2 className="text-2xl font-bold text-foreground mb-1">Community Strategies</h2>
-                      <p className="text-muted-foreground">Kumpulan strategi yang dibagikan oleh komunitas untuk dijelajahi, dipelajari, dan dibandingkan berdasarkan gaya serta pendekatan masing-masing pembuatnya.</p>
-                    </div>
+                    <SectionHeading
+                      title="Community Strategies"
+                      description="Kumpulan strategi yang dibagikan oleh komunitas untuk dijelajahi, dipelajari, dan dibandingkan berdasarkan gaya serta pendekatan masing-masing pembuatnya."
+                    />
                     <CardCarousel className="-mx-6 pt-1">
                       {Array.from({ length: EXPLORE_SKELETON_COUNT }, (_, index) => (
                         <StrategyCardSkeleton key={`community-skeleton-${index}`} />
@@ -294,10 +306,10 @@ export default function Strategies() {
               ) : (
                 <div className="space-y-10">
                   <div>
-                    <div className="mb-6">
-                      <h2 className="text-2xl font-bold text-foreground mb-1">Algosaham Official Strategies</h2>
-                      <p className="text-muted-foreground">Strategi yang dibuat dan diuji oleh tim kami, dipilih dari banyak simulasi untuk menampilkan yang paling menarik. Tetap perlu diingat, performa masa lalu tidak menjamin hasil di masa depan.</p>
-                    </div>
+                    <SectionHeading
+                      title="Algosaham Official Strategies"
+                      description="Strategi yang dibuat dan diuji oleh tim kami, dipilih dari banyak simulasi untuk menampilkan yang paling menarik. Tetap perlu diingat, performa masa lalu tidak menjamin hasil di masa depan."
+                    />
                     {officialStrategies.length > 0 ? (
                       <CardCarousel className="-mx-6 pt-1">
                         {officialStrategies.map((strategy) => (
@@ -318,10 +330,10 @@ export default function Strategies() {
                   </div>
 
                   <div>
-                    <div className="mb-6">
-                      <h2 className="text-2xl font-bold text-foreground mb-1">Community Strategies</h2>
-                      <p className="text-muted-foreground">Kumpulan strategi yang dibagikan oleh komunitas untuk dijelajahi, dipelajari, dan dibandingkan berdasarkan gaya serta pendekatan masing-masing pembuatnya.</p>
-                    </div>
+                    <SectionHeading
+                      title="Community Strategies"
+                      description="Kumpulan strategi yang dibagikan oleh komunitas untuk dijelajahi, dipelajari, dan dibandingkan berdasarkan gaya serta pendekatan masing-masing pembuatnya."
+                    />
                     {communityStrategies.length > 0 ? (
                       <CardCarousel className="-mx-6 pt-1">
                         {communityStrategies.map((strategy) => (

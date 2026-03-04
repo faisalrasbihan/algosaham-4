@@ -149,9 +149,9 @@ export function RegularStrategyCard({ strategy, onEdit, onDelete, onRerun, onSub
                                             if (!isSubscribing) onSubscribe?.(strategy.id);
                                         }}
                                         disabled={isSubscribing}
-                                        className="w-full bg-white hover:bg-[#fcf8f3] text-foreground border border-[#e6d8ca] hover:border-[#d8b08a] transition-colors h-9 shadow-sm"
+                                        className="group w-full bg-white hover:bg-[#d07225] text-foreground hover:text-white border border-[#e6d8ca] hover:border-[#d07225] transition-colors h-9 shadow-sm"
                                     >
-                                        {isSubscribing ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-[#b46a2c]" /> : <Heart className="w-4 h-4 mr-2 text-[#b46a2c]" />}
+                                        {isSubscribing ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-[#b46a2c] group-hover:text-white" /> : <Heart className="w-4 h-4 mr-2 text-[#b46a2c] group-hover:text-white" />}
                                         <span className="text-sm font-medium">Subscribe</span>
                                     </Button>
                                 </TooltipTrigger>

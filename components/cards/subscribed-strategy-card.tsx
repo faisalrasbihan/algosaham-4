@@ -10,11 +10,20 @@ import { Strategy } from "./types"
 
 interface SubscribedStrategyCardProps {
     strategy: Strategy
-    onUnsubscribe?: (id: string) => void
+    onUnsubscribe?: (strategy: Strategy) => void
     onClick?: (strategy: Strategy) => void
 }
 
 export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: SubscribedStrategyCardProps) {
+    const formatPercent = (value: number, digits = 2) => {
+        const normalized = Number.isFinite(value) ? value : 0
+        return `${normalized > 0 ? "+" : ""}${normalized.toFixed(digits)}%`
+    }
+    const formatRawPercent = (value: number, digits = 2) => {
+        const normalized = Number.isFinite(value) ? value : 0
+        return `${normalized.toFixed(digits)}%`
+    }
+
     const recommendedStocks = strategy.snapshotHoldings || strategy.topHoldings || [
         { symbol: "BBCA", color: "bg-blue-600" },
         { symbol: "BBRI", color: "bg-orange-500" },
@@ -96,8 +105,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
                                     <div
                                         className={`text-xl font-mono ${strategy.totalReturn >= 0 ? "text-green-600" : "text-red-600"}`}
                                     >
-                                        {strategy.totalReturn > 0 ? "+" : ""}
-                                        {strategy.totalReturn}%
+                                        {formatPercent(strategy.totalReturn)}
                                     </div>
                                 </div>
                                 <div className="text-center">
@@ -105,8 +113,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
                                     <div
                                         className={`text-xl font-mono ${(strategy.returnSinceSubscription || 0) >= 0 ? "text-green-600" : "text-red-600"}`}
                                     >
-                                        {(strategy.returnSinceSubscription || 0) > 0 ? "+" : ""}
-                                        {strategy.returnSinceSubscription || 0}%
+                                        {formatPercent(strategy.returnSinceSubscription || 0)}
                                     </div>
                                 </div>
                             </div>
@@ -121,7 +128,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
                                     <span
                                         className={`text-sm ${Math.abs(strategy.maxDrawdown) <= 10 ? "text-green-600" : Math.abs(strategy.maxDrawdown) <= 20 ? "text-yellow-600" : "text-red-600"}`}
                                     >
-                                        {strategy.maxDrawdown}%
+                                        {formatRawPercent(strategy.maxDrawdown)}
                                     </span>
                                     <div className="relative inline-block group">
                                         <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
@@ -213,7 +220,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
                             size="sm"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onUnsubscribe?.(strategy.id);
+                                onUnsubscribe?.(strategy);
                             }}
                             className="w-full text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors"
                         >

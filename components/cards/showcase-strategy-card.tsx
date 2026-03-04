@@ -31,7 +31,7 @@ const BANDAR_COLORS = {
     glow: 'rgba(212, 175, 55, 0.08)',
     accentDark: '#826923',
     button: '#3c3933',
-    buttonHover: '#2f2c27',
+    buttonHover: '#d07225',
 }
 
 interface ShowcaseStrategyCardProps {
@@ -243,9 +243,11 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
                                 style={{ backgroundColor: BANDAR_COLORS.button }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.backgroundColor = BANDAR_COLORS.buttonHover
+                                    e.currentTarget.style.color = BANDAR_COLORS.badgeText
                                 }}
                                 onMouseLeave={(e) => {
                                     e.currentTarget.style.backgroundColor = BANDAR_COLORS.button
+                                    e.currentTarget.style.color = BANDAR_COLORS.badgeText
                                 }}
                                 onClick={() => onSubscribe?.(strategy.id)}
                                 disabled={isLoading || isSubscribed}
@@ -260,15 +262,16 @@ export function ShowcaseStrategyCard({ strategy, onSubscribe, onCardClick, isSub
                                 style={{
                                     borderColor: BANDAR_COLORS.border,
                                     color: BANDAR_COLORS.accentDark,
-                                    backgroundColor: "rgba(255,255,255,0.72)",
+                                    backgroundColor: "#ffffff",
+                                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.95)",
                                 }}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'rgba(191, 160, 74, 0.12)'
-                                    e.currentTarget.style.borderColor = BANDAR_COLORS.badgeBorder
+                                    e.currentTarget.style.backgroundColor = 'rgba(250, 248, 243, 1)'
+                                    e.currentTarget.style.borderColor = BANDAR_COLORS.border
                                     e.currentTarget.style.color = BANDAR_COLORS.accentDark
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.72)'
+                                    e.currentTarget.style.backgroundColor = '#ffffff'
                                     e.currentTarget.style.borderColor = BANDAR_COLORS.border
                                     e.currentTarget.style.color = BANDAR_COLORS.accentDark
                                 }}

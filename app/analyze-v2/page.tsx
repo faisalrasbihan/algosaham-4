@@ -410,26 +410,42 @@ function AnalyzeV2Content() {
                                 </div>
                             </div>
 
-                            <div className="flex-shrink-0 lg:text-right rounded-xl border border-border/70 bg-background/70 px-4 py-3">
-                                <div className="text-3xl sm:text-4xl font-bold font-ibm-plex-mono">Rp {d.price.toLocaleString("id-ID")}</div>
-                                <div className={`text-sm font-semibold flex items-center lg:justify-end gap-1 mt-1 ${isPositive ? "text-green-600" : "text-red-600"}`}>
-                                    {isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                                    {isPositive ? "+" : ""}{d.changePct.toFixed(2)}%
+                            <div className="flex-shrink-0 w-full lg:w-auto grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
+                                <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 h-full flex flex-col lg:text-right">
+                                    <div className="text-3xl sm:text-4xl font-bold font-ibm-plex-mono">Rp {d.price.toLocaleString("id-ID")}</div>
+                                    <div className={`text-sm font-semibold flex items-center lg:justify-end gap-1 mt-1 ${isPositive ? "text-green-600" : "text-red-600"}`}>
+                                        {isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                                        {isPositive ? "+" : ""}{d.changePct.toFixed(2)}%
+                                    </div>
+                                    <div className="flex items-center gap-4 mt-auto pt-2 text-[11px] text-muted-foreground lg:justify-end font-ibm-plex-mono">
+                                        <span>Vol {formatCompactVolume(d.volume)}</span>
+                                        <span>52w H {d.high52w.toLocaleString("id-ID")}</span>
+                                        <span>52w L {d.low52w.toLocaleString("id-ID")}</span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-4 mt-2 text-[11px] text-muted-foreground lg:justify-end font-ibm-plex-mono">
-                                    <span>Vol {formatCompactVolume(d.volume)}</span>
-                                    <span>52w H {d.high52w.toLocaleString("id-ID")}</span>
-                                    <span>52w L {d.low52w.toLocaleString("id-ID")}</span>
-                                </div>
-                            </div>
 
-                            <div className="flex-shrink-0 text-center lg:text-right rounded-xl border border-border/70 bg-background/70 px-4 py-3 min-w-[150px]">
-                                <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Skor Keseluruhan</div>
-                                <div className="text-5xl font-bold font-ibm-plex-mono text-foreground">{d.overallScore}</div>
-                                <div className="mt-2 mb-1"><ScoreBar score={d.overallScore} /></div>
-                                <div className="flex items-center gap-2 justify-center lg:justify-end mt-2">
-                                    <Badge variant="outline" className="text-[10px] capitalize">{d.confidence}</Badge>
-                                    <AiBadge />
+                                <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 h-full flex flex-col justify-between">
+                                    <div>
+                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Technical Score</div>
+                                        <div className="flex items-end justify-between gap-3">
+                                            <div className="text-3xl font-bold font-ibm-plex-mono text-foreground">{d.technical.score}</div>
+                                            <div className="w-24"><ScoreBar score={d.technical.score} color={getScoreBarColor(d.technical.score)} /></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 h-full flex flex-col justify-between">
+                                    <div>
+                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Fundamental Score</div>
+                                        <div className="flex items-end justify-between gap-3">
+                                            <div className="text-3xl font-bold font-ibm-plex-mono text-foreground">{d.fundamental.score}</div>
+                                            <div className="w-24"><ScoreBar score={d.fundamental.score} color={getScoreBarColor(d.fundamental.score)} /></div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 justify-end mt-3">
+                                        <Badge variant="outline" className="text-[10px] capitalize">{d.confidence}</Badge>
+                                        <AiBadge />
+                                    </div>
                                 </div>
                             </div>
                         </div>

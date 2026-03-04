@@ -20,6 +20,7 @@ export async function GET() {
                 subscriptionId: subscriptions.id,
                 subscribedAt: subscriptions.createdAt,
                 snapshotHoldings: subscriptions.snapshotHoldings, // Add this
+                snapshotReturn: subscriptions.snapshotReturn,
                 strategy: {
                     id: strategies.id,
                     name: strategies.name,
@@ -34,6 +35,8 @@ export async function GET() {
                     totalStocks: strategies.totalStocks,
                     subscribers: strategies.subscribers,
                     createdAt: strategies.createdAt,
+                    config: strategies.config,
+                    topHoldings: strategies.topHoldings,
                     // Subscription specific performance
                     returnSinceSubscription: subscriptions.currentReturn, // Assuming we track this
                 }
@@ -50,6 +53,7 @@ export async function GET() {
             subscriptionId: sub.subscriptionId,
             subscribedAt: sub.subscribedAt,
             snapshotHoldings: sub.snapshotHoldings, // Add this
+            snapshotReturn: sub.snapshotReturn,
             // Calculate return since subscription if needed, or use stored value
             // For now passing raw strategy data + subscription metadata
         }));

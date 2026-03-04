@@ -36,6 +36,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { Strategy as CardStrategy } from "@/components/cards/types"
+import type { BacktestRequest, BacktestResult } from "@/lib/api"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // Dialog states for unsubscribe: 'confirm' | 'loading' | 'success'
 type UnsubscribeDialogState = 'confirm' | 'loading' | 'success'
@@ -91,6 +93,36 @@ function SectionSummary({
     )
 }
 
+function PortfolioEmptyState({
+    title,
+    description,
+    actionLabel,
+    onAction,
+}: {
+    title: string
+    description: string
+    actionLabel?: string
+    onAction?: () => void
+}) {
+    return (
+        <div className="py-3">
+            <div className="w-full rounded-2xl border border-border/60 bg-white/55 px-8 py-12 text-center backdrop-blur-md">
+                <p className="text-2xl font-semibold text-foreground">{title}</p>
+                <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">{description}</p>
+                {actionLabel && onAction ? (
+                    <button
+                        type="button"
+                        onClick={onAction}
+                        className="mt-5 font-ibm-plex-mono text-xs font-semibold uppercase tracking-[0.16em] text-[#d07225] hover:text-[#a65b1d]"
+                    >
+                        {actionLabel}
+                    </button>
+                ) : null}
+            </div>
+        </div>
+    )
+}
+
 type JournalEntry = {
     dateKey: string
     dateLabel: string
@@ -98,7 +130,30 @@ type JournalEntry = {
     color: string
     action: "BUY" | "SELL"
     entryPrice: number
+    currentPrice: number
     value: number
+}
+
+type SubscriptionApiRow = {
+    id: number | string
+    subscriptionId?: number | string
+    name: string
+    description?: string | null
+    creator?: string
+    totalReturn?: string | number | null
+    maxDrawdown?: string | number | null
+    sharpeRatio?: string | number | null
+    successRate?: string | number | null
+    totalTrades?: number | null
+    totalStocks?: number | null
+    createdAt?: string
+    subscribers?: number
+    subscribedAt: string
+    returnSinceSubscription?: string | number | null
+    snapshotHoldings?: StrategyHolding[] | null
+    topHoldings?: StrategyHolding[] | null
+    snapshotReturn?: string | number | null
+    config?: BacktestRequest | null
 }
 
 const currencyFormatter = new Intl.NumberFormat("id-ID", {
@@ -107,7 +162,146 @@ const currencyFormatter = new Intl.NumberFormat("id-ID", {
     maximumFractionDigits: 0,
 })
 
+function toOptionalNumber(value: unknown): number | null {
+    if (typeof value === "number" && Number.isFinite(value)) {
+        return value
+    }
+
+    if (typeof value === "string" && value.trim() !== "") {
+        const parsed = Number(value)
+        return Number.isFinite(parsed) ? parsed : null
+    }
+
+    return null
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+    return toOptionalNumber(value) ?? fallback
+}
+
+function deriveTopHoldingsFromTrades(trades?: BacktestResult["trades"]): StrategyHolding[] | null {
+    if (!trades?.length) {
+        return null
+    }
+
+    const latestBuys = [...trades]
+        .filter((trade) => trade.action === "BUY")
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+    const holdings: StrategyHolding[] = []
+    const seen = new Set<string>()
+    const colors = ["bg-blue-600", "bg-orange-500", "bg-green-600"]
+
+    for (const trade of latestBuys) {
+        if (seen.has(trade.ticker)) {
+            continue
+        }
+
+        seen.add(trade.ticker)
+        holdings.push({
+            symbol: trade.ticker,
+            color: colors[holdings.length] ?? "bg-slate-600",
+        })
+
+        if (holdings.length === 3) {
+            break
+        }
+    }
+
+    return holdings.length > 0 ? holdings : null
+}
+
+function mapSubscriptionToCardStrategy(subscription: SubscriptionApiRow): CardStrategy {
+    return {
+        id: subscription.id.toString(),
+        subscriptionId: subscription.subscriptionId?.toString(),
+        name: subscription.name,
+        description: subscription.description || undefined,
+        creator: subscription.creator || 'Unknown',
+        totalReturn: toNumber(subscription.totalReturn),
+        yoyReturn: 0,
+        momReturn: 0,
+        weeklyReturn: 0,
+        maxDrawdown: toNumber(subscription.maxDrawdown),
+        sharpeRatio: toNumber(subscription.sharpeRatio),
+        sortinoRatio: 0,
+        calmarRatio: 0,
+        profitFactor: 0,
+        winRate: toNumber(subscription.successRate),
+        totalTrades: subscription.totalTrades || 0,
+        avgTradeDuration: 0,
+        stocksHeld: subscription.totalStocks || 0,
+        createdDate: subscription.createdAt || new Date().toISOString(),
+        subscribers: subscription.subscribers || 0,
+        subscriptionDate: subscription.subscribedAt,
+        returnSinceSubscription: toNumber(subscription.returnSinceSubscription),
+        snapshotHoldings: subscription.snapshotHoldings,
+        topHoldings: subscription.topHoldings || subscription.snapshotHoldings,
+        snapshotReturn: toOptionalNumber(subscription.snapshotReturn) ?? undefined,
+        backtestConfig: subscription.config ?? null,
+    }
+}
+
+function applyBacktestToSubscribedStrategy(strategy: CardStrategy, backtestResult: BacktestResult): CardStrategy {
+    const totalReturn = toNumber(backtestResult.summary?.totalReturn, strategy.totalReturn)
+    const snapshotReturn = strategy.snapshotReturn ?? null
+    const calculatedSinceSubscribed = snapshotReturn !== null
+        ? Number((totalReturn - snapshotReturn).toFixed(2))
+        : strategy.returnSinceSubscription
+    const currentPrices = (backtestResult.recentSignals?.signals || []).reduce<Record<string, number>>((acc, signal) => {
+        const latestPrice = toOptionalNumber(signal.price) ?? toOptionalNumber(signal.close)
+        if (signal.ticker && latestPrice !== null && acc[signal.ticker] === undefined) {
+            acc[signal.ticker] = latestPrice
+        }
+        return acc
+    }, {})
+
+    return {
+        ...strategy,
+        totalReturn,
+        maxDrawdown: toNumber(backtestResult.summary?.maxDrawdown, strategy.maxDrawdown),
+        sharpeRatio: toNumber(backtestResult.summary?.sharpeRatio, strategy.sharpeRatio),
+        profitFactor: toNumber(backtestResult.summary?.profitFactor, strategy.profitFactor),
+        winRate: toNumber(backtestResult.summary?.winRate, strategy.winRate),
+        totalTrades: Math.trunc(toNumber(backtestResult.summary?.totalTrades, strategy.totalTrades)),
+        avgTradeDuration: toNumber(backtestResult.summary?.averageHoldingDays, strategy.avgTradeDuration),
+        stocksHeld: Math.max(
+            strategy.stocksHeld,
+            deriveTopHoldingsFromTrades(backtestResult.trades)?.length || 0,
+            backtestResult.summary?.bestTickers?.length || 0,
+        ),
+        returnSinceSubscription: calculatedSinceSubscribed,
+        topHoldings: deriveTopHoldingsFromTrades(backtestResult.trades) || strategy.topHoldings || strategy.snapshotHoldings,
+        backtestTrades: backtestResult.trades,
+        backtestSummary: backtestResult.summary,
+        backtestCurrentPrices: currentPrices,
+    }
+}
+
 function createTradingJournal(strategy: CardStrategy): JournalEntry[] {
+    if (strategy.backtestTrades?.length) {
+        return strategy.backtestTrades
+            .map((trade) => {
+                const tradeDate = new Date(trade.date)
+
+                return {
+                    dateKey: trade.date,
+                    dateLabel: tradeDate.toLocaleDateString("en-GB", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "short",
+                    }),
+                    ticker: trade.ticker,
+                    color: "bg-slate-600",
+                    action: trade.action,
+                    entryPrice: trade.price,
+                    currentPrice: strategy.backtestCurrentPrices?.[trade.ticker] ?? trade.price,
+                    value: trade.value,
+                }
+            })
+            .sort((a, b) => new Date(b.dateKey).getTime() - new Date(a.dateKey).getTime())
+    }
+
     const holdings = (strategy.snapshotHoldings || strategy.topHoldings || [
         { symbol: "BBCA", color: "bg-blue-600" },
         { symbol: "BBRI", color: "bg-orange-500" },
@@ -138,28 +332,21 @@ function createTradingJournal(strategy: CardStrategy): JournalEntry[] {
                     day: "numeric",
                     month: "short",
                 }),
-                ticker: holding.symbol,
-                color: holding.color || "bg-slate-600",
-                action: tradeSide,
-                entryPrice,
-                value,
-            }
-        })
+                    ticker: holding.symbol,
+                    color: holding.color || "bg-slate-600",
+                    action: tradeSide,
+                    entryPrice,
+                    currentPrice: entryPrice,
+                    value,
+                }
+            })
     }).flat()
 }
 
 function summarizeJournal(entries: JournalEntry[]) {
-    const totalValue = entries.reduce((sum, entry) => sum + entry.value, 0)
-    const averageEntryPrice =
-        entries.length > 0
-            ? Math.round(entries.reduce((sum, entry) => sum + entry.entryPrice, 0) / entries.length)
-            : 0
-
     return {
-        rows: entries.length,
-        activeDays: new Set(entries.map((entry) => entry.dateKey)).size,
-        totalValue,
-        averageEntryPrice,
+        buyCount: entries.filter((entry) => entry.action === "BUY").length,
+        sellCount: entries.filter((entry) => entry.action === "SELL").length,
     }
 }
 
@@ -175,7 +362,7 @@ export default function Portfolio() {
     const [strategyToDelete, setStrategyToDelete] = useState<string | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
     const [unsubscribeDialogOpen, setUnsubscribeDialogOpen] = useState(false)
-    const [strategyToUnsubscribe, setStrategyToUnsubscribe] = useState<string | null>(null)
+    const [strategyToUnsubscribe, setStrategyToUnsubscribe] = useState<{ strategyId: string; subscriptionId?: string } | null>(null)
     const [unsubscribeDialogState, setUnsubscribeDialogState] = useState<UnsubscribeDialogState>('confirm')
     const [unsubscribedStrategyName, setUnsubscribedStrategyName] = useState("")
 
@@ -186,6 +373,7 @@ export default function Portfolio() {
     const [subscribeDialogState, setSubscribeDialogState] = useState<SubscribeDialogState>('confirm')
     const [subscribedStrategyName, setSubscribedStrategyName] = useState("")
     const [selectedSubscribedStrategy, setSelectedSubscribedStrategy] = useState<CardStrategy | null>(null)
+    const [isLoadingSelectedSubscribedStrategy, setIsLoadingSelectedSubscribedStrategy] = useState(false)
 
     // Rerun Dialog State
     const [rerunDialogOpen, setRerunDialogOpen] = useState(false)
@@ -227,49 +415,7 @@ export default function Portfolio() {
             const data = await response.json()
 
             if (data.success && data.data) {
-                // Map API data to component format
-                const mappedSubscribed: CardStrategy[] = data.data.map((s: {
-                    id: number | string
-                    name: string
-                    description?: string | null
-                    creator?: string
-                    totalReturn?: string | number | null
-                    maxDrawdown?: string | number | null
-                    sharpeRatio?: string | number | null
-                    successRate?: string | number | null
-                    totalTrades?: number | null
-                    totalStocks?: number | null
-                    createdAt?: string
-                    subscribers?: number
-                    subscribedAt: string
-                    returnSinceSubscription?: string | number | null
-                    snapshotHoldings?: StrategyHolding[] | null
-                    topHoldings?: StrategyHolding[] | null
-                }) => ({
-                    id: s.id.toString(),
-                    name: s.name,
-                    description: s.description,
-                    creator: s.creator || 'Unknown',
-                    totalReturn: parseFloat(String(s.totalReturn || 0)),
-                    yoyReturn: 0,
-                    momReturn: 0,
-                    weeklyReturn: 0,
-                    maxDrawdown: parseFloat(String(s.maxDrawdown || 0)),
-                    sharpeRatio: parseFloat(String(s.sharpeRatio || 0)),
-                    sortinoRatio: 0,
-                    calmarRatio: 0,
-                    profitFactor: 0,
-                    winRate: parseFloat(String(s.successRate || 0)),
-                    totalTrades: s.totalTrades || 0,
-                    avgTradeDuration: 0,
-                    stocksHeld: s.totalStocks || 0,
-                    createdDate: s.createdAt || new Date().toISOString(),
-                    subscribers: s.subscribers || 0,
-                    subscriptionDate: s.subscribedAt,
-                    returnSinceSubscription: parseFloat(String(s.returnSinceSubscription || 0)),
-                    snapshotHoldings: s.snapshotHoldings,
-                    topHoldings: s.topHoldings
-                }))
+                const mappedSubscribed: CardStrategy[] = (data.data as SubscriptionApiRow[]).map(mapSubscriptionToCardStrategy)
                 setSubscribedStrategies(mappedSubscribed)
             }
         } catch (error) {
@@ -285,8 +431,12 @@ export default function Portfolio() {
         }
     }, [isSignedIn, fetchData])
 
-    const handleUnsubscribeClick = (id: string) => {
-        setStrategyToUnsubscribe(id)
+    const handleUnsubscribeClick = (strategy: CardStrategy) => {
+        setStrategyToUnsubscribe({
+            strategyId: strategy.id,
+            subscriptionId: strategy.subscriptionId,
+        })
+        setUnsubscribedStrategyName(strategy.name || "")
         setUnsubscribeDialogState('confirm')
         setUnsubscribeDialogOpen(true)
     }
@@ -294,24 +444,30 @@ export default function Portfolio() {
     const handleUnsubscribeConfirm = async () => {
         if (!strategyToUnsubscribe) return
 
-        // Find the strategy name for the success message
-        const strategy = subscribedStrategies.find(s => s.id === strategyToUnsubscribe)
-        setUnsubscribedStrategyName(strategy?.name || "")
-
         // Move to loading state
         setUnsubscribeDialogState('loading')
 
         try {
+            const numericStrategyId = Number(strategyToUnsubscribe.strategyId)
+            const numericSubscriptionId = strategyToUnsubscribe.subscriptionId ? Number(strategyToUnsubscribe.subscriptionId) : null
             const response = await fetch('/api/strategies/unsubscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ strategyId: strategyToUnsubscribe })
+                body: JSON.stringify({
+                    strategyId: Number.isFinite(numericStrategyId) ? numericStrategyId : strategyToUnsubscribe.strategyId,
+                    subscriptionId: numericSubscriptionId !== null && Number.isFinite(numericSubscriptionId) ? numericSubscriptionId : undefined,
+                })
             })
 
             const data = await response.json()
 
             if (data.success) {
-                setSubscribedStrategies(prev => prev.filter(s => s.id !== strategyToUnsubscribe))
+                setSubscribedStrategies(prev => prev.filter((s) => {
+                    if (strategyToUnsubscribe.subscriptionId && s.subscriptionId) {
+                        return s.subscriptionId !== strategyToUnsubscribe.subscriptionId
+                    }
+                    return s.id !== strategyToUnsubscribe.strategyId
+                }))
                 // Move to success state
                 setUnsubscribeDialogState('success')
             } else {
@@ -460,8 +616,44 @@ export default function Portfolio() {
         setSubscribeDialogOpen(true)
     }
 
-    const handleOpenTradingJournal = (strategy: CardStrategy) => {
+    const handleOpenTradingJournal = async (strategy: CardStrategy) => {
         setSelectedSubscribedStrategy(strategy)
+
+        if (!strategy.backtestConfig) {
+            return
+        }
+
+        setIsLoadingSelectedSubscribedStrategy(true)
+
+        try {
+            const response = await fetch('/api/backtest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    config: strategy.backtestConfig,
+                    isInitial: true,
+                }),
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null)
+                throw new Error(errorData?.message || errorData?.error || 'Gagal memuat trade history')
+            }
+
+            const backtestResult = await response.json() as BacktestResult
+            setSelectedSubscribedStrategy((current) => {
+                if (!current || current.id !== strategy.id) {
+                    return current
+                }
+
+                return applyBacktestToSubscribedStrategy(current, backtestResult)
+            })
+        } catch (error) {
+            console.error('Failed to load subscribed strategy backtest:', error)
+            toast.error(error instanceof Error ? error.message : 'Gagal memuat trade history')
+        } finally {
+            setIsLoadingSelectedSubscribedStrategy(false)
+        }
     }
 
     const handleConfirmSubscribe = async () => {
@@ -533,7 +725,11 @@ export default function Portfolio() {
             ? "No rerun cap"
             : `${usage.backtest}/${limits.backtest} used`
 
-    const selectedJournalEntries = selectedSubscribedStrategy ? createTradingJournal(selectedSubscribedStrategy) : []
+    const selectedJournalEntries = selectedSubscribedStrategy
+        ? (selectedSubscribedStrategy.backtestConfig && !selectedSubscribedStrategy.backtestTrades
+            ? []
+            : createTradingJournal(selectedSubscribedStrategy))
+        : []
     const selectedJournalSummary = summarizeJournal(selectedJournalEntries)
     const groupedJournalEntries = selectedJournalEntries.reduce<Record<string, { label: string; entries: JournalEntry[] }>>((groups, entry) => {
         if (!groups[entry.dateKey]) {
@@ -559,8 +755,11 @@ export default function Portfolio() {
                         <div className="px-6">
                             <div className="mb-6">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-foreground">Subscribed Strategies</h2>
-                                    <p className="text-muted-foreground text-sm max-w-2xl mt-1">
+                                    <h2 className="flex items-center gap-2 font-ibm-plex-mono text-2xl font-bold text-foreground">
+                                        <span className="h-5 w-[3px] rounded-full bg-gradient-to-b from-[#d07225] to-[#487b78]" aria-hidden="true" />
+                                        <span>subscribed strategies</span>
+                                    </h2>
+                                    <p className="mt-1 max-w-2xl font-sans text-sm text-muted-foreground">
                                         Strategi yang kamu ikuti dari komunitas. Kami akan mengirimkan notifikasi setiap ada signal baru yang muncul pada strategi-strategi ini. Performa strategi ini <strong className="font-semibold text-ochre">diperbarui secara otomatis setiap hari</strong>.
                                     </p>
                                     <SectionSummary
@@ -586,12 +785,12 @@ export default function Portfolio() {
                                     ))}
                                 </div>
                             ) : subscribedStrategies.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-8 text-center bg-accent/20 rounded-lg mx-6 border border-dashed border-muted">
-                                    <p className="text-muted-foreground mb-2">You haven't subscribed to any strategies yet</p>
-                                    <Button variant="outline" onClick={() => router.push('/strategies')}>
-                                        Explore Strategies
-                                    </Button>
-                                </div>
+                                <PortfolioEmptyState
+                                    title="Belum ada strategi yang kamu ikuti"
+                                    description="Mulai isi portofolio dengan mengikuti strategi publik dari komunitas. Update performa dan signal baru akan muncul di sini."
+                                    actionLabel="Eksplor Strategi"
+                                    onAction={() => router.push('/strategies')}
+                                />
                             ) : (
                                 <div className="flex gap-5 overflow-x-auto pt-4 pb-6 scrollbar-hide pl-6 pr-6 -mx-6">
                                     {subscribedStrategies.map((strategy) => (
@@ -612,8 +811,11 @@ export default function Portfolio() {
                         <div className="px-6">
                             <div className="mb-6">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-foreground">My Strategies</h2>
-                                    <p className="text-muted-foreground text-sm max-w-2xl mt-1">
+                                    <h2 className="flex items-center gap-2 font-ibm-plex-mono text-2xl font-bold text-foreground">
+                                        <span className="h-5 w-[3px] rounded-full bg-gradient-to-b from-[#d07225] to-[#487b78]" aria-hidden="true" />
+                                        <span>my strategies</span>
+                                    </h2>
+                                    <p className="mt-1 max-w-2xl font-sans text-sm text-muted-foreground">
                                         Strategi yang kamu buat dan simpan. Data yang ditampilkan <strong className="font-semibold text-ochre">bersifat statis</strong>, jalankan ulang (<em>rerun</em>) secara berkala untuk melihat hasil <em>backtest</em> terbaru.
                                     </p>
                                     <SectionSummary
@@ -639,12 +841,12 @@ export default function Portfolio() {
                                     ))}
                                 </div>
                             ) : savedStrategies.length === 0 ? (
-                                <div className="px-1 py-4">
-                                    <div className="mx-auto flex min-h-[280px] w-full max-w-3xl flex-col items-center justify-center rounded-[28px] border border-border/70 bg-white px-8 py-12 text-center shadow-[0_18px_48px_rgba(54,53,55,0.08)]">
-                                        <p className="mb-2 text-xl font-semibold text-foreground">No strategies yet</p>
-                                        <p className="max-w-md text-sm text-muted-foreground">Create your first strategy in the Backtester</p>
-                                    </div>
-                                </div>
+                                <PortfolioEmptyState
+                                    title="Belum ada strategi tersimpan"
+                                    description="Strategi yang kamu buat di halaman Simulasi akan muncul di sini. Simpan strategi pertamamu untuk mulai membangun library pribadi."
+                                    actionLabel="Buka Simulasi"
+                                    onAction={() => router.push('/backtest')}
+                                />
                             ) : (
                                 <div className="flex gap-5 overflow-x-auto pt-4 pb-6 scrollbar-hide pl-6 pr-6 -mx-6">
                                     {savedStrategies.map((strategy) => (
@@ -975,6 +1177,7 @@ export default function Portfolio() {
                 onOpenChange={(open) => {
                     if (!open) {
                         setSelectedSubscribedStrategy(null)
+                        setIsLoadingSelectedSubscribedStrategy(false)
                     }
                 }}
             >
@@ -991,23 +1194,31 @@ export default function Portfolio() {
                                     </DialogTitle>
                                 </div>
                                 <DialogDescription className="text-sm text-muted-foreground">
-                                    Ringkasan kronologi trade 7 hari terakhir, diurutkan dari hari terbaru dan dikelompokkan per tanggal.
+                                    Riwayat trade hasil backtest strategi ini, diurutkan dari hari terbaru dan dikelompokkan per tanggal.
                                 </DialogDescription>
-                                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                                <div className="mt-4 grid gap-3 sm:grid-cols-4">
                                     <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
-                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Entries</div>
-                                        <div className="mt-1 text-lg font-semibold text-foreground">{selectedJournalSummary.rows}</div>
+                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total Buy</div>
+                                        <div className="mt-1 text-lg font-semibold text-foreground">{selectedJournalSummary.buyCount}</div>
                                     </div>
                                     <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
-                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Avg Entry</div>
+                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total Sell</div>
                                         <div className="mt-1 text-lg font-semibold text-foreground">
-                                            {currencyFormatter.format(selectedJournalSummary.averageEntryPrice)}
+                                            {selectedJournalSummary.sellCount}
                                         </div>
                                     </div>
                                     <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
-                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total Value</div>
+                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Annualized Return</div>
                                         <div className="mt-1 text-lg font-semibold text-foreground">
-                                            {currencyFormatter.format(selectedJournalSummary.totalValue)}
+                                            {selectedSubscribedStrategy.backtestSummary?.annualizedReturn !== undefined
+                                                ? `${selectedSubscribedStrategy.backtestSummary.annualizedReturn > 0 ? "+" : ""}${selectedSubscribedStrategy.backtestSummary.annualizedReturn.toFixed(2)}%`
+                                                : "N/A"}
+                                        </div>
+                                    </div>
+                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
+                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Drawdown</div>
+                                        <div className="mt-1 text-lg font-semibold text-foreground">
+                                            {`${(selectedSubscribedStrategy.backtestSummary?.maxDrawdown ?? selectedSubscribedStrategy.maxDrawdown).toFixed(2)}%`}
                                         </div>
                                     </div>
                                 </div>
@@ -1015,63 +1226,105 @@ export default function Portfolio() {
 
                             <ScrollArea className="max-h-[70vh] px-6 py-5">
                                 <div className="space-y-6">
+                                    {isLoadingSelectedSubscribedStrategy ? (
+                                        <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Memuat trade history dari backtest...
+                                        </div>
+                                    ) : null}
+                                    {!isLoadingSelectedSubscribedStrategy && selectedJournalEntries.length === 0 ? (
+                                        <div className="rounded-3xl border border-border/70 bg-white/80 px-6 py-12 text-center shadow-[0_14px_34px_rgba(54,53,55,0.06)]">
+                                            <p className="text-sm font-medium text-foreground">Belum ada trade history</p>
+                                            <p className="mt-2 text-sm text-muted-foreground">
+                                                Backtest untuk strategi ini belum menghasilkan trade yang bisa ditampilkan.
+                                            </p>
+                                        </div>
+                                    ) : null}
                                     {Object.entries(groupedJournalEntries).map(([dateKey, group]) => (
-                                        <section key={dateKey} className="rounded-3xl border border-border/70 bg-white/80 shadow-[0_14px_34px_rgba(54,53,55,0.06)]">
-                                            <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
-                                                <div>
-                                                    <h3 className="text-sm font-semibold text-foreground">{group.label}</h3>
-                                                    <p className="text-xs text-muted-foreground">{group.entries.length} trade entries</p>
-                                                </div>
-                                                <div className="text-xs font-medium text-muted-foreground">
-                                                    {currencyFormatter.format(group.entries.reduce((sum, entry) => sum + entry.value, 0))}
-                                                </div>
+                                        <div key={dateKey} className="space-y-3">
+                                            <div className="px-1">
+                                                <h3 className="font-ibm-plex-mono text-sm font-semibold uppercase tracking-[0.14em] text-foreground">
+                                                    {group.label}
+                                                </h3>
                                             </div>
 
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow className="hover:bg-transparent">
-                                                        <TableHead className="px-4 text-[11px] uppercase tracking-[0.16em]">Ticker</TableHead>
-                                                        <TableHead className="text-[11px] uppercase tracking-[0.16em]">Action</TableHead>
-                                                        <TableHead className="text-[11px] uppercase tracking-[0.16em]">Entry Price</TableHead>
-                                                        <TableHead className="pr-4 text-right text-[11px] uppercase tracking-[0.16em]">Value</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {group.entries.map((entry) => (
-                                                        <TableRow key={`${entry.dateKey}-${entry.ticker}`} className="hover:bg-muted/30">
-                                                            <TableCell className="px-4 py-3">
-                                                                <div className="flex items-center gap-3">
-                                                                    <Avatar className="h-8 w-8 border border-border/60">
-                                                                        <AvatarImage src={`/stock_icons/${entry.ticker}.png`} alt={entry.ticker} />
-                                                                        <AvatarFallback className={`${entry.color} text-[10px] font-bold text-white`}>
-                                                                            {entry.ticker}
-                                                                        </AvatarFallback>
-                                                                    </Avatar>
-                                                                    <span className="font-mono text-sm font-semibold text-foreground">{entry.ticker}</span>
-                                                                </div>
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <Badge
-                                                                    variant="outline"
-                                                                    className={`font-mono text-xs ${entry.action === "BUY"
-                                                                        ? "bg-green-100 text-green-700 border-green-200"
-                                                                        : "bg-red-100 text-red-700 border-red-200"
-                                                                        }`}
-                                                                >
-                                                                    {entry.action}
-                                                                </Badge>
-                                                            </TableCell>
-                                                            <TableCell className="font-mono text-sm text-foreground">
-                                                                {currencyFormatter.format(entry.entryPrice)}
-                                                            </TableCell>
-                                                            <TableCell className="pr-4 text-right font-mono text-sm font-semibold text-foreground">
-                                                                {currencyFormatter.format(entry.value)}
-                                                            </TableCell>
+                                            <section className="rounded-3xl border border-border/70 bg-white/80 shadow-[0_14px_34px_rgba(54,53,55,0.06)]">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow className="hover:bg-transparent">
+                                                            <TableHead className="px-4 font-ibm-plex-mono text-[11px] uppercase tracking-[0.16em]">Ticker</TableHead>
+                                                            <TableHead className="font-ibm-plex-mono text-[11px] uppercase tracking-[0.16em]">Action</TableHead>
+                                                            <TableHead className="font-ibm-plex-mono text-[11px] uppercase tracking-[0.16em]">Entry Price</TableHead>
+                                                            <TableHead className="font-ibm-plex-mono text-[11px] uppercase tracking-[0.16em]">
+                                                                <TooltipProvider delayDuration={200}>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <span className="cursor-help">Curr Price</span>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent side="top" className="max-w-[220px] text-xs">
+                                                                            Harga terbaru yang tersedia dari hasil backtest untuk ticker ini. Jika tidak ada update terbaru, nilainya mengikuti entry price.
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                            </TableHead>
+                                                            <TableHead className="pr-4 text-right font-ibm-plex-mono text-[11px] uppercase tracking-[0.16em]">Value</TableHead>
                                                         </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </section>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {group.entries.map((entry) => (
+                                                            <TableRow key={`${entry.dateKey}-${entry.ticker}`} className="hover:bg-muted/30">
+                                                                <TableCell className="px-4 py-3">
+                                                                    <div className="group relative flex items-center gap-3">
+                                                                        <Avatar className="h-8 w-8 border border-border/60">
+                                                                            <AvatarImage src={`/stock_icons/${entry.ticker}.png`} alt={entry.ticker} />
+                                                                            <AvatarFallback className={`${entry.color} text-[10px] font-bold text-white`}>
+                                                                                {entry.ticker}
+                                                                            </AvatarFallback>
+                                                                        </Avatar>
+                                                                        <span className="font-mono text-sm font-semibold text-foreground">{entry.ticker}</span>
+
+                                                                        <div className="pointer-events-none absolute left-0 top-full z-30 mt-3 hidden min-w-[200px] rounded-2xl border border-border/70 bg-white/95 p-4 shadow-[0_18px_40px_rgba(54,53,55,0.14)] backdrop-blur-sm group-hover:block">
+                                                                            <div className="mb-1 font-ibm-plex-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-ochre">
+                                                                                Dive Deep
+                                                                            </div>
+                                                                            <div className="text-sm text-foreground">
+                                                                                Lihat analisis lengkap untuk <span className="font-mono font-semibold">{entry.ticker}</span>.
+                                                                            </div>
+                                                                            <Link
+                                                                                href={`/analyze-v2?ticker=${entry.ticker}`}
+                                                                                className="pointer-events-auto mt-3 inline-flex items-center rounded-full border border-[#d07225]/25 bg-[#d07225]/10 px-3 py-1.5 font-ibm-plex-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a65b1d] transition-colors hover:bg-[#d07225] hover:text-white"
+                                                                            >
+                                                                                Open Analysis
+                                                                            </Link>
+                                                                        </div>
+                                                                    </div>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Badge
+                                                                        variant="outline"
+                                                                        className={`font-mono text-xs ${entry.action === "BUY"
+                                                                            ? "bg-green-100 text-green-700 border-green-200"
+                                                                            : "bg-red-100 text-red-700 border-red-200"
+                                                                            }`}
+                                                                    >
+                                                                        {entry.action}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                                <TableCell className="font-mono text-sm text-foreground">
+                                                                    {currencyFormatter.format(entry.entryPrice)}
+                                                                </TableCell>
+                                                                <TableCell className="font-mono text-sm text-foreground">
+                                                                    {currencyFormatter.format(entry.currentPrice)}
+                                                                </TableCell>
+                                                                <TableCell className="pr-4 text-right font-mono text-sm font-semibold text-foreground">
+                                                                    {currencyFormatter.format(entry.value)}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </section>
+                                        </div>
                                     ))}
                                 </div>
                             </ScrollArea>

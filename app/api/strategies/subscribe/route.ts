@@ -17,10 +17,12 @@ export async function POST(req: Request) {
 
         const body = await req.json();
         const { strategyId } = body;
+        const parsedStrategyId = strategyId !== undefined && strategyId !== null ? Number(strategyId) : null;
+        const hasValidStrategyId = parsedStrategyId !== null && Number.isFinite(parsedStrategyId);
 
-        if (!strategyId) {
+        if (!hasValidStrategyId) {
             return NextResponse.json(
-                { success: false, error: "Strategy ID is required" },
+                { success: false, error: "A valid strategyId is required" },
                 { status: 400 }
             );
         }
@@ -56,7 +58,7 @@ export async function POST(req: Request) {
         const existingSub = await db.query.subscriptions.findFirst({
             where: and(
                 eq(subscriptions.userId, userId),
-                eq(subscriptions.strategyId, strategyId)
+                eq(subscriptions.strategyId, parsedStrategyId!)
             ),
         });
 
@@ -69,7 +71,7 @@ export async function POST(req: Request) {
 
         // 3. Get Strategy details for snapshot
         const strategy = await db.query.strategies.findFirst({
-            where: eq(strategies.id, strategyId),
+            where: eq(strategies.id, parsedStrategyId!),
         });
 
         if (!strategy) {
@@ -90,7 +92,7 @@ export async function POST(req: Request) {
         await db.transaction(async (tx) => {
             await tx.insert(subscriptions).values({
                 userId,
-                strategyId,
+                strategyId: parsedStrategyId!,
                 snapshotReturn: strategy.totalReturn,
                 snapshotValue: null, // Can be set if we track portfolio value
                 snapshotHoldings: strategy.topHoldings, // Top 3 stocks when subscribed
@@ -107,7 +109,7 @@ export async function POST(req: Request) {
             // 6. Increment strategy's subscriber count
             await tx.update(strategies)
                 .set({ subscribers: (strategy.subscribers || 0) + 1 })
-                .where(eq(strategies.id, strategyId));
+                .where(eq(strategies.id, parsedStrategyId!));
         });
 
         return NextResponse.json({

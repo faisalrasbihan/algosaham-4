@@ -16,21 +16,31 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { strategyId } = body;
+        const { strategyId, subscriptionId } = body;
 
-        if (!strategyId) {
+        const parsedStrategyId = strategyId !== undefined && strategyId !== null ? Number(strategyId) : null;
+        const parsedSubscriptionId = subscriptionId !== undefined && subscriptionId !== null ? Number(subscriptionId) : null;
+        const hasValidStrategyId = parsedStrategyId !== null && Number.isFinite(parsedStrategyId);
+        const hasValidSubscriptionId = parsedSubscriptionId !== null && Number.isFinite(parsedSubscriptionId);
+
+        if (!hasValidStrategyId && !hasValidSubscriptionId) {
             return NextResponse.json(
-                { success: false, error: "Strategy ID is required" },
+                { success: false, error: "A valid strategyId or subscriptionId is required" },
                 { status: 400 }
             );
         }
 
         // 1. Check if subscription exists
         const existingSub = await db.query.subscriptions.findFirst({
-            where: and(
-                eq(subscriptions.userId, userId),
-                eq(subscriptions.strategyId, strategyId)
-            ),
+            where: hasValidSubscriptionId
+                ? and(
+                    eq(subscriptions.userId, userId),
+                    eq(subscriptions.id, parsedSubscriptionId!)
+                )
+                : and(
+                    eq(subscriptions.userId, userId),
+                    eq(subscriptions.strategyId, parsedStrategyId!)
+                ),
         });
 
         if (!existingSub) {
@@ -46,7 +56,7 @@ export async function POST(req: Request) {
             await tx.delete(subscriptions)
                 .where(and(
                     eq(subscriptions.userId, userId),
-                    eq(subscriptions.strategyId, strategyId)
+                    eq(subscriptions.id, existingSub.id)
                 ));
 
             // Decrement user's subscription count
@@ -62,13 +72,13 @@ export async function POST(req: Request) {
 
             // Decrement strategy's subscriber count
             const strategy = await tx.query.strategies.findFirst({
-                where: eq(strategies.id, strategyId),
+                where: eq(strategies.id, existingSub.strategyId),
             });
 
             if (strategy && (strategy.subscribers || 0) > 0) {
                 await tx.update(strategies)
                     .set({ subscribers: (strategy.subscribers || 0) - 1 })
-                    .where(eq(strategies.id, strategyId));
+                    .where(eq(strategies.id, existingSub.strategyId));
             }
         });
 

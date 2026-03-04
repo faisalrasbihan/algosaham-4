@@ -1,5 +1,8 @@
+import type { BacktestRequest, BacktestResult } from "@/lib/api"
+
 export interface Strategy {
     id: string
+    subscriptionId?: string
     name: string
     description?: string
     creator?: string
@@ -25,4 +28,9 @@ export interface Strategy {
     returnSinceSubscription?: number
     snapshotHoldings?: { symbol: string, color?: string }[] | null
     topHoldings?: { symbol: string, color?: string }[] | null
+    snapshotReturn?: number
+    backtestConfig?: BacktestRequest | null
+    backtestTrades?: BacktestResult["trades"]
+    backtestSummary?: BacktestResult["summary"]
+    backtestCurrentPrices?: Record<string, number>
 }

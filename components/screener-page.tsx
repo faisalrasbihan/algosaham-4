@@ -926,6 +926,7 @@ export function ScreenerPage() {
   const [screeningSummary, setScreeningSummary] = useState<ScreenerApiResponse["summary"] | null>(null)
   const [screeningDateRange, setScreeningDateRange] = useState<ScreenerApiResponse["dateRange"]>(null)
   const [isRunning, setIsRunning] = useState(false)
+  const [runElapsedTime, setRunElapsedTime] = useState("0.0")
   const [runError, setRunError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -973,6 +974,19 @@ export function ScreenerPage() {
   useEffect(() => {
     window.localStorage.setItem("algosaham-screener-alerts", JSON.stringify(alerts))
   }, [alerts])
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (isRunning) {
+      const startTime = Date.now()
+      setRunElapsedTime("0.0")
+      interval = setInterval(() => {
+        const ms = Date.now() - startTime
+        setRunElapsedTime((ms / 1000).toFixed(1))
+      }, 100)
+    }
+    return () => clearInterval(interval)
+  }, [isRunning])
 
   useEffect(() => {
     window.localStorage.setItem("algosaham-screener-columns", JSON.stringify(visibleColumnIds))
@@ -1856,12 +1870,24 @@ export function ScreenerPage() {
 
                 <div className="flex items-center justify-end gap-2 self-end">
                   <Button
-                    className="h-11 gap-2 rounded-md bg-[#d07225] px-4 text-white shadow-sm hover:bg-[#b8641f]"
+                    className={`h-11 gap-2 rounded-md border px-4 shadow-sm transition-all duration-500 disabled:cursor-not-allowed disabled:opacity-100 ${isRunning
+                      ? "border-border bg-secondary text-muted-foreground"
+                      : "border-transparent bg-[#d07225] text-white hover:bg-[#b8641f]"
+                      }`}
                     onClick={handleRunScreener}
                     disabled={isRunning}
                   >
-                    <Search className="h-4 w-4" />
-                    {isRunning ? "Running..." : "Run Screening"}
+                    {isRunning ? (
+                      <>
+                        <span>Running... ({runElapsedTime}s)</span>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4" />
+                        Run Screening
+                      </>
+                    )}
                   </Button>
 
                   <Button
