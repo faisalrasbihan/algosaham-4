@@ -2,7 +2,14 @@
 
 set timeout -1
 
-spawn npx drizzle-kit push --dialect=postgresql --schema=./db/schema.ts --url="postgresql://postgres:rJeLMJtcFDQPvRYEpFcmfxJPlVCTQnfN@nozomi.proxy.rlwy.net:17267/railway?sslmode=require"
+if {![info exists env(GENKI_DB_URL)] || $env(GENKI_DB_URL) eq ""} {
+    puts stderr "GENKI_DB_URL is not set"
+    exit 1
+}
+
+set db_url $env(GENKI_DB_URL)
+
+spawn npx drizzle-kit push --dialect=postgresql --schema=./db/schema.ts --url="$db_url"
 
 expect {
     "Is payments table created or renamed from another table?" {
