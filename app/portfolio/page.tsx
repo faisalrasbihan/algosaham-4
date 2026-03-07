@@ -332,14 +332,14 @@ function createTradingJournal(strategy: CardStrategy): JournalEntry[] {
                     day: "numeric",
                     month: "short",
                 }),
-                    ticker: holding.symbol,
-                    color: holding.color || "bg-slate-600",
-                    action: tradeSide,
-                    entryPrice,
-                    currentPrice: entryPrice,
-                    value,
-                }
-            })
+                ticker: holding.symbol,
+                color: holding.color || "bg-slate-600",
+                action: tradeSide,
+                entryPrice,
+                currentPrice: entryPrice,
+                value,
+            }
+        })
     }).flat()
 }
 
@@ -626,11 +626,24 @@ export default function Portfolio() {
         setIsLoadingSelectedSubscribedStrategy(true)
 
         try {
+            const configObj = {
+                ...strategy.backtestConfig,
+                backtestConfig: {
+                    ...strategy.backtestConfig.backtestConfig
+                }
+            }
+            if (strategy.subscriptionDate) {
+                const subDate = new Date(strategy.subscriptionDate)
+                if (!isNaN(subDate.getTime())) {
+                    configObj.backtestConfig.startDate = subDate.toISOString().split('T')[0]
+                }
+            }
+
             const response = await fetch('/api/backtest', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    config: strategy.backtestConfig,
+                    config: configObj,
                     isInitial: true,
                 }),
             })

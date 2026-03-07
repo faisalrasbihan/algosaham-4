@@ -14,7 +14,7 @@ export function CTASection() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <SignInButton mode="modal">
             <Button size="lg" className="bg-primary hover:bg-primary/90">
-              Start Now
+              Daftar Sekarang
               <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </SignInButton>

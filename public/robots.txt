@@ -9,4 +9,5 @@ Sitemap: https://algosaham.ai/sitemap.xml
 Disallow: /api/
 Disallow: /_next/
 Disallow: /admin/
+Disallow: /portfolio/
 

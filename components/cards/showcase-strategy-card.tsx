@@ -22,7 +22,6 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 
-// Bandar tier colors — consistent with navbar
 const BANDAR_COLORS = {
     border: 'rgba(191, 160, 74, 0.32)',
     badgeBg: '#d4af37',
@@ -30,8 +29,8 @@ const BANDAR_COLORS = {
     badgeText: '#ffffff',
     glow: 'rgba(212, 175, 55, 0.08)',
     accentDark: '#826923',
-    button: '#3c3933',
-    buttonHover: '#d07225',
+    button: '#d4af37',
+    buttonHover: '#c5a030',
 }
 
 interface ShowcaseStrategyCardProps {

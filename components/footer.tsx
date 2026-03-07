@@ -20,21 +20,21 @@ export function Footer() {
 
                     {/* Product Links */}
                     <div className="min-w-0 space-y-4">
-                        <h3 className="font-semibold text-foreground">Product</h3>
+                        <h3 className="font-semibold text-foreground">Produk</h3>
                         <ul className="space-y-2 text-sm">
                             <li>
                                 <Link href="/features" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
-                                    Features
+                                    Fitur
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/harga" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
-                                    Pricing
+                                    Harga
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/strategies" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
-                                    Strategies
+                                    Strategi
                                 </Link>
                             </li>
                         </ul>
@@ -42,38 +42,38 @@ export function Footer() {
 
                     {/* Support Links */}
                     <div className="min-w-0 space-y-4">
-                        <h3 className="font-semibold text-foreground">Support</h3>
+                        <h3 className="font-semibold text-foreground">Bantuan</h3>
                         <ul className="space-y-2 text-sm">
                             <li>
                                 <Link href="/help" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
-                                    Contact Us
+                                    Hubungi Kami
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/privacy" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
-                                    Privacy Policy
+                                    Aturan Privasi
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/syarat-ketentuan" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
-                                    Syarat & Ketentuan
+                                    Ketentuan Layanan
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/status" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
-                                    System Status
+                                    Status Sistem
                                 </Link>
-                                </li>
+                            </li>
                         </ul>
                     </div>
 
                     {/* Company Links */}
                     <div className="min-w-0 space-y-4">
-                        <h3 className="font-semibold text-foreground">Company</h3>
+                        <h3 className="font-semibold text-foreground">Perusahaan</h3>
                         <ul className="space-y-2 text-sm">
                             <li>
                                 <Link href="/about" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
-                                    About Us
+                                    Tentang Kami
                                 </Link>
                             </li>
                             <li>
@@ -83,7 +83,7 @@ export function Footer() {
                             </li>
                             <li>
                                 <Link href="/careers" className="relative z-10 inline-flex pointer-events-auto text-muted-foreground transition-colors hover:text-primary">
-                                    Careers
+                                    Karir
                                 </Link>
                             </li>
                         </ul>

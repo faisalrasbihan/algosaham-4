@@ -200,9 +200,7 @@ function formatTrillionValue(value: number | null | undefined) {
 
 function formatFinancialMagnitude(value: number | null | undefined) {
     if (value === null || value === undefined || Number.isNaN(value)) return "N/A"
-    const abs = Math.abs(value)
-    if (abs < 0.001) return value.toExponential(2)
-    return value.toLocaleString("id-ID", { maximumFractionDigits: 2 })
+    return `Rp. ${value.toLocaleString("id-ID", { maximumFractionDigits: 0 })}`
 }
 
 function biasMeta(bias: MarketBias) {
@@ -388,7 +386,7 @@ function AnalyzeV2Content() {
                                                 const span = document.createElement("span")
                                                 span.className = "font-bold text-base font-ibm-plex-mono text-muted-foreground absolute inset-0 flex items-center justify-center"
                                                 span.textContent = d.ticker.charAt(0)
-                                                ; (e.target as HTMLImageElement).parentElement?.appendChild(span)
+                                                    ; (e.target as HTMLImageElement).parentElement?.appendChild(span)
                                             }}
                                         />
                                     </div>
