@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "About Us | algosaham.ai",
   description:
     "Mengenal misi, pendekatan, dan prinsip produk algosaham.ai untuk trader dan investor Indonesia.",
+  alternates: {
+    canonical: "/about",
+  },
 }
 
 const principles = [

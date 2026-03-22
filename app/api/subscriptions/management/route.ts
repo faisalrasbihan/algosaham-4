@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { users, payments } from "@/db/schema";
+import { payments } from "@/db/schema";
 import { eq, desc, and } from "drizzle-orm";
+import { getUserWithSyncedSubscriptionState } from "@/lib/server/subscription-state";
 
 export async function GET() {
     try {
@@ -15,9 +16,7 @@ export async function GET() {
             );
         }
 
-        const user = await db.query.users.findFirst({
-            where: eq(users.clerkId, userId),
-        });
+        const user = await getUserWithSyncedSubscriptionState(userId);
 
         if (!user) {
             return NextResponse.json(
@@ -43,11 +42,15 @@ export async function GET() {
             lastPaymentDate: latestPayment?.transactionTime,
             paymentMethod: latestPayment?.paymentType,
             limits: {
+                analyze: user.analyzeLimit,
+                screening: user.screeningLimit,
                 backtest: user.backtestLimit,
                 subscriptions: user.subscriptionsLimit,
                 savedStrategies: user.savedStrategiesLimit,
             },
             usage: {
+                analyze: user.analyzeUsedToday || 0,
+                screening: user.screeningUsedToday || 0,
                 backtest: user.backtestUsedToday || 0,
                 subscriptions: user.subscriptionsCount || 0,
                 savedStrategies: user.savedStrategiesCount || 0,

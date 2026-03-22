@@ -79,5 +79,5 @@ GROUP BY subscription_tier;
 -- VALID SUBSCRIPTION TIERS:
 -- ============================================
 -- - ritel (free tier)
--- - suhu (premium tier - Rp99,000/month or Rp49,500/month yearly)
--- - bandar (pro tier - Rp189,000/month or Rp94,500/month yearly)
+-- - suhu (trader aktif tier - Rp139,000/month)
+-- - bandar (trader profesional tier - Rp169,000/month)

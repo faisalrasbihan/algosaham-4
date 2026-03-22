@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   title: "Features | algosaham.ai",
   description:
     "Lihat fitur utama algosaham.ai untuk backtest, subscribe strategy, analisis saham, screener, dan daily notification.",
+  alternates: {
+    canonical: "/features",
+  },
 }
 
 const featureHighlights = [

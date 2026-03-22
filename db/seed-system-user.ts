@@ -17,6 +17,7 @@ envContent.split('\n').forEach(line => {
 
 import { db } from "./index"
 import { users } from "./schema"
+import { getTierDbFields } from "@/lib/subscription-plans"
 
 async function seedSystemUser() {
     try {
@@ -26,14 +27,14 @@ async function seedSystemUser() {
             clerkId: "system_showcase",
             email: "showcase@algosaham.com",
             name: "AlgoSaham Official",
-            subscriptionTier: "pro",
+            ...getTierDbFields("bandar"),
             subscriptionStatus: "active",
         }).onConflictDoNothing()
 
         console.log("✅ System user created successfully")
         console.log("   - Clerk ID: system_showcase")
         console.log("   - Name: AlgoSaham Official")
-        console.log("   - Tier: Pro")
+        console.log("   - Tier: Bandar")
 
         process.exit(0)
     } catch (error) {

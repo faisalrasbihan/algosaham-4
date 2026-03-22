@@ -1,23 +1,30 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
-import { Check, X, Info, Loader2 } from "lucide-react"
+import { Suspense, useEffect, useState } from "react"
+import { Check, Info, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useUser, SignInButton } from "@clerk/nextjs"
+import { SignInButton, useUser } from "@clerk/nextjs"
 import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
 import { PaymentMethodDialog } from "@/components/payment-method-dialog"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { AccountManagementPage } from "@/components/account-management-page"
+import {
+  PRICING_MATRIX_SECTIONS,
+  SUBSCRIPTION_PLANS,
+  formatPlanPrice,
+  type PaidSubscriptionTier,
+  type SubscriptionTier,
+} from "@/lib/subscription-plans"
 
-type FeatureValue = string | boolean | number
+type FeatureValue = string | boolean | null
 
 interface Feature {
   name: string
-  ritel: FeatureValue // Free
-  suhu: FeatureValue // Mid tier
-  bandar: FeatureValue // Top tier
+  ritel: FeatureValue
+  suhu: FeatureValue
+  bandar: FeatureValue
   tooltip?: string
 }
 
@@ -26,124 +33,45 @@ interface FeatureCategory {
   features: Feature[]
 }
 
-const pricingData: FeatureCategory[] = [
-  {
-    category: "Analysis",
-    features: [
-      {
-        name: "Quota",
-        ritel: "5x / day",
-        suhu: "Unlimited",
-        bandar: "Unlimited",
-        tooltip: "Jumlah analisis saham yang dapat dilakukan per hari.",
-      },
-    ],
-  },
-  {
-    category: "Backtesting",
-    features: [
-      {
-        name: "Quota",
-        ritel: "5x / day",
-        suhu: "50x / day",
-        bandar: "Unlimited"
-      },
-      {
-        name: "Strategy to test",
-        ritel: "8 indikator (terbatas)",
-        suhu: "20 indikator",
-        bandar: "Semua Indikator",
-        tooltip:
-          "Jenis strategi yang dapat Anda backtest. Ritel: strategi terbatas. Suhu: lebih banyak indikator. Bandar: akses semua indikator.",
-      },
-      {
-        name: "Periode Backtest",
-        ritel: "1 tahun",
-        suhu: "2 tahun",
-        bandar: "4 tahun"
-      },
-      {
-        name: "Saved Strategies",
-        ritel: 1,
-        suhu: 20,
-        bandar: 50,
-        tooltip: "Jumlah strategi yang dapat disimpan di akun Anda.",
-      },
-      {
-        name: "AI Chat",
-        ritel: false,
-        suhu: false,
-        bandar: "Coming Soon",
-        tooltip:
-          "Akses ke AI assistant untuk membantu analisis strategi trading Anda.",
-      },
-      {
-        name: "Privacy",
-        ritel: "Public only",
-        suhu: "Public only",
-        bandar: "Private & Public",
-        tooltip:
-          "Pengaturan privasi hasil backtest. Bandar dapat menyembunyikan strategi.",
-      },
-    ],
-  },
-  {
-    category: "Strategies",
-    features: [
-      {
-        name: "The Master Vault",
-        ritel: "Locked",
-        suhu: "Locked",
-        bandar: "Full Access",
-        tooltip: "Akses eksklusif ke strategi pilihan The Master Vault.",
-      },
-      { name: "Subscribe", ritel: 1, suhu: "up to 10", bandar: "up to 20" },
-      {
-        name: "Notification",
-        ritel: "None",
-        suhu: "Email",
-        bandar: "Email, WA & Telegram"
-      },
-    ],
-  },
-  {
-    category: "Monetization",
-    features: [{ name: "Incentive for Published Strategy", ritel: false, suhu: false, bandar: true }],
-  },
-]
+const pricingData: FeatureCategory[] = PRICING_MATRIX_SECTIONS.map((section, index) => ({
+  category: section.title ?? (index === 0 ? "Ringkasan" : `Section ${index + 1}`),
+  features: section.rows.map((row) => ({
+    name: row.feature,
+    ritel: row.values.ritel,
+    suhu: row.values.suhu,
+    bandar: row.values.bandar,
+    tooltip: row.note ?? undefined,
+  })),
+}))
 
-// Plan types for payment dialog
-type PaidPlanType = 'suhu' | 'bandar'
+type PaidPlanType = PaidSubscriptionTier
 
 function PricingMatrixInner() {
   const [isYearly, setIsYearly] = useState(false)
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
-  const { isSignedIn, user } = useUser()
-  const [userTier, setUserTier] = useState<string>("ritel")
+  const [loadingPlan] = useState<string | null>(null)
+  const { isSignedIn } = useUser()
+  const [userTier, setUserTier] = useState<SubscriptionTier>("ritel")
   const searchParams = useSearchParams()
 
-  // Fetch user's subscription tier
   useEffect(() => {
     const fetchUserTier = async () => {
       if (!isSignedIn) return
 
       try {
-        const response = await fetch('/api/user/tier')
+        const response = await fetch("/api/user/tier")
         if (response.ok) {
           const data = await response.json()
-          // map 'free' to 'ritel' if necessary, otherwise use data.tier
-          const tier = data.tier === 'free' ? 'ritel' : (data.tier || 'ritel')
+          const tier = (data.tier || "ritel") as SubscriptionTier
           setUserTier(tier)
         }
       } catch (error) {
-        console.error('Failed to fetch user tier:', error)
+        console.error("Failed to fetch user tier:", error)
       }
     }
 
-    fetchUserTier()
+    void fetchUserTier()
   }, [isSignedIn])
 
-  // Payment dialog state
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
   const [manageSubscriptionsOpen, setManageSubscriptionsOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<{
@@ -152,122 +80,115 @@ function PricingMatrixInner() {
     amount: number
   } | null>(null)
 
-  // Handle URL params for GoPay callback
   useEffect(() => {
-    const gopayStatus = searchParams.get('gopay')
-    const paymentStatus = searchParams.get('status')
+    const gopayStatus = searchParams.get("gopay")
+    const paymentStatus = searchParams.get("status")
 
-    if (gopayStatus === 'success') {
-      toast.success('Akun GoPay berhasil dihubungkan!')
-      // Clear URL params
-      window.history.replaceState({}, '', '/harga')
-    } else if (gopayStatus === 'error') {
-      toast.error('Gagal menghubungkan akun GoPay. Silakan coba lagi.')
-      window.history.replaceState({}, '', '/harga')
-    } else if (gopayStatus === 'pending') {
-      toast.info('Proses penghubungan GoPay masih pending.')
-      window.history.replaceState({}, '', '/harga')
+    if (gopayStatus === "success") {
+      toast.success("Akun GoPay berhasil dihubungkan!")
+      window.history.replaceState({}, "", "/harga")
+    } else if (gopayStatus === "error") {
+      toast.error("Gagal menghubungkan akun GoPay. Silakan coba lagi.")
+      window.history.replaceState({}, "", "/harga")
+    } else if (gopayStatus === "pending") {
+      toast.info("Proses penghubungan GoPay masih pending.")
+      window.history.replaceState({}, "", "/harga")
     }
 
-    if (paymentStatus === 'success') {
-      toast.success('Pembayaran berhasil! Terima kasih.')
-      window.history.replaceState({}, '', '/harga')
-    } else if (paymentStatus === 'error') {
-      toast.error('Pembayaran gagal. Silakan coba lagi.')
-      window.history.replaceState({}, '', '/harga')
-    } else if (paymentStatus === 'pending') {
-      toast.info('Pembayaran sedang diproses.')
-      window.history.replaceState({}, '', '/harga')
+    if (paymentStatus === "success") {
+      toast.success("Pembayaran berhasil! Terima kasih.")
+      window.history.replaceState({}, "", "/harga")
+    } else if (paymentStatus === "error") {
+      toast.error("Pembayaran gagal. Silakan coba lagi.")
+      window.history.replaceState({}, "", "/harga")
+    } else if (paymentStatus === "pending") {
+      toast.info("Pembayaran sedang diproses.")
+      window.history.replaceState({}, "", "/harga")
     }
   }, [searchParams])
 
   const plans = [
     {
-      name: "Free",
+      name: SUBSCRIPTION_PLANS.ritel.name,
       subtitle: "Ritel",
-      monthlyPrice: 0,
-      yearlyPrice: 0,
+      monthlyPrice: SUBSCRIPTION_PLANS.ritel.monthlyPrice,
+      yearlyTotalPrice: SUBSCRIPTION_PLANS.ritel.yearlyPrice,
       description: "Untuk pemula",
       highlighted: false,
       badge: null,
       key: "ritel" as const,
     },
     {
-      name: "Suhu",
+      name: SUBSCRIPTION_PLANS.suhu.name,
       subtitle: "Suhu",
-      monthlyPrice: 89500,
-      yearlyPrice: 44750, // 50% discount
-      description: "Trader aktif",
+      monthlyPrice: SUBSCRIPTION_PLANS.suhu.monthlyPrice,
+      yearlyTotalPrice: SUBSCRIPTION_PLANS.suhu.yearlyPrice,
+      description: SUBSCRIPTION_PLANS.suhu.targetUser,
       highlighted: true,
-      badge: "Most Popular",
+      badge: SUBSCRIPTION_PLANS.suhu.visuals?.badgeLabel ?? "Most Popular",
       key: "suhu" as const,
     },
     {
-      name: "Bandar",
+      name: SUBSCRIPTION_PLANS.bandar.name,
       subtitle: "Bandar",
-      monthlyPrice: 189000,
-      yearlyPrice: 94500, // 50% discount
-      description: "Trader profesional",
+      monthlyPrice: SUBSCRIPTION_PLANS.bandar.monthlyPrice,
+      yearlyTotalPrice: SUBSCRIPTION_PLANS.bandar.yearlyPrice,
+      description: SUBSCRIPTION_PLANS.bandar.targetUser,
       highlighted: false,
-      badge: "Best Value",
+      badge: SUBSCRIPTION_PLANS.bandar.visuals?.badgeLabel ?? "Best Value",
       key: "bandar" as const,
     },
   ]
 
-  const formatPrice = (price: number) => {
-    if (price === 0) return "Gratis"
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price)
+  const getDisplayedPrice = (plan: (typeof plans)[number]) => {
+    if (!isYearly) return plan.monthlyPrice
+    if (plan.yearlyTotalPrice === 0) return 0
+    return Math.round(plan.yearlyTotalPrice / 12)
   }
 
   const renderFeatureValue = (value: FeatureValue) => {
     if (typeof value === "boolean") {
       return value ? (
-        <Check className="w-4 h-4 text-green-600 inline-block" />
+        <Check className="inline-block h-4 w-4 text-green-600" />
       ) : (
-        <X className="w-4 h-4 text-red-400 inline-block" />
+        <X className="inline-block h-4 w-4 text-red-400" />
       )
     }
+
+    if (value === null) {
+      return <span className="text-muted-foreground">COMING SOON</span>
+    }
+
     return <span>{value}</span>
   }
 
-  const getFeatureValue = (planKey: string, feature: Feature): FeatureValue => {
-    // @ts-ignore
+  const getFeatureValue = (planKey: SubscriptionTier, feature: Feature): FeatureValue => {
     return feature[planKey]
   }
 
-  const handleSubscribe = (planKey: string) => {
-    // Free plan - no payment needed
+  const handleSubscribe = (planKey: SubscriptionTier) => {
     if (planKey === "ritel") {
       toast.success("Anda sudah menggunakan paket Free gratis!")
       return
     }
 
-    // Check if user is signed in
     if (!isSignedIn) {
       toast.error("Silakan login terlebih dahulu untuk berlangganan")
       return
     }
 
-    // Find the plan
-    const plan = plans.find(p => p.key === planKey)
+    const plan = plans.find((entry) => entry.key === planKey)
     if (!plan) return
 
-    // Open payment method dialog
     setSelectedPlan({
       type: planKey as PaidPlanType,
       name: plan.name,
-      amount: isYearly ? plan.yearlyPrice * 12 : plan.monthlyPrice,
+      amount: isYearly ? plan.yearlyTotalPrice : plan.monthlyPrice,
     })
     setPaymentDialogOpen(true)
   }
 
   const handlePaymentSuccess = () => {
-    // Refresh the page to show updated subscription status
     window.location.reload()
   }
 
@@ -275,43 +196,38 @@ function PricingMatrixInner() {
 
   return (
     <TooltipProvider>
-      <section className="py-16 px-4 dotted-background">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Harga Transparan, Fitur Lengkap, dan Fleksibel</h1>
-            <p className="text-lg text-muted-foreground font-mono max-w-2xl mx-auto mb-8">
+      <section className="dotted-background px-4 py-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 text-center">
+            <h1 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">
+              Harga Transparan, Fitur Lengkap, dan Fleksibel
+            </h1>
+            <p className="mx-auto mb-8 max-w-2xl font-mono text-lg text-muted-foreground">
               Pilih level sesuai gaya trading kamu. Naik level kapan aja!
             </p>
             {!isPaidUser && (
-              <div className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-100 p-1 text-muted-foreground border border-slate-200/60">
+              <div className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200/60 bg-slate-100 p-1 text-muted-foreground">
                 <button
                   onClick={() => setIsYearly(false)}
-                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-mono font-semibold transition-all ${!isYearly
-                    ? "bg-slate-600 text-white shadow-sm"
-                    : "hover:text-foreground"
-                    }`}
+                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-mono font-semibold transition-all ${
+                    !isYearly ? "bg-slate-600 text-white shadow-sm" : "hover:text-foreground"
+                  }`}
                 >
                   Bulanan
                 </button>
                 <button
                   onClick={() => setIsYearly(true)}
-                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-mono font-semibold transition-all flex items-center gap-1.5 ${isYearly
-                    ? "bg-slate-600 text-white shadow-sm"
-                    : "hover:text-foreground"
-                    }`}
+                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-mono font-semibold transition-all ${
+                    isYearly ? "bg-slate-600 text-white shadow-sm" : "hover:text-foreground"
+                  }`}
                 >
                   Tahunan
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm transition-colors ${isYearly ? "bg-white/20 text-white" : "bg-slate-200 text-slate-500"
-                    }`}>
-                    -50%
-                  </span>
                 </button>
               </div>
             )}
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid gap-6 md:grid-cols-3">
             {plans.map((plan, index) => {
               const showHighlight = !isPaidUser && plan.highlighted
               const showBadge = !isPaidUser && plan.badge
@@ -319,34 +235,36 @@ function PricingMatrixInner() {
               return (
                 <div
                   key={index}
-                  className={`relative rounded-xl border flex flex-col transition-all duration-300 ${showHighlight
-                    ? "border-primary bg-card shadow-xl scale-[1.02] z-10"
-                    : "border-border bg-card"
-                    }`}
+                  className={`relative flex flex-col rounded-xl border transition-all duration-300 ${
+                    showHighlight ? "z-10 scale-[1.02] border-primary bg-card shadow-xl" : "border-border bg-card"
+                  }`}
                 >
                   {showBadge && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 w-max">
-                      <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full">
+                    <div className="absolute -top-3 left-1/2 z-20 w-max -translate-x-1/2">
+                      <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
                         {plan.badge}
                       </span>
                     </div>
                   )}
 
-                  {/* Card Header with Price */}
-                  <div className="p-6 border-b border-border">
-                    <div className="text-center mb-4">
-                      <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
+                  <div className="border-b border-border p-6">
+                    <div className="mb-4 text-center">
+                      <h3 className="mb-1 text-xl font-bold text-foreground">{plan.name}</h3>
                       <p className="text-xs text-muted-foreground font-mono">{plan.description}</p>
                     </div>
 
-                    <div className="text-center mb-4">
+                    <div className="mb-4 text-center">
                       <div className="flex items-baseline justify-center gap-1">
                         <span className="text-3xl font-bold text-foreground">
-                          {formatPrice(isYearly ? plan.yearlyPrice : plan.monthlyPrice)}
+                          {plan.monthlyPrice === 0 ? "Gratis" : formatPlanPrice(getDisplayedPrice(plan))}
                         </span>
                       </div>
                       <span className="text-xs text-muted-foreground font-mono">
-                        {plan.monthlyPrice === 0 ? "selamanya" : isYearly ? "per bulan (ditagih tahunan)" : "per bulan"}
+                        {plan.monthlyPrice === 0
+                          ? "selamanya"
+                          : isYearly
+                            ? "per bulan (ditagih tahunan)"
+                            : "per bulan"}
                       </span>
                     </div>
 
@@ -360,12 +278,13 @@ function PricingMatrixInner() {
                           }
                         }}
                         disabled={loadingPlan !== null || (isPaidUser ? plan.key !== userTier : plan.key === userTier)}
-                        className={`w-full ${isPaidUser && plan.key === userTier
-                          ? "bg-[#d07225] hover:bg-[#b56320] text-white transition-colors"
-                          : showHighlight
-                            ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                            : "bg-secondary hover:bg-[#d07225] hover:text-white text-foreground transition-colors"
-                          }`}
+                        className={`w-full ${
+                          isPaidUser && plan.key === userTier
+                            ? "bg-[#d07225] text-white transition-colors hover:bg-[#b56320]"
+                            : showHighlight
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                              : "bg-secondary text-foreground transition-colors hover:bg-[#d07225] hover:text-white"
+                        }`}
                       >
                         {loadingPlan === plan.key ? (
                           <>
@@ -381,10 +300,11 @@ function PricingMatrixInner() {
                     ) : (
                       <SignInButton mode="modal">
                         <Button
-                          className={`w-full ${showHighlight
-                            ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                            : "bg-secondary hover:bg-[#d07225] hover:text-white text-foreground transition-colors"
-                            }`}
+                          className={`w-full ${
+                            showHighlight
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                              : "bg-secondary text-foreground transition-colors hover:bg-[#d07225] hover:text-white"
+                          }`}
                         >
                           {plan.monthlyPrice === 0 ? "Mulai Gratis" : "Pilih Paket"}
                         </Button>
@@ -392,11 +312,10 @@ function PricingMatrixInner() {
                     )}
                   </div>
 
-                  {/* Features List inside card */}
-                  <div className="p-4 flex-1 overflow-auto">
+                  <div className="flex-1 overflow-auto p-4">
                     {pricingData.map((category, categoryIndex) => (
                       <div key={categoryIndex} className="mb-4 last:mb-0">
-                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
+                        <h4 className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                           {category.category}
                         </h4>
                         <div className="space-y-1 pl-1">
@@ -405,15 +324,15 @@ function PricingMatrixInner() {
                             return (
                               <div
                                 key={featureIndex}
-                                className="flex items-center justify-between py-2 px-2 rounded-md text-sm hover:bg-muted/50"
+                                className="flex items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-muted/50"
                               >
-                                <span className="text-muted-foreground text-xs flex items-center gap-1">
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
                                   {feature.name}
 
                                   {feature.tooltip && (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
+                                        <Info className="h-3 w-3 text-muted-foreground/60 hover:text-muted-foreground" />
                                       </TooltipTrigger>
                                       <TooltipContent side="top" className="max-w-xs">
                                         <p>{feature.tooltip}</p>
@@ -421,7 +340,9 @@ function PricingMatrixInner() {
                                     </Tooltip>
                                   )}
                                 </span>
-                                <span className="font-mono text-foreground font-medium text-sm text-right">{renderFeatureValue(value)}</span>
+                                <span className="text-right text-sm font-medium text-foreground font-mono">
+                                  {renderFeatureValue(value)}
+                                </span>
                               </div>
                             )
                           })}
@@ -434,9 +355,8 @@ function PricingMatrixInner() {
             })}
           </div>
 
-          {/* Contact */}
           <div className="mt-16 text-center">
-            <p className="text-muted-foreground font-mono text-sm">
+            <p className="text-sm font-mono text-muted-foreground">
               Punya pertanyaan? Hubungi kami di{" "}
               <a href="mailto:support@algosaham.ai" className="text-primary hover:underline">
                 support@algosaham.ai
@@ -446,7 +366,6 @@ function PricingMatrixInner() {
         </div>
       </section>
 
-      {/* Payment Method Dialog */}
       {selectedPlan && (
         <PaymentMethodDialog
           isOpen={paymentDialogOpen}
@@ -456,15 +375,14 @@ function PricingMatrixInner() {
           }}
           planType={selectedPlan.type}
           planName={selectedPlan.name}
-          billingInterval={isYearly ? 'yearly' : 'monthly'}
+          billingInterval={isYearly ? "yearly" : "monthly"}
           amount={selectedPlan.amount}
           onPaymentSuccess={handlePaymentSuccess}
         />
       )}
 
-      {/* Manage Subscriptions Dialog */}
       <Dialog open={manageSubscriptionsOpen} onOpenChange={setManageSubscriptionsOpen}>
-        <DialogContent className="max-w-3xl overflow-hidden p-0 h-[85vh] sm:h-[80vh] flex flex-col">
+        <DialogContent className="flex h-[85vh] max-w-3xl flex-col overflow-hidden p-0 sm:h-[80vh]">
           <AccountManagementPage />
         </DialogContent>
       </Dialog>
@@ -472,28 +390,29 @@ function PricingMatrixInner() {
   )
 }
 
-// Wrapper component with Suspense boundary for useSearchParams
 export function PricingMatrix() {
   return (
-    <Suspense fallback={
-      <section className="py-16 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="h-10 w-3/4 mx-auto bg-muted animate-pulse rounded" />
-            <div className="h-6 w-1/2 mx-auto bg-muted animate-pulse rounded mt-4" />
+    <Suspense
+      fallback={
+        <section className="px-4 py-16">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-12 text-center">
+              <div className="mx-auto h-10 w-3/4 rounded bg-muted animate-pulse" />
+              <div className="mx-auto mt-4 h-6 w-1/2 rounded bg-muted animate-pulse" />
+            </div>
+            <div className="grid gap-6 md:grid-cols-3">
+              {[1, 2, 3].map((item) => (
+                <div key={item} className="rounded-xl border border-border bg-card p-6">
+                  <div className="mb-4 h-8 w-1/2 rounded bg-muted animate-pulse" />
+                  <div className="mb-4 h-12 w-3/4 rounded bg-muted animate-pulse" />
+                  <div className="h-10 w-full rounded bg-muted animate-pulse" />
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="rounded-xl border border-border bg-card p-6">
-                <div className="h-8 w-1/2 bg-muted animate-pulse rounded mb-4" />
-                <div className="h-12 w-3/4 bg-muted animate-pulse rounded mb-4" />
-                <div className="h-10 w-full bg-muted animate-pulse rounded" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    }>
+        </section>
+      }
+    >
       <PricingMatrixInner />
     </Suspense>
   )

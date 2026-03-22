@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: "System Status | algosaham.ai",
   description:
     "Status operasional layanan inti algosaham.ai dan penjelasan area yang dipantau.",
+  alternates: {
+    canonical: "/status",
+  },
 }
 
 const systems = [

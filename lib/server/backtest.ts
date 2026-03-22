@@ -1,7 +1,9 @@
-import { db } from "@/db";
-import { users } from "@/db/schema";
 import type { BacktestResult } from "@/lib/api";
-import { eq, sql } from "drizzle-orm";
+import {
+  getDailyQuotaSnapshot,
+  getUserWithSyncedSubscriptionState,
+  incrementDailyQuotaUsage,
+} from "@/lib/server/subscription-state";
 
 const TOP_HOLDING_COLORS = [
   "bg-blue-600",
@@ -260,9 +262,7 @@ export async function runBacktestWithQuota({
   let quotaUserExists = false;
 
   if (userId && consumeQuota) {
-    const user = await db.query.users.findFirst({
-      where: eq(users.clerkId, userId),
-    });
+    const user = await getUserWithSyncedSubscriptionState(userId);
 
     if (!user) {
       if (requireUser) {
@@ -271,8 +271,7 @@ export async function runBacktestWithQuota({
     } else {
       quotaUserExists = true;
 
-      const limit = user.backtestLimit;
-      const used = user.backtestUsedToday || 0;
+      const { limit, used } = getDailyQuotaSnapshot(user, "backtest");
 
       if (limit !== -1 && used >= limit) {
         fail(errors?.quotaExceeded?.({ limit, used }) ?? defaultQuotaExceededError({ limit, used }));
@@ -307,10 +306,7 @@ export async function runBacktestWithQuota({
 
   if (userId && consumeQuota && quotaUserExists) {
     try {
-      await db
-        .update(users)
-        .set({ backtestUsedToday: sql`${users.backtestUsedToday} + 1` })
-        .where(eq(users.clerkId, userId));
+      await incrementDailyQuotaUsage(userId, "backtest");
     } catch (error) {
       console.error("[BACKTEST] Failed to increment backtest usage:", error);
     }

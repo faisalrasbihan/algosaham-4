@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
+import { auth } from "@clerk/nextjs/server"
 
 import { genkiClient } from "@/db/genki"
+import { ensureUserInDatabase } from "@/lib/ensure-user"
+import {
+  getDailyQuotaSnapshot,
+  getUserWithSyncedSubscriptionState,
+  incrementDailyQuotaUsage,
+} from "@/lib/server/subscription-state"
 
 const screenerRequestSchema = z.object({
   config: z.object({
@@ -226,6 +233,31 @@ function buildWhereClause(config: z.infer<typeof screenerRequestSchema>["config"
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth()
+
+    if (userId) {
+      await ensureUserInDatabase()
+
+      const user = await getUserWithSyncedSubscriptionState(userId)
+      if (!user) {
+        return NextResponse.json(
+          { error: "User not found" },
+          { status: 404 },
+        )
+      }
+
+      const { limit, used } = getDailyQuotaSnapshot(user, "screening")
+      if (limit !== -1 && used >= limit) {
+        return NextResponse.json(
+          {
+            error: "Daily screening limit reached",
+            details: `You have used ${used}/${limit} screenings for today. Upgrade your plan for more.`,
+          },
+          { status: 403 },
+        )
+      }
+    }
+
     const body = await request.json()
     const parsed = screenerRequestSchema.safeParse(body)
 
@@ -334,6 +366,10 @@ export async function POST(request: NextRequest) {
     )
 
     const rows = dbRows.map(normalizeScreenerRow)
+
+    if (userId) {
+      await incrementDailyQuotaUsage(userId, "screening")
+    }
 
     return NextResponse.json({
       screeningId: parsed.data.config.backtestId,

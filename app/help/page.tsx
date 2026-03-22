@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: "Contact Us | algosaham.ai",
   description:
     "Hubungi tim algosaham.ai melalui formulir kontak untuk pertanyaan, masukan, dan kebutuhan lainnya.",
+  alternates: {
+    canonical: "/help",
+  },
 }
 
 export default function HelpPage() {

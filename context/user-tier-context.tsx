@@ -6,19 +6,21 @@ import { useUser } from "@clerk/nextjs";
 type UserTier = "ritel" | "suhu" | "bandar" | "admin";
 
 interface UserLimits {
+    analyze: number;
+    screening: number;
     backtest: number;
     subscriptions: number;
     savedStrategies: number;
     aiChat: number;
-    analyze: number;
 }
 
 interface UserUsage {
+    analyze: number;
+    screening: number;
     backtest: number;
     subscriptions: number;
     savedStrategies: number;
     aiChat: number;
-    analyze: number;
 }
 
 interface UserTierContextType {
@@ -37,19 +39,21 @@ interface UserTierContextType {
 }
 
 const defaultLimits: UserLimits = {
-    backtest: 5,
-    subscriptions: 0,
+    analyze: 3,
+    screening: 3,
+    backtest: 3,
+    subscriptions: 1,
     savedStrategies: 1,
-    aiChat: 10,
-    analyze: 5
+    aiChat: 5,
 };
 
 const defaultUsage: UserUsage = {
+    analyze: 0,
+    screening: 0,
     backtest: 0,
     subscriptions: 0,
     savedStrategies: 0,
     aiChat: 0,
-    analyze: 0
 };
 
 const UserTierContext = createContext<UserTierContextType | undefined>(undefined);
@@ -67,7 +71,7 @@ export function UserTierProvider({ children }: { children: ReactNode }) {
     const fetchUserTier = async () => {
         if (!isSignedIn) {
             setTier("ritel");
-            setCredits({ used: 0, total: 100 });
+            setCredits({ used: 0, total: 3 });
             setLimits(defaultLimits);
             setUsage(defaultUsage);
             setSubscriptionPeriodEnd(null);

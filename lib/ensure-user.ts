@@ -2,6 +2,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/db';
 import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { getTierDbFields } from '@/lib/subscription-plans';
 
 /**
  * Ensures the current user exists in the database
@@ -40,7 +41,7 @@ export async function ensureUserInDatabase() {
                     ? `${clerkUser.firstName} ${clerkUser.lastName}`
                     : clerkUser.firstName || clerkUser.lastName || null,
                 imageUrl: clerkUser.imageUrl || null,
-                subscriptionTier: 'ritel',
+                ...getTierDbFields('ritel'),
                 subscriptionStatus: 'active',
             })
             .returning();

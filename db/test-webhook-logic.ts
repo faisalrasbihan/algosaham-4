@@ -47,7 +47,7 @@ function parseOrderId(orderId: string): { planType: string; userId: string } | n
 // Test billing interval detection
 function getBillingInterval(amount: string, planType: string): 'monthly' | 'yearly' {
     const numAmount = parseInt(amount, 10);
-    const monthlyPrices = { suhu: 99000, bandar: 189000 };
+    const monthlyPrices = { suhu: 139000, bandar: 169000 };
 
     if (planType === 'suhu' && numAmount === monthlyPrices.suhu) return 'monthly';
     if (planType === 'bandar' && numAmount === monthlyPrices.bandar) return 'monthly';
@@ -91,10 +91,10 @@ testOrderIds.forEach(orderId => {
 // Test 2: Billing Interval Detection
 console.log('\nTest 2: Billing Interval Detection');
 const testAmounts = [
-    { amount: '99000', planType: 'suhu', expected: 'monthly' },
-    { amount: '594000', planType: 'suhu', expected: 'yearly' }, // 99000 * 12 / 2 = 594000
-    { amount: '189000', planType: 'bandar', expected: 'monthly' },
-    { amount: '1134000', planType: 'bandar', expected: 'yearly' }, // 189000 * 12 / 2 = 1134000
+    { amount: '139000', planType: 'suhu', expected: 'monthly' },
+    { amount: '1668000', planType: 'suhu', expected: 'yearly' }, // 139000 * 12
+    { amount: '169000', planType: 'bandar', expected: 'monthly' },
+    { amount: '2028000', planType: 'bandar', expected: 'yearly' }, // 169000 * 12
 ];
 
 testAmounts.forEach(({ amount, planType, expected }) => {
@@ -124,7 +124,7 @@ const serverKey = 'test-server-key';
 const testNotification: MidtransNotification = {
     order_id: 'AS-S-user_2abc-1707512345678',
     status_code: '200',
-    gross_amount: '99000',
+    gross_amount: '139000',
     transaction_time: new Date().toISOString(),
     transaction_status: 'settlement',
     transaction_id: 'test-txn-123',

@@ -6,7 +6,8 @@ import {
     AlertCircle,
     Zap,
     Heart,
-    BookMarked,
+    Search,
+    LineChart,
     Calendar,
     ShieldCheck,
     ShieldAlert,
@@ -20,6 +21,12 @@ import { id } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { PaymentMethodDialog } from "@/components/payment-method-dialog";
 import Link from "next/link";
+import {
+    getPlanConfig,
+    getTierDisplayName,
+    type BillingInterval,
+    type PaidSubscriptionTier,
+} from "@/lib/subscription-plans";
 
 interface SubscriptionManagementData {
     success: boolean;
@@ -29,14 +36,16 @@ interface SubscriptionManagementData {
     lastPaymentDate: string | null;
     paymentMethod: string | null;
     limits: {
+        analyze: number;
+        screening: number;
         backtest: number;
         subscriptions: number;
-        savedStrategies: number;
     };
     usage: {
+        analyze: number;
+        screening: number;
         backtest: number;
         subscriptions: number;
-        savedStrategies: number;
     };
 }
 
@@ -60,7 +69,7 @@ const TIER_CONFIG = {
         iconBg: "rgba(212, 175, 55, 0.12)",
     },
     ritel: {
-        label: "Ritel",
+        label: "Free",
         color: "#71717a",
         bg: "#f4f4f5",
         text: "#52525b",
@@ -145,12 +154,11 @@ export function AccountManagementPage() {
     const [isCanceling, setIsCanceling] = useState(false);
     const [showCancelDialog, setShowCancelDialog] = useState(false);
 
-    const [isYearly, setIsYearly] = useState(false);
     const [upgradePlan, setUpgradePlan] = useState<{
-        type: "suhu" | "bandar";
+        type: PaidSubscriptionTier;
         name: string;
         amount: number;
-        interval: "monthly" | "yearly";
+        interval: BillingInterval;
     } | null>(null);
 
     useEffect(() => {
@@ -263,7 +271,7 @@ export function AccountManagementPage() {
                                         className="text-base font-bold uppercase tracking-wide"
                                         style={{ fontFamily: "'IBM Plex Mono', monospace", color: tc.color }}
                                     >
-                                        {tier}
+                                        {getTierDisplayName(tier)}
                                     </span>
                                     {!isFree && (
                                         <span
@@ -335,6 +343,26 @@ export function AccountManagementPage() {
                     <div className="rounded-xl border border-border bg-card/40 divide-y divide-border">
                         <div className="px-5 py-4">
                             <UsageRow
+                                icon={LineChart}
+                                label="Analisis Harian"
+                                value={usage.analyze}
+                                max={limits.analyze}
+                                color={progressColor}
+                                sublabel="reset setiap hari"
+                            />
+                        </div>
+                        <div className="px-5 py-4">
+                            <UsageRow
+                                icon={Search}
+                                label="Screening Harian"
+                                value={usage.screening}
+                                max={limits.screening}
+                                color={progressColor}
+                                sublabel="reset setiap hari"
+                            />
+                        </div>
+                        <div className="px-5 py-4">
+                            <UsageRow
                                 icon={Zap}
                                 label="Backtest Harian"
                                 value={usage.backtest}
@@ -352,15 +380,6 @@ export function AccountManagementPage() {
                                 color={progressColor}
                             />
                         </div>
-                        <div className="px-5 py-4">
-                            <UsageRow
-                                icon={BookMarked}
-                                label="Strategi Disimpan"
-                                value={usage.savedStrategies}
-                                max={limits.savedStrategies}
-                                color={progressColor}
-                            />
-                        </div>
                     </div>
                 </div>
 
@@ -371,47 +390,23 @@ export function AccountManagementPage() {
                             Upgrade Paket
                         </h2>
                         <div className="rounded-xl border border-border bg-card/40 p-5 space-y-4">
-                            {/* Billing toggle */}
-                            <div className="flex items-center gap-3">
-                                <span className="text-[13px] text-muted-foreground">Opsi tagihan:</span>
-                                <div className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-100 p-1 text-muted-foreground border border-slate-200/60">
-                                    <button
-                                        onClick={() => setIsYearly(false)}
-                                        className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-mono font-semibold transition-all ${!isYearly
-                                            ? "bg-slate-600 text-white shadow-sm"
-                                            : "hover:text-foreground"
-                                            }`}
-                                    >
-                                        Bulanan
-                                    </button>
-                                    <button
-                                        onClick={() => setIsYearly(true)}
-                                        className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-mono font-semibold transition-all flex items-center gap-1.5 ${isYearly
-                                            ? "bg-slate-600 text-white shadow-sm"
-                                            : "hover:text-foreground"
-                                            }`}
-                                    >
-                                        Tahunan
-                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm transition-colors ${isYearly ? "bg-white/20 text-white" : "bg-slate-200 text-slate-500"
-                                            }`}>
-                                            −50%
-                                        </span>
-                                    </button>
-                                </div>
-                            </div>
+                            <p className="text-[13px] text-muted-foreground">
+                                Harga paket saat ini mengikuti billing bulanan.
+                            </p>
 
                             {/* Plan buttons */}
                             <div className="flex flex-col sm:flex-row gap-2.5">
                                 {tier === "ritel" && (
                                     <button
-                                        onClick={() =>
+                                        onClick={() => {
+                                            const plan = getPlanConfig("suhu");
                                             setUpgradePlan({
                                                 type: "suhu",
-                                                name: "Suhu",
-                                                amount: isYearly ? 44750 * 12 : 89500,
-                                                interval: isYearly ? "yearly" : "monthly",
-                                            })
-                                        }
+                                                name: plan.name,
+                                                amount: plan.monthlyPrice,
+                                                interval: "monthly",
+                                            });
+                                        }}
                                         className="flex-1 flex items-center justify-between px-4 py-3 rounded-lg border transition-all group"
                                         style={{
                                             borderColor: "rgba(72,123,120,0.3)",
@@ -431,7 +426,7 @@ export function AccountManagementPage() {
                                                     Upgrade ke Suhu
                                                 </span>
                                                 <span className="text-[11px] text-muted-foreground">
-                                                    Rp {(isYearly ? 44750 : 89500).toLocaleString("id-ID")}/bln
+                                                    Rp {getPlanConfig("suhu").monthlyPrice.toLocaleString("id-ID")}/bln
                                                 </span>
                                             </div>
                                         </div>
@@ -442,14 +437,15 @@ export function AccountManagementPage() {
                                     </button>
                                 )}
                                 <button
-                                    onClick={() =>
+                                    onClick={() => {
+                                        const plan = getPlanConfig("bandar");
                                         setUpgradePlan({
                                             type: "bandar",
-                                            name: "Bandar",
-                                            amount: isYearly ? 94500 * 12 : 189000,
-                                            interval: isYearly ? "yearly" : "monthly",
-                                        })
-                                    }
+                                            name: plan.name,
+                                            amount: plan.monthlyPrice,
+                                            interval: "monthly",
+                                        });
+                                    }}
                                     className="flex-1 flex items-center justify-between px-4 py-3 rounded-lg border transition-all group"
                                     style={{
                                         borderColor: "rgba(212,175,55,0.3)",
@@ -469,7 +465,7 @@ export function AccountManagementPage() {
                                                 Upgrade ke Bandar
                                             </span>
                                             <span className="text-[11px] text-muted-foreground">
-                                                Rp {(isYearly ? 94500 : 189000).toLocaleString("id-ID")}/bln
+                                                Rp {getPlanConfig("bandar").monthlyPrice.toLocaleString("id-ID")}/bln
                                             </span>
                                         </div>
                                     </div>
@@ -525,9 +521,9 @@ export function AccountManagementPage() {
                                 <h3 className="text-base font-semibold text-foreground">Batalkan Langganan?</h3>
                                 <p className="text-[13px] text-muted-foreground mt-2 leading-relaxed">
                                     Anda masih dapat menikmati fitur paket{" "}
-                                    <span className="font-semibold text-foreground uppercase">{tier}</span> hingga{" "}
+                                    <span className="font-semibold text-foreground uppercase">{getTierDisplayName(tier)}</span> hingga{" "}
                                     <span className="font-semibold text-foreground">{formatDate(nextDue)}</span>, setelah itu akun Anda akan kembali ke paket{" "}
-                                    <span className="font-medium uppercase">Ritel</span>.
+                                    <span className="font-medium uppercase">Free</span>.
                                 </p>
                             </div>
                         </div>

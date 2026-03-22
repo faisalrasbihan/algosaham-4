@@ -2,21 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { getSnapToken, createSubscription } from "@/lib/midtrans";
 import { ensureUserInDatabase } from "@/lib/ensure-user";
+import {
+    getPlanPrice,
+    SUBSCRIPTION_PLANS,
+    type BillingInterval,
+    type PaidSubscriptionTier,
+} from "@/lib/subscription-plans";
 
-// Plan pricing configuration
-const PLAN_PRICING = {
-    suhu: {
-        monthly: 89500,
-        yearly: 44750 * 12, // Annual price (50% discount)
-    },
-    bandar: {
-        monthly: 189000,
-        yearly: 94500 * 12, // Annual price (50% discount)
-    },
-} as const;
-
-type PlanType = keyof typeof PLAN_PRICING;
-type BillingInterval = 'monthly' | 'yearly';
+type PlanType = PaidSubscriptionTier;
 type PaymentMethod = 'credit_card' | 'gopay' | 'bank_transfer' | 'e_wallet' | 'qris';
 
 export async function POST(request: NextRequest) {
@@ -37,7 +30,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
 
         const { planType, billingInterval, paymentMethod, gopayAccountId, gopayToken } = body as {
-            planType: PlanType;
+            planType: string;
             billingInterval: BillingInterval;
             paymentMethod?: PaymentMethod;
             gopayAccountId?: string; // GoPay account_id for recurring
@@ -45,7 +38,7 @@ export async function POST(request: NextRequest) {
         };
 
         // Validate plan type
-        if (!planType || !PLAN_PRICING[planType]) {
+        if (!planType || planType === 'ritel' || !(planType in SUBSCRIPTION_PLANS)) {
             return NextResponse.json(
                 { error: "Invalid plan type. Choose 'suhu' or 'bandar'." },
                 { status: 400 }
@@ -61,11 +54,12 @@ export async function POST(request: NextRequest) {
         }
 
         // Get price for selected plan and interval
-        const amount = PLAN_PRICING[planType][billingInterval];
+        const normalizedPlanType = planType as PlanType;
+        const amount = getPlanPrice(normalizedPlanType, billingInterval);
 
         // Generate unique order ID (max 50 chars for Midtrans)
         const shortUserId = userId.replace('user_', '').slice(0, 8);
-        const orderId = `AS-${planType[0].toUpperCase()}-${shortUserId}-${Date.now()}`;
+        const orderId = `AS-${normalizedPlanType[0].toUpperCase()}-${shortUserId}-${Date.now()}`;
 
         // Determine payment method
         const method = paymentMethod || 'credit_card';
@@ -79,7 +73,7 @@ export async function POST(request: NextRequest) {
             if (gopayAccountId && gopayToken) {
                 // Create a recurring subscription with GoPay
                 try {
-                    const subscriptionName = `AlgoSaham ${planType.charAt(0).toUpperCase() + planType.slice(1)} - ${billingInterval}`;
+                    const subscriptionName = `AlgoSaham ${normalizedPlanType.charAt(0).toUpperCase() + normalizedPlanType.slice(1)} - ${billingInterval}`;
 
                     const subscription = await createSubscription({
                         name: subscriptionName,
@@ -103,7 +97,7 @@ export async function POST(request: NextRequest) {
                         },
                         metadata: {
                             user_id: userId,
-                            plan_type: planType,
+                            plan_type: normalizedPlanType,
                             billing_interval: billingInterval,
                         },
                     });
@@ -116,7 +110,7 @@ export async function POST(request: NextRequest) {
                             paymentMethod: 'gopay',
                             orderId,
                             amount,
-                            planType,
+                            planType: normalizedPlanType,
                             billingInterval,
                         },
                     });
@@ -157,7 +151,7 @@ export async function POST(request: NextRequest) {
                         paymentMethod: 'gopay',
                         orderId,
                         amount,
-                        planType,
+                        planType: normalizedPlanType,
                         billingInterval,
                     },
                 });
@@ -195,7 +189,7 @@ export async function POST(request: NextRequest) {
                     paymentMethod: 'e_wallet',
                     orderId,
                     amount,
-                    planType,
+                    planType: normalizedPlanType,
                     billingInterval,
                 },
             });
@@ -233,7 +227,7 @@ export async function POST(request: NextRequest) {
                     paymentMethod: 'qris',
                     orderId,
                     amount,
-                    planType,
+                    planType: normalizedPlanType,
                     billingInterval,
                 },
             });
@@ -271,7 +265,7 @@ export async function POST(request: NextRequest) {
                     paymentMethod: 'bank_transfer',
                     orderId,
                     amount,
-                    planType,
+                    planType: normalizedPlanType,
                     billingInterval,
                 },
             });

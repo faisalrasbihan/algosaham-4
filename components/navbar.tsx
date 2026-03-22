@@ -5,12 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
-import { WalletCards, Zap, Heart, BookMarked, ArrowUpRight, Loader2, Settings, Menu } from "lucide-react";
+import { WalletCards, Zap, Heart, Search, LineChart, ArrowUpRight, Loader2, Settings, Menu } from "lucide-react";
 import { AccountManagementPage } from "@/components/account-management-page";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { useRouter } from "next/navigation";
 
 import { useUserTier } from "@/context/user-tier-context";
+import { getTierDisplayName } from "@/lib/subscription-plans";
 
 export function Navbar() {
   const { isSignedIn } = useUser();
@@ -27,7 +28,7 @@ export function Navbar() {
   }, [router]);
 
   // Display tier name in uppercase
-  const userPlan = tier.toUpperCase();
+  const userPlan = getTierDisplayName(tier).toUpperCase();
 
   // Tier colors — coherent color scheme with consistent saturation
   const getTierColor = (tier: string) => {
@@ -237,23 +238,48 @@ export function Navbar() {
                             )}
                           </div>
 
-                          {/* Saved Strategies */}
+                          {/* Screening */}
                           <div>
                             <div className="flex items-center justify-between mb-1.5">
                               <div className="flex items-center gap-1.5">
-                                <BookMarked className="w-3.5 h-3.5 text-muted-foreground/70" />
-                                <span className="text-xs font-medium text-foreground/80">Saved Strategies</span>
+                                <Search className="w-3.5 h-3.5 text-muted-foreground/70" />
+                                <span className="text-xs font-medium text-foreground/80">Screening</span>
                               </div>
                               <span className="text-xs font-semibold font-mono text-foreground">
-                                {limits.savedStrategies === -1 ? '∞' : `${usage.savedStrategies} / ${limits.savedStrategies}`}
+                                {limits.screening === -1 ? '∞' : `${usage.screening} / ${limits.screening}`}
                               </span>
                             </div>
-                            {limits.savedStrategies !== -1 && (
+                            {limits.screening !== -1 && (
                               <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                                 <div
                                   className="h-full rounded-full transition-all duration-500 ease-out"
                                   style={{
-                                    width: `${Math.min((usage.savedStrategies / limits.savedStrategies) * 100, 100)}%`,
+                                    width: `${Math.min((usage.screening / limits.screening) * 100, 100)}%`,
+                                    backgroundColor: getProgressColor(),
+                                  }}
+                                />
+                              </div>
+                            )}
+                            <span className="text-[10px] text-muted-foreground/60 mt-0.5 block">Resets daily</span>
+                          </div>
+
+                          {/* Analysis */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <LineChart className="w-3.5 h-3.5 text-muted-foreground/70" />
+                                <span className="text-xs font-medium text-foreground/80">Analisis</span>
+                              </div>
+                              <span className="text-xs font-semibold font-mono text-foreground">
+                                {limits.analyze === -1 ? '∞' : `${usage.analyze} / ${limits.analyze}`}
+                              </span>
+                            </div>
+                            {limits.analyze !== -1 && (
+                              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all duration-500 ease-out"
+                                  style={{
+                                    width: `${Math.min((usage.analyze / limits.analyze) * 100, 100)}%`,
                                     backgroundColor: getProgressColor(),
                                   }}
                                 />

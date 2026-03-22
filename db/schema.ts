@@ -17,12 +17,17 @@ export const users = pgTable("users", {
   subscriptionPeriodEnd: timestamp("subscription_period_end", { withTimezone: true }),
 
   // ANALYZE - Daily quota & usage
-  analyzeLimit: integer("analyze_limit").notNull().default(5), // ritel: 5, bandar: -1, suhu: -1
+  analyzeLimit: integer("analyze_limit").notNull().default(3), // ritel: 3, suhu: 20, bandar: -1
   analyzeUsedToday: integer("analyze_used_today").default(0),
   analyzeLastReset: timestamp("analyze_last_reset", { withTimezone: true }).defaultNow(),
 
+  // SCREENING - Daily quota & usage
+  screeningLimit: integer("screening_limit").notNull().default(3), // ritel: 3, suhu: 20, bandar: -1
+  screeningUsedToday: integer("screening_used_today").default(0),
+  screeningLastReset: timestamp("screening_last_reset", { withTimezone: true }).defaultNow(),
+
   // BACKTEST - Daily quota & usage
-  backtestLimit: integer("backtest_limit").notNull().default(5), // ritel: 5, suhu: 50, bandar: -1
+  backtestLimit: integer("backtest_limit").notNull().default(3), // ritel: 3, suhu: 20, bandar: -1
   backtestUsedToday: integer("backtest_used_today").default(0),
   backtestLastReset: timestamp("backtest_last_reset", { withTimezone: true }).defaultNow(),
 
@@ -31,7 +36,7 @@ export const users = pgTable("users", {
   savedStrategiesCount: integer("saved_strategies_count").default(0),
 
   // SUBSCRIPTIONS - Total limit & current count (following other users' strategies)
-  subscriptionsLimit: integer("subscriptions_limit").notNull().default(0), // ritel: 0, suhu: 10, bandar: 20
+  subscriptionsLimit: integer("subscriptions_limit").notNull().default(1), // ritel: 1, suhu: 10, bandar: -1
   subscriptionsCount: integer("subscriptions_count").default(0),
 
   // AI CHAT - Daily quota & usage
@@ -155,7 +160,7 @@ export const payments = pgTable("payments", {
   signatureKey: text("signature_key"), // SHA512 hash for verification
 
   // What they paid for
-  subscriptionTier: text("subscription_tier"), // premium, pro
+  subscriptionTier: text("subscription_tier"), // suhu, bandar
   billingPeriod: text("billing_period"), // monthly, yearly
 
   // Subscription period this payment covers

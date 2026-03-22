@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: "Careers | algosaham.ai",
   description:
     "Informasi karier dan area kontribusi yang dibutuhkan untuk mengembangkan algosaham.ai.",
+  alternates: {
+    canonical: "/careers",
+  },
 }
 
 const roles = [

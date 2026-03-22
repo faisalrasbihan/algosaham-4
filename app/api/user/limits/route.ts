@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getUserWithSyncedSubscriptionState } from "@/lib/server/subscription-state";
 
 export async function GET() {
     try {
@@ -15,9 +13,7 @@ export async function GET() {
             );
         }
 
-        const user = await db.query.users.findFirst({
-            where: eq(users.clerkId, userId),
-        });
+        const user = await getUserWithSyncedSubscriptionState(userId);
 
         if (!user) {
             return NextResponse.json(
@@ -31,18 +27,20 @@ export async function GET() {
             tier: user.subscriptionTier || 'ritel',
             subscriptionPeriodEnd: user.subscriptionPeriodEnd,
             limits: {
+                analyze: user.analyzeLimit,
+                screening: user.screeningLimit,
                 backtest: user.backtestLimit,
                 subscriptions: user.subscriptionsLimit,
                 savedStrategies: user.savedStrategiesLimit,
                 aiChat: user.aiChatLimit,
-                analyze: user.analyzeLimit
             },
             usage: {
+                analyze: user.analyzeUsedToday || 0,
+                screening: user.screeningUsedToday || 0,
                 backtest: user.backtestUsedToday || 0,
                 subscriptions: user.subscriptionsCount || 0,
                 savedStrategies: user.savedStrategiesCount || 0,
                 aiChat: user.aiChatUsedToday || 0,
-                analyze: user.analyzeUsedToday || 0
             }
         });
 

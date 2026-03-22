@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   title: "Blog | algosaham.ai",
   description:
     "Wawasan, catatan produk, dan pembelajaran seputar strategi trading berbasis data dari algosaham.ai.",
+  alternates: {
+    canonical: "/blog",
+  },
 }
 
 export default function BlogPage() {

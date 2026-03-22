@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { ensureUserInDatabase } from "@/lib/ensure-user";
+import {
+    getDailyQuotaSnapshot,
+    getUserWithSyncedSubscriptionState,
+    incrementDailyQuotaUsage,
+} from "@/lib/server/subscription-state";
 
 const rawUrl = process.env.RAILWAY_URL || '';
 const RAILWAY_URL = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
@@ -12,6 +18,28 @@ export async function POST(req: Request) {
             return NextResponse.json(
                 { success: false, error: "Unauthorized" },
                 { status: 401 }
+            );
+        }
+
+        await ensureUserInDatabase();
+
+        const user = await getUserWithSyncedSubscriptionState(userId);
+        if (!user) {
+            return NextResponse.json(
+                { success: false, error: "User not found" },
+                { status: 404 }
+            );
+        }
+
+        const { limit, used } = getDailyQuotaSnapshot(user, "analyze");
+        if (limit !== -1 && used >= limit) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "Daily analysis limit reached",
+                    message: `You have used ${used}/${limit} analyses for today. Upgrade your plan for more.`,
+                },
+                { status: 403 }
             );
         }
 
@@ -45,6 +73,8 @@ export async function POST(req: Request) {
         }
 
         const data = await response.json();
+
+        await incrementDailyQuotaUsage(userId, "analyze");
 
         return NextResponse.json({
             success: true,

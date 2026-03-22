@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createSubscription } from "@/lib/midtrans";
+import { getPlanPrice, type PaidSubscriptionTier } from "@/lib/subscription-plans";
+import { setUserTier } from "@/lib/server/subscription-state";
 
 // Midtrans webhook notification handler
 // This endpoint receives payment status notifications from Midtrans
@@ -73,18 +75,9 @@ function parseOrderId(orderId: string): { planType: string; userId: string } | n
 }
 
 // Determine billing interval from amount
-function getBillingInterval(amount: string, planType: string): 'monthly' | 'yearly' {
+function getBillingInterval(amount: string, planType: PaidSubscriptionTier): 'monthly' | 'yearly' {
     const numAmount = parseInt(amount, 10);
-
-    // Monthly prices
-    const monthlyPrices = { suhu: 89500, bandar: 189000 };
-
-    // If the amount matches monthly price, it's monthly
-    if (planType === 'suhu' && numAmount === monthlyPrices.suhu) return 'monthly';
-    if (planType === 'bandar' && numAmount === monthlyPrices.bandar) return 'monthly';
-
-    // Otherwise, it's yearly
-    return 'yearly';
+    return numAmount === getPlanPrice(planType, 'monthly') ? 'monthly' : 'yearly';
 }
 
 export async function POST(request: NextRequest) {
@@ -132,7 +125,7 @@ export async function POST(request: NextRequest) {
         }
 
         const { planType, userId } = orderInfo;
-        const billingInterval = getBillingInterval(gross_amount, planType);
+        const billingInterval = getBillingInterval(gross_amount, planType as PaidSubscriptionTier);
 
         // Handle different transaction statuses
         switch (transaction_status) {
@@ -143,7 +136,7 @@ export async function POST(request: NextRequest) {
                         orderId: order_id,
                         transactionId: transaction_id,
                         userId,
-                        planType,
+                        planType: planType as PaidSubscriptionTier,
                         amount: gross_amount,
                         paymentType: payment_type,
                         savedTokenId: saved_token_id,
@@ -161,7 +154,7 @@ export async function POST(request: NextRequest) {
                     orderId: order_id,
                     transactionId: transaction_id,
                     userId,
-                    planType,
+                    planType: planType as PaidSubscriptionTier,
                     amount: gross_amount,
                     paymentType: payment_type,
                     savedTokenId: saved_token_id,
@@ -226,7 +219,7 @@ interface SuccessfulPaymentData {
     orderId: string;
     transactionId: string;
     userId: string;
-    planType: string;
+    planType: PaidSubscriptionTier;
     amount: string;
     paymentType: string;
     savedTokenId?: string;
@@ -270,15 +263,11 @@ async function handleSuccessfulPayment(data: SuccessfulPaymentData) {
         }
 
         // Update user's subscription tier and period
-        await db.update(users)
-            .set({
-                subscriptionTier: data.planType, // 'suhu' or 'bandar'
-                subscriptionStatus: 'active',
-                subscriptionPeriodStart: periodStart,
-                subscriptionPeriodEnd: periodEnd,
-                updatedAt: now,
-            })
-            .where(eq(users.clerkId, user.clerkId));
+        await setUserTier(user.clerkId, data.planType as PaidSubscriptionTier, {
+            subscriptionStatus: 'active',
+            subscriptionPeriodStart: periodStart,
+            subscriptionPeriodEnd: periodEnd,
+        });
 
         console.log(`Updated user ${user.clerkId} to ${data.planType} tier until ${periodEnd.toISOString()}`);
 

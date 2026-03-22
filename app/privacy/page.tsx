@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "Kebijakan Privasi | algosaham.ai",
   description:
     "Kebijakan Privasi algosaham.ai terkait pengelolaan Data Pribadi pengguna.",
+  alternates: {
+    canonical: "/privacy",
+  },
 }
 
 export default function PrivacyPage() {

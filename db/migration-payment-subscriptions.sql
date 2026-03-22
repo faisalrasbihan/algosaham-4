@@ -111,4 +111,4 @@ CREATE TRIGGER update_payment_transactions_updated_at
 
 -- Sample data for testing (optional, remove in production)
 -- INSERT INTO payment_subscriptions (user_id, user_email, plan_type, billing_interval, amount, status)
--- VALUES ('test_user_123', 'test@example.com', 'suhu', 'monthly', 99000, 'active');
+-- VALUES ('test_user_123', 'test@example.com', 'suhu', 'monthly', 139000, 'active');

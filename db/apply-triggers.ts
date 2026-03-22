@@ -14,22 +14,25 @@ async function applyTriggers() {
       BEGIN
         CASE NEW.subscription_tier
           WHEN 'ritel' THEN
-            NEW.analyze_limit := 5;
-            NEW.backtest_limit := 5;
+            NEW.analyze_limit := 3;
+            NEW.screening_limit := 3;
+            NEW.backtest_limit := 3;
             NEW.saved_strategies_limit := 1;
-            NEW.subscriptions_limit := 0;
+            NEW.subscriptions_limit := 1;
             NEW.ai_chat_limit := 5;
             
           WHEN 'bandar' THEN
             NEW.analyze_limit := -1;
+            NEW.screening_limit := -1;
             NEW.backtest_limit := -1;
             NEW.saved_strategies_limit := 50;
-            NEW.subscriptions_limit := 20;
+            NEW.subscriptions_limit := -1;
             NEW.ai_chat_limit := -1;
             
           WHEN 'suhu' THEN
-            NEW.analyze_limit := -1;
-            NEW.backtest_limit := 50;
+            NEW.analyze_limit := 20;
+            NEW.screening_limit := 20;
+            NEW.backtest_limit := 20;
             NEW.saved_strategies_limit := 20;
             NEW.subscriptions_limit := 10;
             NEW.ai_chat_limit := -1;
@@ -87,12 +90,15 @@ async function applyTriggers() {
         SET 
           analyze_used_today = 0,
           analyze_last_reset = now(),
+          screening_used_today = 0,
+          screening_last_reset = now(),
           backtest_used_today = 0,
           backtest_last_reset = now(),
           ai_chat_used_today = 0,
           ai_chat_last_reset = now()
         WHERE 
           analyze_last_reset < CURRENT_DATE
+          OR screening_last_reset < CURRENT_DATE
           OR backtest_last_reset < CURRENT_DATE
           OR ai_chat_last_reset < CURRENT_DATE;
       END;

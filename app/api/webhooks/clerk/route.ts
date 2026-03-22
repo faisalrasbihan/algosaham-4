@@ -4,6 +4,7 @@ import { WebhookEvent } from '@clerk/nextjs/server'
 import { db } from '@/db'
 import { users } from '@/db/schema'
 import { eq } from 'drizzle-orm'
+import { getTierDbFields } from '@/lib/subscription-plans'
 
 export async function POST(req: Request) {
     // Get the webhook secret from environment
@@ -68,7 +69,7 @@ export async function POST(req: Request) {
                     email: email_addresses[0]?.email_address || '',
                     name: first_name && last_name ? `${first_name} ${last_name}` : first_name || last_name || null,
                     imageUrl: image_url || null,
-                    subscriptionTier: 'ritel',
+                    ...getTierDbFields('ritel'),
                     subscriptionStatus: 'active',
                 })
                 .onConflictDoUpdate({

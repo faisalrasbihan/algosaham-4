@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getUserWithSyncedSubscriptionState } from "@/lib/server/subscription-state";
 
 export async function GET() {
     try {
@@ -16,9 +14,7 @@ export async function GET() {
         }
 
         // Fetch user from database
-        const user = await db.query.users.findFirst({
-            where: eq(users.clerkId, userId),
-        });
+        const user = await getUserWithSyncedSubscriptionState(userId);
 
         if (!user) {
             return NextResponse.json(
