@@ -37,7 +37,7 @@ export async function POST(req: Request) {
                 {
                     success: false,
                     error: "Daily analysis limit reached",
-                    message: `You have used ${used}/${limit} analyses for today. Upgrade your plan for more.`,
+                    message: `Anda telah menggunakan ${used}/${limit} analisis untuk hari ini. Upgrade paket Anda untuk lebih banyak.`,
                 },
                 { status: 403 }
             );

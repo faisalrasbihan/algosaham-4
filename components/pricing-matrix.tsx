@@ -51,6 +51,11 @@ function PricingMatrixInner() {
   const [loadingPlan] = useState<string | null>(null)
   const { isSignedIn } = useUser()
   const [userTier, setUserTier] = useState<SubscriptionTier>("ritel")
+  const [userSubscriptionInfo, setUserSubscriptionInfo] = useState<{
+    tier: SubscriptionTier,
+    subscriptionPeriodStart?: string,
+    subscriptionPeriodEnd?: string
+  } | null>(null)
   const searchParams = useSearchParams()
 
   useEffect(() => {
@@ -63,6 +68,7 @@ function PricingMatrixInner() {
           const data = await response.json()
           const tier = (data.tier || "ritel") as SubscriptionTier
           setUserTier(tier)
+          setUserSubscriptionInfo(data)
         }
       } catch (error) {
         console.error("Failed to fetch user tier:", error)
@@ -140,10 +146,37 @@ function PricingMatrixInner() {
     },
   ]
 
+  const calculateUpgradeProration = () => {
+    if (!userSubscriptionInfo?.subscriptionPeriodStart || !userSubscriptionInfo?.subscriptionPeriodEnd) return 0
+    if (userTier !== "suhu") return 0
+    
+    const start = new Date(userSubscriptionInfo.subscriptionPeriodStart).getTime()
+    const end = new Date(userSubscriptionInfo.subscriptionPeriodEnd).getTime()
+    const now = new Date().getTime()
+    
+    if (end <= now || start >= end) return 0
+    
+    const remainingMs = end - now
+    const totalMs = end - start
+    
+    const isUserYearly = (totalMs / (1000 * 60 * 60 * 24)) > 300
+    const currentPrice = isUserYearly ? SUBSCRIPTION_PLANS.suhu.yearlyPrice : SUBSCRIPTION_PLANS.suhu.monthlyPrice
+    
+    const remainingValue = (remainingMs / totalMs) * currentPrice
+    
+    return remainingValue > 0 ? remainingValue : 0
+  }
+
   const getDisplayedPrice = (plan: (typeof plans)[number]) => {
-    if (!isYearly) return plan.monthlyPrice
-    if (plan.yearlyTotalPrice === 0) return 0
-    return Math.round(plan.yearlyTotalPrice / 12)
+    let price = isYearly ? plan.yearlyTotalPrice : plan.monthlyPrice
+    if (userTier === "suhu" && plan.key === "bandar") {
+      const remainingValue = calculateUpgradeProration()
+      price = Math.max(0, price - remainingValue)
+    }
+
+    if (!isYearly) return price
+    if (price === 0) return 0
+    return Math.round(price / 12)
   }
 
   const renderFeatureValue = (value: FeatureValue) => {
@@ -180,10 +213,17 @@ function PricingMatrixInner() {
     const plan = plans.find((entry) => entry.key === planKey)
     if (!plan) return
 
+    let amount = isYearly ? plan.yearlyTotalPrice : plan.monthlyPrice
+    
+    if (userTier === "suhu" && planKey === "bandar") {
+      const remainingValue = calculateUpgradeProration()
+      amount = Math.max(0, amount - remainingValue)
+    }
+
     setSelectedPlan({
       type: planKey as PaidPlanType,
-      name: plan.name,
-      amount: isYearly ? plan.yearlyTotalPrice : plan.monthlyPrice,
+      name: userTier === "suhu" && planKey === "bandar" ? `${plan.name} (Upgrade)` : plan.name,
+      amount: amount,
     })
     setPaymentDialogOpen(true)
   }
@@ -261,10 +301,11 @@ function PricingMatrixInner() {
                       </div>
                       <span className="text-xs text-muted-foreground font-mono">
                         {plan.monthlyPrice === 0
-                          ? "selamanya"
-                          : isYearly
-                            ? "per bulan (ditagih tahunan)"
-                            : "per bulan"}
+                            ? "selamanya"
+                            : isYearly
+                              ? "per bulan (ditagih tahunan)"
+                              : "per bulan"}
+                        {userTier === "suhu" && plan.key === "bandar" && " (prorata upgrade)"}
                       </span>
                     </div>
 
@@ -277,13 +318,15 @@ function PricingMatrixInner() {
                             handleSubscribe(plan.key)
                           }
                         }}
-                        disabled={loadingPlan !== null || (isPaidUser ? plan.key !== userTier : plan.key === userTier)}
+                        disabled={loadingPlan !== null || (isPaidUser && plan.key !== userTier && !(userTier === "suhu" && plan.key === "bandar"))}
                         className={`w-full ${
-                          isPaidUser && plan.key === userTier
-                            ? "bg-[#d07225] text-white transition-colors hover:bg-[#b56320]"
-                            : showHighlight
-                              ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                              : "bg-secondary text-foreground transition-colors hover:bg-[#d07225] hover:text-white"
+                          userTier === "suhu" && plan.key === "bandar"
+                            ? "bg-[#d4af37] text-white transition-colors hover:bg-[#c5a030]"
+                            : isPaidUser && plan.key === userTier
+                              ? "bg-[#d07225] text-white transition-colors hover:bg-[#b56320]"
+                              : showHighlight
+                                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                : "bg-secondary text-foreground transition-colors hover:bg-[#d07225] hover:text-white"
                         }`}
                       >
                         {loadingPlan === plan.key ? (
@@ -293,6 +336,8 @@ function PricingMatrixInner() {
                           </>
                         ) : plan.key === userTier ? (
                           plan.key === "ritel" ? "Paket Saat Ini" : "Manage Subscriptions"
+                        ) : userTier === "suhu" && plan.key === "bandar" ? (
+                          "Upgrade Plan"
                         ) : (
                           "Pilih Paket"
                         )}

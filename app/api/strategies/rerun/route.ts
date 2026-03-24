@@ -94,7 +94,7 @@ export async function POST(req: Request) {
                     status: 403,
                     body: {
                         error: "Daily backtest limit reached",
-                        message: `You have used ${used}/${limit} backtests for today. Upgrade your plan for more.`,
+                        message: `Anda telah menggunakan ${used}/${limit} backtest untuk hari ini. Upgrade paket Anda untuk lebih banyak.`,
                     },
                 }),
                 railway: ({ status, details }) => ({

@@ -204,12 +204,11 @@ export const PRICING_MATRIX_SECTIONS: PricingMatrixSection[] = [
         },
       },
       {
-        feature: "Monetisasi Strategy Dipublish",
-        note: "COMING SOON",
+        feature: "Monetisasi Strategi Publik",
         values: {
-          ritel: "No",
-          suhu: "No",
-          bandar: "Yes",
+          ritel: "Coming Soon",
+          suhu: "Coming Soon",
+          bandar: "Coming Soon",
         },
       },
       {
@@ -235,20 +234,18 @@ export const PRICING_MATRIX_SECTIONS: PricingMatrixSection[] = [
       },
       {
         feature: "Telegram",
-        note: "COMING SOON",
         values: {
-          ritel: null,
-          suhu: null,
-          bandar: null,
+          ritel: false,
+          suhu: false,
+          bandar: true,
         },
       },
       {
         feature: "WhatsApp",
-        note: "COMING SOON",
         values: {
-          ritel: null,
-          suhu: null,
-          bandar: null,
+          ritel: false,
+          suhu: false,
+          bandar: true,
         },
       },
     ],

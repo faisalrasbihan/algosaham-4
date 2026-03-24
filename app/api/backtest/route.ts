@@ -53,6 +53,87 @@ const backtestConfigSchema = z.object({
   isInitial: z.boolean().optional(),
 })
 
+const defaultBacktestDates = {
+  startDate: '2024-01-01',
+  endDate: '2024-12-31',
+}
+
+const defaultTradingCosts = {
+  brokerFee: 0.15,
+  sellFee: 0.15,
+  minimumFee: 1000,
+}
+
+const defaultPortfolio = {
+  positionSizePercent: 25,
+  minPositionPercent: 5,
+  maxPositions: 4,
+}
+
+const defaultRiskManagement = {
+  stopLossPercent: 7,
+  takeProfitPercent: 15,
+  maxHoldingDays: 14,
+}
+
+type BacktestApiBody = {
+  config?: Record<string, any>
+  isInitial?: boolean
+  [key: string]: any
+}
+
+function normalizeBacktestBody(body: unknown): BacktestApiBody {
+  if (!body || typeof body !== 'object') {
+    return {}
+  }
+
+  const requestBody = body as BacktestApiBody
+  const rawConfig = requestBody.config
+
+  if (!rawConfig || typeof rawConfig !== 'object') {
+    return requestBody
+  }
+
+  const backtestConfig = rawConfig.backtestConfig ?? {}
+
+  return {
+    ...requestBody,
+    config: {
+      ...rawConfig,
+      backtestId:
+        typeof rawConfig.backtestId === 'string' && rawConfig.backtestId.trim().length > 0
+          ? rawConfig.backtestId
+          : `backtest_${Date.now()}`,
+      filters: {
+        marketCap:
+          Array.isArray(rawConfig.filters?.marketCap) && rawConfig.filters.marketCap.length > 0
+            ? rawConfig.filters.marketCap
+            : ['large'],
+        ...(rawConfig.filters ?? {}),
+      },
+      fundamentalIndicators: Array.isArray(rawConfig.fundamentalIndicators) ? rawConfig.fundamentalIndicators : [],
+      technicalIndicators: Array.isArray(rawConfig.technicalIndicators) ? rawConfig.technicalIndicators : [],
+      backtestConfig: {
+        initialCapital: backtestConfig.initialCapital ?? 100000000,
+        startDate: backtestConfig.startDate ?? defaultBacktestDates.startDate,
+        endDate: backtestConfig.endDate ?? defaultBacktestDates.endDate,
+        tradingCosts: {
+          ...defaultTradingCosts,
+          ...(backtestConfig.tradingCosts ?? {}),
+        },
+        portfolio: {
+          ...defaultPortfolio,
+          ...(backtestConfig.portfolio ?? {}),
+        },
+        riskManagement: {
+          ...defaultRiskManagement,
+          ...(backtestConfig.riskManagement ?? {}),
+        },
+      },
+    },
+  }
+}
+
 export async function POST(request: NextRequest) {
   log('🚀 [API ROUTE] Starting backtest API call...')
 
@@ -64,7 +145,8 @@ export async function POST(request: NextRequest) {
 
   try {
     // Parse the request body
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = normalizeBacktestBody(rawBody)
     const isInitialReq = body.isInitial === true;
 
     log('📦 [API ROUTE] Request received for backtest:', body.config?.backtestId)
@@ -104,7 +186,7 @@ export async function POST(request: NextRequest) {
           status: 403,
           body: {
             error: "Daily backtest limit reached",
-            message: `You have used ${used}/${limit} backtests for today. Upgrade your plan for more.`,
+            message: `Anda telah menggunakan ${used}/${limit} backtest untuk hari ini. Upgrade paket Anda untuk lebih banyak.`,
           },
         }),
         railway: ({ status, statusText, details }) => ({

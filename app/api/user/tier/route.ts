@@ -26,6 +26,8 @@ export async function GET() {
         return NextResponse.json({
             success: true,
             tier: user.subscriptionTier || "free",
+            subscriptionPeriodStart: user.subscriptionPeriodStart,
+            subscriptionPeriodEnd: user.subscriptionPeriodEnd,
         });
     } catch (error) {
         console.error("Error fetching user tier:", error);

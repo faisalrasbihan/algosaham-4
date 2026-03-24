@@ -491,18 +491,7 @@ export default function Portfolio() {
 
     const handleEdit = async (id: string) => {
         try {
-            // Fetch the strategy details
-            const response = await fetch(`/api/strategies/${id}`)
-            const data = await response.json()
-
-            if (data.success && data.strategy) {
-                // Store the strategy config in localStorage to load in backtest page
-                localStorage.setItem('editStrategy', JSON.stringify(data.strategy))
-                // Navigate to backtest page
-                router.push('/backtest')
-            } else {
-                toast.error('Gagal memuat strategi')
-            }
+            router.push(`/backtest?strategyId=${id}`)
         } catch (error) {
             console.error('Error loading strategy:', error)
             toast.error('Gagal memuat strategi')

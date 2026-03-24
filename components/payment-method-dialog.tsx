@@ -49,6 +49,37 @@ export function PaymentMethodDialog({
     const [step, setStep] = useState<PaymentStep>('select')
     const [isLoading, setIsLoading] = useState(false)
 
+    const waitForDialogTeardown = async () => {
+        onClose()
+
+        // Radix modal mode can leave body pointer-events locked until the close cycle completes.
+        await new Promise((resolve) => window.setTimeout(resolve, 250))
+
+        if (document.body.style.pointerEvents === "none") {
+            document.body.style.pointerEvents = ""
+        }
+    }
+
+    const openSnapPayment = async (token: string) => {
+        await waitForDialogTeardown()
+
+        window.snap?.pay(token, {
+            onSuccess: () => {
+                toast.success("Pembayaran berhasil! Selamat menikmati paket " + planName)
+                onPaymentSuccess?.()
+            },
+            onPending: () => {
+                toast.info("Pembayaran sedang diproses. Silakan selesaikan pembayaran Anda.")
+            },
+            onError: () => {
+                toast.error("Pembayaran gagal. Silakan coba lagi.")
+            },
+            onClose: () => {
+                toast.info("Pembayaran dibatalkan")
+            },
+        })
+    }
+
     // Reset state when dialog closes
     useEffect(() => {
         if (!isOpen) {
@@ -95,25 +126,7 @@ export function PaymentMethodDialog({
                 return
             }
 
-            // Close the dialog before opening Midtrans Snap to prevent double overlay
-            onClose()
-
-            // Open Midtrans Snap payment popup
-            window.snap.pay(data.data.token, {
-                onSuccess: () => {
-                    toast.success("Pembayaran berhasil! Selamat menikmati paket " + planName)
-                    onPaymentSuccess?.()
-                },
-                onPending: () => {
-                    toast.info("Pembayaran sedang diproses. Silakan selesaikan pembayaran Anda.")
-                },
-                onError: () => {
-                    toast.error("Pembayaran gagal. Silakan coba lagi.")
-                },
-                onClose: () => {
-                    toast.info("Pembayaran dibatalkan")
-                },
-            })
+            await openSnapPayment(data.data.token)
         } catch (error) {
             console.error("Payment error:", error)
             toast.error(error instanceof Error ? error.message : "Terjadi kesalahan")
@@ -150,23 +163,7 @@ export function PaymentMethodDialog({
                 return
             }
 
-            onClose()
-
-            window.snap.pay(data.data.token, {
-                onSuccess: () => {
-                    toast.success("Pembayaran berhasil! Selamat menikmati paket " + planName)
-                    onPaymentSuccess?.()
-                },
-                onPending: () => {
-                    toast.info("Pembayaran sedang diproses. Silakan selesaikan pembayaran Anda.")
-                },
-                onError: () => {
-                    toast.error("Pembayaran gagal. Silakan coba lagi.")
-                },
-                onClose: () => {
-                    toast.info("Pembayaran dibatalkan")
-                },
-            })
+            await openSnapPayment(data.data.token)
         } catch (error) {
             console.error("Payment error:", error)
             toast.error(error instanceof Error ? error.message : "Terjadi kesalahan")
@@ -204,25 +201,7 @@ export function PaymentMethodDialog({
                 return
             }
 
-            // Close the dialog before opening Midtrans Snap to prevent double overlay
-            onClose()
-
-            // Open Midtrans Snap payment popup
-            window.snap.pay(data.data.token, {
-                onSuccess: () => {
-                    toast.success("Pembayaran berhasil! Selamat menikmati paket " + planName)
-                    onPaymentSuccess?.()
-                },
-                onPending: () => {
-                    toast.info("Pembayaran sedang diproses. Silakan selesaikan pembayaran Anda.")
-                },
-                onError: () => {
-                    toast.error("Pembayaran gagal. Silakan coba lagi.")
-                },
-                onClose: () => {
-                    toast.info("Pembayaran dibatalkan")
-                },
-            })
+            await openSnapPayment(data.data.token)
         } catch (error) {
             console.error("Payment error:", error)
             toast.error(error instanceof Error ? error.message : "Terjadi kesalahan")
@@ -259,23 +238,7 @@ export function PaymentMethodDialog({
                 return
             }
 
-            onClose()
-
-            window.snap.pay(data.data.token, {
-                onSuccess: () => {
-                    toast.success("Pembayaran berhasil! Selamat menikmati paket " + planName)
-                    onPaymentSuccess?.()
-                },
-                onPending: () => {
-                    toast.info("Pembayaran sedang diproses. Silakan selesaikan pembayaran Anda.")
-                },
-                onError: () => {
-                    toast.error("Pembayaran gagal. Silakan coba lagi.")
-                },
-                onClose: () => {
-                    toast.info("Pembayaran dibatalkan")
-                },
-            })
+            await openSnapPayment(data.data.token)
         } catch (error) {
             console.error("Payment error:", error)
             toast.error(error instanceof Error ? error.message : "Terjadi kesalahan")

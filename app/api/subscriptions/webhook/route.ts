@@ -262,11 +262,21 @@ async function handleSuccessfulPayment(data: SuccessfulPaymentData) {
             return;
         }
 
-        // Update user's subscription tier and period
+        // Update user's subscription tier, period, and reset daily usage quotas
         await setUserTier(user.clerkId, data.planType as PaidSubscriptionTier, {
             subscriptionStatus: 'active',
             subscriptionPeriodStart: periodStart,
             subscriptionPeriodEnd: periodEnd,
+            // Reset all daily usage quotas to 0 upon successful subscription
+            analyzeUsedToday: 0,
+            screeningUsedToday: 0,
+            backtestUsedToday: 0,
+            aiChatUsedToday: 0,
+            // Also update the last reset timestamps so they don't immediately get incremented incorrectly
+            analyzeLastReset: periodStart,
+            screeningLastReset: periodStart,
+            backtestLastReset: periodStart,
+            aiChatLastReset: periodStart,
         });
 
         console.log(`Updated user ${user.clerkId} to ${data.planType} tier until ${periodEnd.toISOString()}`);

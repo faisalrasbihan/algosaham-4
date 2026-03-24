@@ -166,70 +166,7 @@ function normalizeScreenerRow(row: ScreenerDbRow) {
   }
 }
 
-function buildWhereClause(config: z.infer<typeof screenerRequestSchema>["config"]) {
-  const conditions: string[] = ["date = (SELECT MAX(date) FROM core.mv_stock_daily)"]
-  const params: Array<string | number | boolean | string[]> = []
-
-  const pushCondition = (sql: string, value?: string | number | boolean | string[]) => {
-    if (value !== undefined) {
-      params.push(value)
-      conditions.push(sql.replace("?", `$${params.length}`))
-    } else {
-      conditions.push(sql)
-    }
-  }
-
-  const tickers = config.filters.tickers?.map((ticker) => ticker.trim().toUpperCase()).filter(Boolean)
-  if (tickers?.length) {
-    pushCondition("stock_code = ANY(?::text[])", tickers)
-  }
-
-  const marketCap = config.filters.marketCap?.map((value) => value.trim().toLowerCase()).filter(Boolean)
-  if (marketCap?.length) {
-    pushCondition("market_cap_group = ANY(?::text[])", marketCap)
-  }
-
-  const sectors = config.filters.sectors?.map((value) => value.trim()).filter(Boolean)
-  if (sectors?.length) {
-    pushCondition("sector = ANY(?::text[])", sectors)
-  }
-
-  if (typeof config.filters.syariah === "boolean") {
-    pushCondition("is_syariah = ?", config.filters.syariah ? 1 : 0)
-  }
-
-  if (typeof config.filters.minDailyValue === "number") {
-    pushCondition("valuasi >= ?", config.filters.minDailyValue)
-  }
-
-  const fundamentalColumnMap: Record<string, string> = {
-    PE_RATIO: "pe_ratio",
-    PBV: "pbv",
-    ROE: "roe",
-    ROA: "roa",
-    DE_RATIO: "der",
-    NPM: "npm",
-    EPS: "eps",
-  }
-
-  for (const indicator of config.fundamentalIndicators) {
-    const column = fundamentalColumnMap[indicator.type]
-    if (!column) continue
-
-    if (typeof indicator.min === "number") {
-      pushCondition(`${column} >= ?`, indicator.min)
-    }
-
-    if (typeof indicator.max === "number") {
-      pushCondition(`${column} <= ?`, indicator.max)
-    }
-  }
-
-  return {
-    whereClause: conditions.join("\n          AND "),
-    params,
-  }
-}
+// removed buildWhereClause
 
 export async function POST(request: NextRequest) {
   try {
@@ -251,7 +188,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error: "Daily screening limit reached",
-            details: `You have used ${used}/${limit} screenings for today. Upgrade your plan for more.`,
+            details: `Anda telah menggunakan ${used}/${limit} screening untuk hari ini. Upgrade paket Anda untuk lebih banyak.`,
           },
           { status: 403 },
         )
@@ -271,6 +208,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const railwayUrl = process.env.RAILWAY_URL || ""
+    if (!railwayUrl) {
+      return NextResponse.json(
+        {
+          error: "Server configuration error",
+          details: "RAILWAY_URL environment variable is not configured.",
+        },
+        { status: 500 },
+      )
+    }
+    const baseUrl = railwayUrl.startsWith("http") ? railwayUrl : `https://${railwayUrl}`
+
+    const response = await fetch(`${baseUrl}/screen_stocks`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(parsed.data), // parsed.data contains config
+    });
+
+    if (!response.ok) {
+      const details = await response.text();
+      return NextResponse.json(
+        {
+          error: `API Error: ${response.status} ${response.statusText}`,
+          details,
+        },
+        { status: response.status },
+      )
+    }
+
+    const result = await response.json();
+    const signals = result.signals || [];
+    const summary = result.summary || {};
+    const dateRange = result.dateRange || null;
+    const screeningId = result.screeningId || parsed.data.config.backtestId;
+
     const latestDateResult = await genkiClient<{ latest_date: string | null; stocks_scanned: string | number }[]>`
       SELECT
         MAX(date)::text AS latest_date,
@@ -278,92 +252,96 @@ export async function POST(request: NextRequest) {
       FROM core.mv_stock_daily
     `
     const latestDate = latestDateResult[0]?.latest_date ?? null
-    const stocksScanned = toOptionalInteger(latestDateResult[0]?.stocks_scanned) ?? 0
 
-    const { whereClause, params } = buildWhereClause(parsed.data.config)
-    const dbRows = await genkiClient.unsafe<ScreenerDbRow[]>(
-      `
-        WITH latest_view AS (
+    const tickers = Array.from(new Set(signals.map((s: { ticker: string }) => s.ticker))) as string[];
+
+    let dbRows: ScreenerDbRow[] = [];
+    if (tickers.length > 0) {
+      dbRows = await genkiClient.unsafe<ScreenerDbRow[]>(
+        `
+          WITH latest_view AS (
+            SELECT
+              mv.*,
+              CASE
+                WHEN mv.prev_close IS NOT NULL AND mv.prev_close <> 0
+                  THEN ((mv.close / mv.prev_close) - 1) * 100
+                ELSE NULL
+              END AS change_d1_pct,
+              CASE
+                WHEN LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
+                  AND LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
+                  THEN ((mv.close / LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
+                ELSE NULL
+              END AS change_5d_pct,
+              CASE
+                WHEN LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
+                  AND LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
+                  THEN ((mv.close / LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
+                ELSE NULL
+              END AS change_1m_pct,
+              CASE
+                WHEN LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
+                  AND LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
+                  THEN ((mv.close / LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
+                ELSE NULL
+              END AS change_1y_pct
+            FROM core.mv_stock_daily mv
+          )
           SELECT
-            mv.*,
-            CASE
-              WHEN mv.prev_close IS NOT NULL AND mv.prev_close <> 0
-                THEN ((mv.close / mv.prev_close) - 1) * 100
-              ELSE NULL
-            END AS change_d1_pct,
-            CASE
-              WHEN LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
-                AND LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
-                THEN ((mv.close / LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
-              ELSE NULL
-            END AS change_5d_pct,
-            CASE
-              WHEN LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
-                AND LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
-                THEN ((mv.close / LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
-              ELSE NULL
-            END AS change_1m_pct,
-            CASE
-              WHEN LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
-                AND LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
-                THEN ((mv.close / LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
-              ELSE NULL
-            END AS change_1y_pct
-          FROM core.mv_stock_daily mv
-        )
-        SELECT
-          stock_code,
-          open,
-          high,
-          low,
-          close,
-          volume,
-          freq,
-          valuasi,
-          nbsa,
-          prev_close,
-          gap_pct,
-          prev_daily_value,
-          is_valid_ohlcv,
-          is_zero_ohlc,
-          month,
-          sector,
-          assets,
-          liabilities,
-          equity,
-          sales,
-          ebt,
-          profit,
-          profit_attributable,
-          book_value,
-          eps,
-          pe_ratio,
-          pbv,
-          der,
-          roa,
-          roe,
-          npm,
-          financial_date::text,
-          market_cap,
-          market_cap_group,
-          is_syariah,
-          sma_20,
-          sma_50,
-          volume_sma_20,
-          value_sma_20,
-          nbsa_5d,
-          value_5d,
-          nbsa_ratio_5d,
-          change_d1_pct,
-          change_5d_pct,
-          change_1m_pct,
-          change_1y_pct
-        FROM latest_view
-        WHERE ${whereClause}
-        ORDER BY stock_code ASC
-      `,
-      params,
-    )
+            stock_code,
+            open,
+            high,
+            low,
+            close,
+            volume,
+            freq,
+            valuasi,
+            nbsa,
+            prev_close,
+            gap_pct,
+            prev_daily_value,
+            is_valid_ohlcv,
+            is_zero_ohlc,
+            month,
+            sector,
+            assets,
+            liabilities,
+            equity,
+            sales,
+            ebt,
+            profit,
+            profit_attributable,
+            book_value,
+            eps,
+            pe_ratio,
+            pbv,
+            der,
+            roa,
+            roe,
+            npm,
+            financial_date::text,
+            market_cap,
+            market_cap_group,
+            is_syariah,
+            sma_20,
+            sma_50,
+            volume_sma_20,
+            value_sma_20,
+            nbsa_5d,
+            value_5d,
+            nbsa_ratio_5d,
+            change_d1_pct,
+            change_5d_pct,
+            change_1m_pct,
+            change_1y_pct
+          FROM latest_view
+          WHERE date = (SELECT MAX(date) FROM core.mv_stock_daily)
+            AND stock_code = ANY($1::text[])
+          ORDER BY stock_code ASC
+        `,
+        [tickers],
+      )
+    }
 
     const rows = dbRows.map(normalizeScreenerRow)
 
@@ -372,18 +350,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      screeningId: parsed.data.config.backtestId,
+      screeningId,
       latestDate,
       rows,
-      summary: {
-        totalSignals: rows.length,
-        uniqueStocks: rows.length,
-        byDay: latestDate ? { [latestDate]: rows.length } : {},
-        stocksScanned,
-        passedFilters: rows.length,
-        passedFundamentals: rows.length,
-      },
-      dateRange: latestDate ? { from: latestDate, to: latestDate } : null,
+      summary,
+      dateRange,
     })
   } catch (error) {
     return NextResponse.json(

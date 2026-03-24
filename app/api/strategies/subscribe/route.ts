@@ -48,7 +48,7 @@ export async function POST(req: Request) {
                 {
                     success: false,
                     error: "Subscription limit reached",
-                    message: `You have reached your limit of ${limit} strategy subscriptions. Upgrade your plan to follow more strategies.`
+                    message: `Anda telah mencapai batas ${limit} langganan strategi. Upgrade paket Anda untuk mengikuti lebih banyak strategi.`
                 },
                 { status: 403 }
             );

@@ -133,9 +133,11 @@ export function ResultsPanel({ backtestResults, loading, error }: ResultsPanelPr
   }
 
   // Detect if the error is a quota/limit error
-  const isQuotaError = error && (
+  const isQuotaError = !!error && (
     error.toLowerCase().includes('limit reached') ||
-    error.toLowerCase().includes('upgrade your plan')
+    error.toLowerCase().includes('upgrade your plan') ||
+    error.toLowerCase().includes('upgrade paket anda') ||
+    error.toLowerCase().includes('kuota')
   );
 
   // Format error message: style number patterns (e.g. "27/25") with IBM Plex Mono + red pill

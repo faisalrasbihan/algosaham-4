@@ -8,6 +8,9 @@ import {
     type BillingInterval,
     type PaidSubscriptionTier,
 } from "@/lib/subscription-plans";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 type PlanType = PaidSubscriptionTier;
 type PaymentMethod = 'credit_card' | 'gopay' | 'bank_transfer' | 'e_wallet' | 'qris';
@@ -55,7 +58,30 @@ export async function POST(request: NextRequest) {
 
         // Get price for selected plan and interval
         const normalizedPlanType = planType as PlanType;
-        const amount = getPlanPrice(normalizedPlanType, billingInterval);
+        let amount = getPlanPrice(normalizedPlanType, billingInterval);
+
+        // Calculate dynamic upgrade proration if applicable
+        const dbUser = await db.query.users.findFirst({
+            where: eq(users.clerkId, userId),
+        });
+
+        if (dbUser?.subscriptionTier === 'suhu' && normalizedPlanType === 'bandar' && dbUser.subscriptionPeriodStart && dbUser.subscriptionPeriodEnd) {
+            const start = dbUser.subscriptionPeriodStart.getTime();
+            const end = dbUser.subscriptionPeriodEnd.getTime();
+            const now = Date.now();
+            
+            if (end > now && start < end) {
+                const totalMs = end - start;
+                const remainingMs = end - now;
+                const isUserYearly = (totalMs / (1000 * 60 * 60 * 24)) > 300;
+                const currentPrice = isUserYearly ? SUBSCRIPTION_PLANS.suhu.yearlyPrice : SUBSCRIPTION_PLANS.suhu.monthlyPrice;
+                const remainingValue = (remainingMs / totalMs) * currentPrice;
+                if (remainingValue > 0) {
+                    amount = Math.max(0, amount - remainingValue);
+                }
+                amount = Math.round(amount); // Ensure the amount has no decimals
+            }
+        }
 
         // Generate unique order ID (max 50 chars for Midtrans)
         const shortUserId = userId.replace('user_', '').slice(0, 8);

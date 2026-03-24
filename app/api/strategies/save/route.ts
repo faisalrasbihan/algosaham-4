@@ -70,7 +70,7 @@ export async function POST(req: Request) {
                 {
                     success: false,
                     error: "Strategy limit reached",
-                    message: `You have reached your limit of ${limit} saved strategies. Upgrade your plan to save more.`
+                    message: `Anda telah mencapai batas ${limit} strategi yang disimpan. Upgrade paket Anda untuk menyimpan lebih banyak.`
                 },
                 { status: 403 }
             );
