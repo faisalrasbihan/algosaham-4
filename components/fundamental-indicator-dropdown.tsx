@@ -14,6 +14,9 @@ interface FundamentalIndicatorDropdownProps {
     onAddIndicator: (indicator: Omit<Indicator, "id">) => void
 }
 
+const strategyBuilderAddIndicatorButtonClass =
+    "w-full h-11 rounded-xl border border-slate-300 bg-white px-4 text-[11px] font-mono font-semibold text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.12)] transition-colors hover:border-[#d07225] hover:bg-[#d07225]/5"
+
 const fundamentalIndicators = [
     { name: "PE Ratio", description: "Rasio Harga terhadap Laba - mengukur valuasi saham", params: { min: 0, max: 50 } },
     { name: "PBV", description: "Rasio Harga terhadap Nilai Buku - membandingkan nilai pasar dengan nilai buku", params: { min: 0, max: 10 } },
@@ -27,7 +30,6 @@ const fundamentalIndicators = [
 export function FundamentalIndicatorDropdown({ onAddIndicator }: FundamentalIndicatorDropdownProps) {
     const [isOpen, setIsOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
-    const buttonRef = useRef<HTMLButtonElement>(null)
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -46,15 +48,6 @@ export function FundamentalIndicatorDropdown({ onAddIndicator }: FundamentalIndi
         }
     }, [isOpen])
 
-    // Reset button styles when dropdown closes
-    useEffect(() => {
-        if (!isOpen && buttonRef.current) {
-            buttonRef.current.style.backgroundColor = "transparent"
-            buttonRef.current.style.color = ""
-            buttonRef.current.style.borderColor = "#cbd5e1"
-        }
-    }, [isOpen])
-
     const handleAddIndicator = (indicator: typeof fundamentalIndicators[0]) => {
         onAddIndicator({
             name: indicator.name,
@@ -67,33 +60,13 @@ export function FundamentalIndicatorDropdown({ onAddIndicator }: FundamentalIndi
     return (
         <div className="relative" ref={dropdownRef}>
             <Button
-                ref={buttonRef}
                 variant="outline"
                 size="sm"
-                className="w-full bg-transparent font-mono hover:text-foreground border-slate-300 hover:border-[#d07225] justify-between"
-                style={
-                    {
-                        "--hover-bg": "#d072251a",
-                        "--hover-text": "#d07225",
-                        "--hover-border": "#d07225",
-                    } as React.CSSProperties
-                }
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#d0722510"
-                    e.currentTarget.style.color = "#d07225"
-                    e.currentTarget.style.borderColor = "#d07225"
-                }}
-                onMouseLeave={(e) => {
-                    if (!isOpen) {
-                        e.currentTarget.style.backgroundColor = "transparent"
-                        e.currentTarget.style.color = ""
-                        e.currentTarget.style.borderColor = "#cbd5e1"
-                    }
-                }}
+                className={`${strategyBuilderAddIndicatorButtonClass} justify-between ${isOpen ? "border-[#d07225] bg-[#d07225]/5" : ""}`}
                 onClick={() => setIsOpen(!isOpen)}
             >
-                <div className="flex items-center">
-                    <Plus className="h-4 w-4 mr-2" />
+                <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
                     Add Fundamental Indicator
                 </div>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />

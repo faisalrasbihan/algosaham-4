@@ -222,7 +222,7 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, isLock
                             isSubscribed
                                 ? "group w-full border-[#d8b08a] bg-[#f3dfcb] text-[#7c4a20] text-xs hover:bg-[#d07225] hover:text-white hover:border-[#d07225]"
                                 : isLocked
-                                    ? "group w-full border-[#d8b08a] bg-[#fff7ef] text-[#8d5627] text-xs hover:bg-[#d07225] hover:text-white hover:border-[#d07225]"
+                                    ? "group w-full border-[#d8b08a] bg-white text-[#8d5627] text-xs hover:bg-[#d07225] hover:text-white hover:border-[#d07225]"
                                 : "group w-full border-[#c7ced6] bg-white text-foreground text-xs hover:bg-[#d07225] hover:text-white hover:border-[#d07225]"
                         }
                     >

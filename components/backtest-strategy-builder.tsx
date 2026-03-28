@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect, Suspense } from "react"
+import { useState, useRef, useEffect, Suspense, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -94,6 +94,23 @@ interface BacktestStrategyBuilderProps {
   onRunBacktest: (config: BacktestRequest, isInitial?: boolean) => Promise<void>
   backtestResults?: any | null
 }
+
+const strategyBuilderSectionHeaderClass =
+  "w-full flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
+
+const strategyBuilderIndicatorSectionContentClass =
+  "py-4 pl-4 pr-5 space-y-3 border-l border-[#d07225]/50 ml-[27px] my-2 w-auto"
+
+const strategyBuilderIndicatorCardClass =
+  "rounded-xl border border-slate-200/90 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.08)]"
+
+const strategyBuilderIndicatorViewClass =
+  "px-4 py-3 flex items-center justify-between gap-3"
+
+const strategyBuilderIndicatorEditClass = "p-3"
+
+const strategyBuilderAddIndicatorButtonClass =
+  "w-full h-11 rounded-xl border border-slate-300 bg-white px-4 text-[11px] font-mono font-semibold text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.12)] transition-colors hover:border-[#d07225] hover:bg-[#d07225]/5"
 
 export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults }: BacktestStrategyBuilderProps) {
   const { isSignedIn, isLoaded } = useUser()
@@ -247,6 +264,25 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   const sectorDropdownRef = useRef<HTMLDivElement>(null)
   const tickerDropdownRef = useRef<HTMLDivElement>(null)
 
+  const scrollToBottom = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      })
+    }
+  }
+
+  const runLoadedStrategyConfig = useCallback(async (config: BacktestRequest) => {
+    try {
+      await onRunBacktest(config, true)
+      scrollToBottom()
+      refreshTier()
+    } catch (error) {
+      console.error("Failed to run loaded strategy:", error)
+    }
+  }, [onRunBacktest, refreshTier])
+
   // Close sector dropdown when clicking outside
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -309,12 +345,10 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
             setStrategyName(data.name)
             setStrategyDescription(data.description || "")
             setIsPrivate(data.isPrivate || false)
+            void runLoadedStrategyConfig(data.config)
           }
           sessionStorage.removeItem(prefetchKey)
           setLoadedStrategyId(strategyId)
-
-          // trigger backtest run since it loaded instantly
-            setTimeout(() => handleRunBacktest(true), 500)
           return
         }
 
@@ -330,9 +364,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
             setStrategyName(data.strategy.name)
             setStrategyDescription(data.strategy.description || "")
             setIsPrivate(data.strategy.isPrivate || false)
-
-            // trigger backtest run after loading config
-            setTimeout(() => handleRunBacktest(true), 500)
+            void runLoadedStrategyConfig(data.strategy.config)
           }
         }
       } catch (error) {
@@ -343,7 +375,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
     }
 
     loadStrategyFromUrl()
-  }, [strategyId, isLoaded, isSignedIn, loadedStrategyId])
+  }, [strategyId, isLoaded, isSignedIn, loadedStrategyId, runLoadedStrategyConfig])
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -447,15 +479,6 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
 
   const toggleSection = (section: string) => {
     setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }))
-  }
-
-  const scrollToBottom = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({
-        top: scrollContainerRef.current.scrollHeight,
-        behavior: "smooth",
-      })
-    }
   }
 
   const handleSaveStrategy = async (runBacktest = false) => {
@@ -1356,7 +1379,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
             {/* Fundamental Indicators */}
             <SidebarGroup className="p-0" data-tutorial="fundamental-indicators">
               <button
-                className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
+                className={strategyBuilderSectionHeaderClass}
                 onClick={() => toggleSection("fundamental")}
               >
                 <div className="flex items-center gap-2.5">
@@ -1371,11 +1394,11 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${collapsedSections.fundamental ? "-rotate-90" : ""}`} />
               </button>
               {!collapsedSections.fundamental && (
-                <SidebarGroupContent className="py-4 pl-4 pr-5 space-y-2 border-l border-[#d07225]/50 ml-[27px] my-2 w-auto">
+                <SidebarGroupContent className={strategyBuilderIndicatorSectionContentClass}>
                   {fundamentalIndicators.map((indicator) => (
-                    <div key={indicator.id} className="rounded-md border border-slate-200 bg-slate-50/80">
+                    <div key={indicator.id} className={strategyBuilderIndicatorCardClass}>
                       {editingIndicators[indicator.id] ? (
-                        <div className="p-2.5">
+                        <div className={strategyBuilderIndicatorEditClass}>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-mono font-semibold text-foreground">{indicator.name}</span>
                             <div className="flex gap-1">
@@ -1399,7 +1422,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                           </div>
                         </div>
                       ) : (
-                        <div className="px-3 py-2 flex items-center justify-between">
+                        <div className={strategyBuilderIndicatorViewClass}>
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <div className="w-1.5 h-1.5 rounded-full bg-[#d07225] flex-shrink-0" />
                             <span className="text-xs font-mono font-semibold text-foreground">{indicator.name}</span>
@@ -1426,7 +1449,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
             {/* Technical Indicators */}
             <SidebarGroup className="p-0" data-tutorial="technical-indicators">
               <button
-                className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors"
+                className={strategyBuilderSectionHeaderClass}
                 onClick={() => toggleSection("technical")}
               >
                 <div className="flex items-center gap-2.5">
@@ -1441,11 +1464,11 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${collapsedSections.technical ? "-rotate-90" : ""}`} />
               </button>
               {!collapsedSections.technical && (
-                <SidebarGroupContent className="py-4 pl-4 pr-5 space-y-2 border-l border-[#d07225]/50 ml-[27px] my-2 w-auto">
+                <SidebarGroupContent className={strategyBuilderIndicatorSectionContentClass}>
                   {technicalIndicators.map((indicator) => (
-                    <div key={indicator.id} className="rounded-md border border-slate-200 bg-slate-50/80">
+                    <div key={indicator.id} className={strategyBuilderIndicatorCardClass}>
                       {editingIndicators[indicator.id] ? (
-                        <div className="p-2.5">
+                        <div className={strategyBuilderIndicatorEditClass}>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-mono font-semibold text-foreground">{indicator.name}</span>
                             <div className="flex gap-1">
@@ -1467,7 +1490,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                           </div>
                         </div>
                       ) : (
-                        <div className="px-3 py-2 flex items-center justify-between">
+                        <div className={strategyBuilderIndicatorViewClass}>
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <div className="w-1.5 h-1.5 rounded-full bg-[#d07225] flex-shrink-0" />
                             <span className="text-xs font-mono font-semibold text-foreground">{indicator.name}</span>
@@ -1486,11 +1509,15 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                     </div>
                   ))}
                   <button
-                    className="w-full flex items-center justify-center gap-1.5 h-8 rounded-md border border-dashed border-slate-300 text-xs font-mono text-muted-foreground hover:border-[#d07225] hover:text-[#d07225] hover:bg-[#d07225]/5 transition-all"
+                    type="button"
+                    className={`${strategyBuilderAddIndicatorButtonClass} flex items-center justify-between`}
                     onClick={() => { setModalType("technical"); setShowModal(true) }}
                   >
-                    <Plus className="h-3.5 w-3.5" />
-                    Add Indicator
+                    <span className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add Technical Indicator
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </button>
                 </SidebarGroupContent>
               )}

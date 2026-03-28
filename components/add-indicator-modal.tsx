@@ -231,9 +231,12 @@ export function AddIndicatorModal({ open, onOpenChange, type, onAddIndicator }: 
                     {isExpanded && (
                       <div className="ml-3 mb-1.5 border-l-[1.5px] pl-5" style={{ borderColor: "rgba(208, 114, 37, 0.15)" }}>
                         {category.indicators.map((indicator, index) => (
-                          <div
+                          <button
                             key={index}
-                            className="flex items-center justify-between py-2 px-2.5 -ml-1 rounded hover:bg-secondary/60 transition-colors group"
+                            type="button"
+                            onClick={() => handleAddIndicator(indicator, "technical")}
+                            className="w-full flex items-center justify-between py-2 px-2.5 -ml-1 rounded hover:bg-secondary/60 transition-colors group text-left"
+                            title={`Add ${indicator.name}`}
                           >
                             <div className="min-w-0 flex-1 mr-3">
                               <div className="text-[13px] font-mono text-foreground leading-tight">
@@ -243,14 +246,13 @@ export function AddIndicatorModal({ open, onOpenChange, type, onAddIndicator }: 
                                 {indicator.description}
                               </div>
                             </div>
-                            <button
-                              onClick={() => handleAddIndicator(indicator, "technical")}
-                              className="flex-shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md border border-transparent text-muted-foreground opacity-0 group-hover:opacity-100 hover:border-[#d07225]/30 hover:bg-[#d07225]/5 hover:text-[#d07225] transition-all"
-                              title={`Add ${indicator.name}`}
+                            <span
+                              aria-hidden="true"
+                              className="flex-shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md border border-transparent text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-hover:border-[#d07225]/30 group-hover:bg-[#d07225]/5 group-hover:text-[#d07225] group-focus-visible:border-[#d07225]/30 group-focus-visible:bg-[#d07225]/5 group-focus-visible:text-[#d07225] transition-all"
                             >
                               <Plus className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+                            </span>
+                          </button>
                         ))}
                       </div>
                     )}
