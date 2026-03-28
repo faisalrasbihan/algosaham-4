@@ -54,6 +54,13 @@ export async function GET() {
             subscribedAt: sub.subscribedAt,
             snapshotHoldings: sub.snapshotHoldings, // Add this
             snapshotReturn: sub.snapshotReturn,
+            returnSinceSubscription:
+                sub.snapshotReturn !== null &&
+                sub.snapshotReturn !== undefined &&
+                sub.strategy.totalReturn !== null &&
+                sub.strategy.totalReturn !== undefined
+                    ? Number(sub.strategy.totalReturn) - Number(sub.snapshotReturn)
+                    : sub.strategy.returnSinceSubscription,
             // Calculate return since subscription if needed, or use stored value
             // For now passing raw strategy data + subscription metadata
         }));

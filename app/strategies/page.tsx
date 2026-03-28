@@ -63,6 +63,8 @@ export default function Strategies() {
   const [strategyToSubscribe, setStrategyToSubscribe] = useState<string | null>(null)
   const [dialogState, setDialogState] = useState<SubscribeDialogState>('confirm')
   const [subscribedStrategyName, setSubscribedStrategyName] = useState("")
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false)
+  const [upgradeStrategyName, setUpgradeStrategyName] = useState("")
 
   // Strategy Preview dialog state
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false)
@@ -149,6 +151,14 @@ export default function Strategies() {
     }
 
     const isSubscribed = subscribedIds.includes(strategyId)
+    const strategy = exploreStrategies.find((item) => item.id === strategyId)
+    const requiresOfficialUpgrade = tier === 'ritel' && strategy && isOfficialStrategy(strategy)
+
+    if (requiresOfficialUpgrade) {
+      setUpgradeStrategyName(strategy.name)
+      setUpgradeDialogOpen(true)
+      return
+    }
 
     if (isSubscribed) {
       // Unsubscribe fires directly (no confirmation needed here — portfolio page has its own)
@@ -237,6 +247,7 @@ export default function Strategies() {
   const subscriptionsRemaining = limits.subscriptions === -1 ? '∞' : (limits.subscriptions - usage.subscriptions)
   const officialStrategies = exploreStrategies.filter(isOfficialStrategy)
   const communityStrategies = exploreStrategies.filter((strategy) => !isOfficialStrategy(strategy))
+  const officialStrategiesLocked = tier === 'ritel'
 
   // Handler for opening strategy preview
   const handleCardClick = (strategy: Strategy) => {
@@ -318,6 +329,7 @@ export default function Strategies() {
                             strategy={strategy}
                             className="w-80 flex-shrink-0"
                             isSubscribed={subscribedIds.includes(strategy.id)}
+                            isLocked={officialStrategiesLocked && !subscribedIds.includes(strategy.id)}
                             isLoading={subscriptionLoading[strategy.id]}
                             onSubscribe={handleSubscribeClick}
                             onCardClick={() => handleCardClick(strategy)}
@@ -495,6 +507,38 @@ export default function Strategies() {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <div
+              className="mx-auto mb-4 mt-2 flex h-12 w-12 items-center justify-center rounded-xl border border-[#d9b18d] bg-[#f6e6d8]"
+            >
+              <span className="text-lg font-semibold text-[#8d5627]">A</span>
+            </div>
+            <DialogTitle className="text-center text-xl font-bold font-ibm-plex-mono">Official Strategy Access</DialogTitle>
+            <DialogDescription className="text-center pt-2 text-muted-foreground">
+              {upgradeStrategyName ? (
+                <>
+                  Strategi official <strong>&quot;{upgradeStrategyName}&quot;</strong> hanya tersedia untuk plan <strong>Suhu</strong> dan <strong>Bandar</strong>.
+                </>
+              ) : (
+                <>
+                  Strategi official hanya tersedia untuk plan <strong>Suhu</strong> dan <strong>Bandar</strong>.
+                </>
+              )}{" "}
+              Upgrade plan untuk mulai berlangganan.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center mt-2 pb-2">
+            <Link href="/harga" className="w-full" onClick={() => setUpgradeDialogOpen(false)}>
+              <Button className="w-full text-white transition-colors font-semibold bg-[#d07225] hover:bg-[#a65b1d]">
+                Upgrade Plan
+              </Button>
+            </Link>
+          </div>
         </DialogContent>
       </Dialog>
 

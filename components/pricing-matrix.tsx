@@ -213,11 +213,13 @@ function PricingMatrixInner() {
     const plan = plans.find((entry) => entry.key === planKey)
     if (!plan) return
 
-    let amount = isYearly ? plan.yearlyTotalPrice : plan.monthlyPrice
+    const fullAmount = isYearly ? plan.yearlyTotalPrice : plan.monthlyPrice
+    let amount = fullAmount
     
     if (userTier === "suhu" && planKey === "bandar") {
       const remainingValue = calculateUpgradeProration()
-      amount = Math.max(0, amount - remainingValue)
+      const proratedAmount = Math.round(Math.max(0, fullAmount - remainingValue))
+      amount = proratedAmount >= 1 ? proratedAmount : fullAmount
     }
 
     setSelectedPlan({

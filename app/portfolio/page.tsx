@@ -212,13 +212,20 @@ function deriveTopHoldingsFromTrades(trades?: BacktestResult["trades"]): Strateg
 }
 
 function mapSubscriptionToCardStrategy(subscription: SubscriptionApiRow): CardStrategy {
+    const totalReturn = toNumber(subscription.totalReturn)
+    const snapshotReturn = toOptionalNumber(subscription.snapshotReturn)
+    const explicitSinceSubscription = toOptionalNumber(subscription.returnSinceSubscription)
+    const returnSinceSubscription = snapshotReturn !== null
+        ? Number((totalReturn - snapshotReturn).toFixed(2))
+        : (explicitSinceSubscription ?? 0)
+
     return {
         id: subscription.id.toString(),
         subscriptionId: subscription.subscriptionId?.toString(),
         name: subscription.name,
         description: subscription.description || undefined,
         creator: subscription.creator || 'Unknown',
-        totalReturn: toNumber(subscription.totalReturn),
+        totalReturn,
         yoyReturn: 0,
         momReturn: 0,
         weeklyReturn: 0,
@@ -234,10 +241,10 @@ function mapSubscriptionToCardStrategy(subscription: SubscriptionApiRow): CardSt
         createdDate: subscription.createdAt || new Date().toISOString(),
         subscribers: subscription.subscribers || 0,
         subscriptionDate: subscription.subscribedAt,
-        returnSinceSubscription: toNumber(subscription.returnSinceSubscription),
+        returnSinceSubscription,
         snapshotHoldings: subscription.snapshotHoldings,
         topHoldings: subscription.topHoldings || subscription.snapshotHoldings,
-        snapshotReturn: toOptionalNumber(subscription.snapshotReturn) ?? undefined,
+        snapshotReturn: snapshotReturn ?? undefined,
         backtestConfig: subscription.config ?? null,
     }
 }
@@ -491,6 +498,15 @@ export default function Portfolio() {
 
     const handleEdit = async (id: string) => {
         try {
+            const response = await fetch(`/api/strategies/${id}`)
+
+            if (response.ok) {
+                const data = await response.json()
+                if (data.success && data.strategy && typeof window !== "undefined") {
+                    sessionStorage.setItem(`strategy_prefetch_${id}`, JSON.stringify(data.strategy))
+                }
+            }
+
             router.push(`/backtest?strategyId=${id}`)
         } catch (error) {
             console.error('Error loading strategy:', error)

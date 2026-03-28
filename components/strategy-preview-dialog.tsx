@@ -55,6 +55,13 @@ export function StrategyPreviewDialog({
     const { isSignedIn, isLoaded } = useUser()
     const { openSignIn } = useClerk()
     const { limits, usage, refreshTier } = useUserTier()
+    const isQuotaError = !!error && (
+        error.toLowerCase().includes("kuota") ||
+        error.toLowerCase().includes("batas") ||
+        error.toLowerCase().includes("limit reached") ||
+        error.toLowerCase().includes("upgrade paket") ||
+        error.toLowerCase().includes("upgrade plan")
+    )
 
     useEffect(() => {
         if (open && isLoaded && !isSignedIn) {
@@ -251,7 +258,7 @@ export function StrategyPreviewDialog({
                                                         >
                                                             {usage.backtest}/{limits.backtest}
                                                         </span>{' '}
-                                                        slot kuota. Upgrade plan untuk menambah kuota.
+                                                        slot kuota. Upgrade paket untuk menambah kuota.
                                                     </p>
                                                 </>
                                             ) : (
@@ -281,7 +288,7 @@ export function StrategyPreviewDialog({
                                     {limits.backtest !== -1 && usage.backtest >= limits.backtest ? (
                                         <Link href="/harga" onClick={() => onOpenChange(false)} className="w-full block">
                                             <Button className="w-full font-mono bg-[#d07225] text-white hover:bg-[#a65b1d]">
-                                                Upgrade Plan
+                                                Upgrade Paket
                                             </Button>
                                         </Link>
                                     ) : (
@@ -377,11 +384,18 @@ export function StrategyPreviewDialog({
                                             <AlertCircle className="w-6 h-6 text-red-500" />
                                         </div>
                                         <h3 className="text-base font-semibold text-foreground mb-2">
-                                            Gagal Memuat Preview
+                                            {isQuotaError ? "Kuota Backtest Habis" : "Gagal Memuat Preview"}
                                         </h3>
                                         <p className="text-sm text-muted-foreground text-center max-w-sm">
                                             {error}
                                         </p>
+                                        {isQuotaError && (
+                                            <Link href="/harga" onClick={() => onOpenChange(false)} className="mt-4">
+                                                <Button className="font-mono bg-[#d07225] text-white hover:bg-[#a65b1d]">
+                                                    Upgrade Paket
+                                                </Button>
+                                            </Link>
+                                        )}
                                     </div>
                                 )}
 

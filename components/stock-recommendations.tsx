@@ -451,7 +451,7 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
           </div>
           <p className="text-sm font-medium text-muted-foreground mb-1">No open positions</p>
           <p className="text-xs text-muted-foreground/70">
-            Open positions from the backtest will appear here
+            Oops! Belum ada saham yang match dengan indikator pilihanmu. Yuk coba strategi lain
           </p>
         </div>
       )

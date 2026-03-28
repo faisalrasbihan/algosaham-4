@@ -101,7 +101,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   const { refreshTier } = useUserTier(); // Added hook usage
   const searchParams = useSearchParams()
   const strategyId = searchParams.get('strategyId')
-  const [hasLoadedStrategyParam, setHasLoadedStrategyParam] = useState(false)
+  const [loadedStrategyId, setLoadedStrategyId] = useState<string | null>(null)
   const [marketCaps, setMarketCaps] = useState<string[]>(["large", "mid"])
   const [stockType, setStockType] = useState("All Stocks")
   const [minDailyValue, setMinDailyValue] = useState<number>(1000000000)
@@ -294,7 +294,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   // Fetch specific strategy config if passing strategyId
   useEffect(() => {
     async function loadStrategyFromUrl() {
-      if (!strategyId || hasLoadedStrategyParam || !isLoaded || !isSignedIn) return
+      if (!strategyId || loadedStrategyId === strategyId || !isLoaded || !isSignedIn) return
 
       try {
         // 1. Try to load from instantaneous sessionStorage prefetch
@@ -311,10 +311,10 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
             setIsPrivate(data.isPrivate || false)
           }
           sessionStorage.removeItem(prefetchKey)
-          setHasLoadedStrategyParam(true)
+          setLoadedStrategyId(strategyId)
 
           // trigger backtest run since it loaded instantly
-          setTimeout(() => handleRunBacktest(true), 500)
+            setTimeout(() => handleRunBacktest(true), 500)
           return
         }
 
@@ -338,12 +338,12 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
       } catch (error) {
         console.error("Failed to load strategy from URL:", error)
       } finally {
-        setHasLoadedStrategyParam(true)
+        setLoadedStrategyId(strategyId)
       }
     }
 
     loadStrategyFromUrl()
-  }, [strategyId, isLoaded, isSignedIn, hasLoadedStrategyParam])
+  }, [strategyId, isLoaded, isSignedIn, loadedStrategyId])
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -1790,4 +1790,3 @@ export function BacktestStrategyBuilder(props: BacktestStrategyBuilderProps) {
     </Suspense>
   )
 }
-

@@ -4,6 +4,8 @@ import { db } from "@/db";
 import { strategies, subscriptions, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
+const OFFICIAL_CREATOR_KEYWORDS = ["algosaham"];
+
 export async function POST(req: Request) {
     try {
         const { userId } = await auth();
@@ -72,6 +74,9 @@ export async function POST(req: Request) {
         // 3. Get Strategy details for snapshot
         const strategy = await db.query.strategies.findFirst({
             where: eq(strategies.id, parsedStrategyId!),
+            with: {
+                creator: true,
+            },
         });
 
         if (!strategy) {
@@ -88,6 +93,21 @@ export async function POST(req: Request) {
             );
         }
 
+        const userTier = (user.subscriptionTier || "ritel").toLowerCase();
+        const normalizedCreator = strategy.creator?.name?.trim().toLowerCase() || "";
+        const isOfficialStrategy = OFFICIAL_CREATOR_KEYWORDS.some((keyword) => normalizedCreator.includes(keyword));
+
+        if (userTier === "ritel" && isOfficialStrategy) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "Official strategies require a paid plan",
+                    message: "Strategi official hanya tersedia untuk plan Suhu dan Bandar. Upgrade plan untuk mulai berlangganan."
+                },
+                { status: 403 }
+            );
+        }
+
         // 4. Create Subscription
         await db.transaction(async (tx) => {
             await tx.insert(subscriptions).values({
@@ -97,7 +117,7 @@ export async function POST(req: Request) {
                 snapshotValue: null, // Can be set if we track portfolio value
                 snapshotHoldings: strategy.topHoldings, // Top 3 stocks when subscribed
                 snapshotDate: new Date(),
-                currentReturn: "0", // Starts at 0, tracking return since subscription
+                currentReturn: strategy.totalReturn, // Store latest absolute strategy return
                 isActive: true,
             });
 

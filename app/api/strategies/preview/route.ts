@@ -78,7 +78,10 @@ export async function POST(request: NextRequest) {
                 }),
                 quotaExceeded: () => ({
                     status: 403,
-                    body: { success: false, error: "Daily backtest limit reached. Please upgrade your plan." },
+                    body: {
+                        success: false,
+                        error: "Kuota backtest harian kamu sudah habis. Silakan upgrade paket untuk mendapatkan kuota tambahan.",
+                    },
                 }),
                 railway: ({ status, statusText, details }) => {
                     console.error("[PREVIEW] Railway error:", status, details.substring(0, 200));

@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Users, Info, Calendar, Heart } from "lucide-react"
+import { Users, Info, Calendar, Heart, Lock } from "lucide-react"
 import {
     Tooltip,
     TooltipContent,
@@ -29,24 +29,40 @@ function seededRandom(seed: string) {
 interface MarketplaceStrategyCardProps {
     strategy: Strategy
     isSubscribed?: boolean
+    isLocked?: boolean
     onSubscribe?: (id: string) => void
     onCardClick?: () => void
     isLoading?: boolean
     className?: string
 }
 
-export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubscribe, onCardClick, isLoading = false, className }: MarketplaceStrategyCardProps) {
+export function MarketplaceStrategyCard({ strategy, isSubscribed = false, isLocked = false, onSubscribe, onCardClick, isLoading = false, className }: MarketplaceStrategyCardProps) {
     const randomSubscribers = useMemo(() => seededRandom(strategy.id), [strategy.id]);
 
     return (
         <Card
-            className={cn("flex-shrink-0 w-full hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer relative overflow-hidden", className)}
+            className={cn(
+                "flex-shrink-0 w-full cursor-pointer relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-[1.02]",
+                isSubscribed
+                    ? "border-[#e3c7ad] bg-[#fcf6f0] shadow-[0_10px_25px_rgba(180,106,44,0.08)]"
+                    : "border-border bg-card",
+                className
+            )}
             onClick={() => onCardClick?.()}
         >
+            {isSubscribed && (
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#d89a63]" />
+            )}
+
             {/* Subscriber badge - top right corner */}
             <Badge
                 variant="secondary"
-                className="absolute top-3 right-3 z-10 bg-ochre/20 text-ochre-100 border-ochre/30 text-xs font-medium"
+                className={cn(
+                    "absolute top-3 right-3 z-10 text-xs font-medium",
+                    isSubscribed
+                        ? "border-[#d9b18d] bg-[#f6e6d8] text-[#8d5627]"
+                        : "bg-ochre/20 text-ochre-100 border-ochre/30"
+                )}
             >
                 <Users className="w-3 h-3 mr-1" />
                 <span className="font-mono">{randomSubscribers}</span>
@@ -88,7 +104,7 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                         </div>
                     </div>
 
-                    <div className="border-t border-b border-border py-3">
+                    <div className={cn("border-t border-b py-3", isSubscribed ? "border-[#ecd7c4]" : "border-border")}>
                         <div className="text-center">
                             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
                                 Return
@@ -189,7 +205,7 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
+                    <div className={cn("flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t", isSubscribed ? "border-[#ecd7c4]" : "border-border")}>
                         <Calendar className="w-3 h-3" />
                         Created: {new Date(strategy.createdDate).toLocaleDateString()}
                     </div>
@@ -204,7 +220,9 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                         variant="outline"
                         className={
                             isSubscribed
-                                ? "group w-full border-[#d8b08a] bg-white text-foreground text-xs hover:bg-[#d07225] hover:text-white hover:border-[#d07225]"
+                                ? "group w-full border-[#d8b08a] bg-[#f3dfcb] text-[#7c4a20] text-xs hover:bg-[#d07225] hover:text-white hover:border-[#d07225]"
+                                : isLocked
+                                    ? "group w-full border-[#d8b08a] bg-[#fff7ef] text-[#8d5627] text-xs hover:bg-[#d07225] hover:text-white hover:border-[#d07225]"
                                 : "group w-full border-[#c7ced6] bg-white text-foreground text-xs hover:bg-[#d07225] hover:text-white hover:border-[#d07225]"
                         }
                     >
@@ -214,6 +232,11 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, onSubs
                             <>
                                 <Heart className="w-3 h-3 mr-1 text-[#b46a2c] group-hover:text-white" />
                                 Subscribed
+                            </>
+                        ) : isLocked ? (
+                            <>
+                                <Lock className="w-3 h-3 mr-1 text-[#b46a2c] group-hover:text-white" />
+                                Upgrade to Subscribe
                             </>
                         ) : (
                             <>

@@ -14,6 +14,7 @@ import { eq } from "drizzle-orm";
 
 type PlanType = PaidSubscriptionTier;
 type PaymentMethod = 'credit_card' | 'gopay' | 'bank_transfer' | 'e_wallet' | 'qris';
+const MIDTRANS_MIN_GROSS_AMOUNT = 0.01;
 
 export async function POST(request: NextRequest) {
     try {
@@ -58,7 +59,8 @@ export async function POST(request: NextRequest) {
 
         // Get price for selected plan and interval
         const normalizedPlanType = planType as PlanType;
-        let amount = getPlanPrice(normalizedPlanType, billingInterval);
+        const fullAmount = getPlanPrice(normalizedPlanType, billingInterval);
+        let amount = fullAmount;
 
         // Calculate dynamic upgrade proration if applicable
         const dbUser = await db.query.users.findFirst({
@@ -77,9 +79,12 @@ export async function POST(request: NextRequest) {
                 const currentPrice = isUserYearly ? SUBSCRIPTION_PLANS.suhu.yearlyPrice : SUBSCRIPTION_PLANS.suhu.monthlyPrice;
                 const remainingValue = (remainingMs / totalMs) * currentPrice;
                 if (remainingValue > 0) {
-                    amount = Math.max(0, amount - remainingValue);
+                    const proratedAmount = Math.round(Math.max(0, fullAmount - remainingValue));
+
+                    // Midtrans rejects zero or near-zero gross amounts, so invalid proration
+                    // falls back to the full plan price.
+                    amount = proratedAmount >= MIDTRANS_MIN_GROSS_AMOUNT ? proratedAmount : fullAmount;
                 }
-                amount = Math.round(amount); // Ensure the amount has no decimals
             }
         }
 
