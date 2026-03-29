@@ -44,7 +44,7 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, isLock
             className={cn(
                 "flex-shrink-0 w-full cursor-pointer relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-[1.02]",
                 isSubscribed
-                    ? "border-[#e3c7ad] bg-[#fcf6f0] shadow-[0_10px_25px_rgba(180,106,44,0.08)]"
+                    ? "border-[#e3c7ad] bg-white shadow-[0_10px_25px_rgba(180,106,44,0.08)]"
                     : "border-border bg-card",
                 className
             )}
@@ -230,7 +230,7 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, isLock
                             "Loading..."
                         ) : isSubscribed ? (
                             <>
-                                <Heart className="w-3 h-3 mr-1 text-[#b46a2c] group-hover:text-white" />
+                                <Heart className="w-3 h-3 mr-1 fill-[#b46a2c] text-[#b46a2c] group-hover:fill-white group-hover:text-white" />
                                 Subscribed
                             </>
                         ) : isLocked ? (

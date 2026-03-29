@@ -631,24 +631,16 @@ export default function Portfolio() {
         setIsLoadingSelectedSubscribedStrategy(true)
 
         try {
-            const configObj = {
-                ...strategy.backtestConfig,
-                backtestConfig: {
-                    ...strategy.backtestConfig.backtestConfig
-                }
-            }
-            if (strategy.subscriptionDate) {
-                const subDate = new Date(strategy.subscriptionDate)
-                if (!isNaN(subDate.getTime())) {
-                    configObj.backtestConfig.startDate = subDate.toISOString().split('T')[0]
-                }
-            }
-
             const response = await fetch('/api/backtest', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    config: configObj,
+                    config: {
+                        ...strategy.backtestConfig,
+                        backtestConfig: {
+                            ...strategy.backtestConfig.backtestConfig,
+                        },
+                    } satisfies BacktestRequest,
                     isInitial: true,
                 }),
             })
