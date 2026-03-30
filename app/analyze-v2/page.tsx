@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { useClerk, useUser } from "@clerk/nextjs"
@@ -15,7 +15,6 @@ import {
     Clock,
     Info,
     Layers,
-    LogIn,
     PieChart,
     ShieldCheck,
     Sparkles,
@@ -30,7 +29,6 @@ import { AdvancedMultiChart } from "@/components/advanced-multi-chart"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 type Confidence = "low" | "medium" | "high"
@@ -198,9 +196,51 @@ function formatTrillionValue(value: number | null | undefined) {
     return `${value.toLocaleString("id-ID", { maximumFractionDigits: 2 })}T`
 }
 
-function formatFinancialMagnitude(value: number | null | undefined) {
+type FinancialScale = "rupiah" | "trillions"
+
+function inferQuarterlyFinancialScale(
+    rows: Array<{
+        revenue: number | null
+        netIncome: number | null
+    }>
+): FinancialScale {
+    const values = rows
+        .flatMap((row) => [row.revenue, row.netIncome])
+        .filter((value): value is number => value !== null && Number.isFinite(value) && value !== 0)
+
+    if (values.length === 0) return "rupiah"
+
+    const largestMagnitude = Math.max(...values.map((value) => Math.abs(value)))
+    return largestMagnitude < 10000 ? "trillions" : "rupiah"
+}
+
+function formatFinancialMagnitude(value: number | null | undefined, scale: FinancialScale = "rupiah") {
     if (value === null || value === undefined || Number.isNaN(value)) return "N/A"
-    return `Rp. ${value.toLocaleString("id-ID", { maximumFractionDigits: 0 })}`
+
+    if (scale === "trillions") {
+        const absValue = Math.abs(value)
+
+        if (absValue >= 1) {
+            const digits = absValue >= 100 ? 0 : absValue >= 10 ? 1 : 2
+            return `Rp ${value.toLocaleString("id-ID", { maximumFractionDigits: digits, minimumFractionDigits: digits })}T`
+        }
+
+        if (absValue >= 0.001) {
+            const billions = value * 1000
+            const absBillions = Math.abs(billions)
+            const digits = absBillions >= 100 ? 0 : 1
+            return `Rp ${billions.toLocaleString("id-ID", { maximumFractionDigits: digits, minimumFractionDigits: digits })}B`
+        }
+
+        const millions = value * 1_000_000
+        return `Rp ${millions.toLocaleString("id-ID", { maximumFractionDigits: 0 })}M`
+    }
+
+    if (Math.abs(value) >= 1e12) return `Rp ${formatNumber(value / 1e12, 2)}T`
+    if (Math.abs(value) >= 1e9) return `Rp ${formatNumber(value / 1e9, 2)}B`
+    if (Math.abs(value) >= 1e6) return `Rp ${formatNumber(value / 1e6, 2)}M`
+
+    return `Rp ${value.toLocaleString("id-ID", { maximumFractionDigits: 0 })}`
 }
 
 function biasMeta(bias: MarketBias) {
@@ -219,13 +259,14 @@ function AnalyzeV2Content() {
     const [loading, setLoading] = useState(false)
     const [data, setData] = useState<AnalyzeResponse | null>(null)
     const [error, setError] = useState<string | null>(null)
-    const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+    const signInOpenedRef = useRef(false)
 
     const handleSearch = async (ticker: string) => {
         const normalizedTicker = ticker.toUpperCase()
 
         if (isLoaded && !isSignedIn) {
-            setShowLoginPrompt(true)
+            signInOpenedRef.current = true
+            void openSignIn()
             return
         }
 
@@ -239,14 +280,22 @@ function AnalyzeV2Content() {
             setData(null)
             setLoading(false)
             setError(null)
+            signInOpenedRef.current = false
             return
         }
 
         if (isLoaded && !isSignedIn) {
-            setShowLoginPrompt(true)
+            if (!signInOpenedRef.current) {
+                signInOpenedRef.current = true
+                void openSignIn()
+            }
+            setData(null)
+            setError(null)
             setLoading(false)
             return
         }
+
+        signInOpenedRef.current = false
 
         const normalizedTicker = urlTicker.toUpperCase()
         let cancelled = false
@@ -288,7 +337,7 @@ function AnalyzeV2Content() {
         return () => {
             cancelled = true
         }
-    }, [urlTicker, isLoaded, isSignedIn])
+    }, [urlTicker, isLoaded, isSignedIn, openSignIn])
 
     if (!urlTicker || (loading && !data)) {
         return (
@@ -298,23 +347,6 @@ function AnalyzeV2Content() {
                 <div className="flex-1 flex flex-col items-center justify-center -mt-10 md:-mt-16">
                     <StockSearch onSearch={handleSearch} loading={loading} />
                 </div>
-
-                <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#d07225]/10">
-                                <LogIn className="h-6 w-6 text-[#d07225]" />
-                            </div>
-                            <DialogTitle className="text-center">Masuk untuk analisis saham</DialogTitle>
-                            <DialogDescription className="text-center">
-                                Kamu perlu login dulu untuk menggunakan halaman Analyze.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <Button className="w-full bg-[#d07225] text-white hover:bg-[#b8641f]" onClick={() => openSignIn()}>
-                            Masuk
-                        </Button>
-                    </DialogContent>
-                </Dialog>
             </div>
         )
     }
@@ -353,6 +385,7 @@ function AnalyzeV2Content() {
     const potentialGain = ((d.riskPlan.takeProfit - d.riskPlan.entryPrice) / d.riskPlan.entryPrice) * 100
     const bias = biasMeta(d.marketBias)
     const BiasIcon = bias.icon
+    const quarterlyFinancialScale = inferQuarterlyFinancialScale(d.fundamental.quarterly)
 
     return (
         <div className="min-h-screen bg-background dotted-background flex flex-col">
@@ -636,28 +669,28 @@ function AnalyzeV2Content() {
                                     <StatRow label="Dividend Yield" value={d.fundamental.metrics.dividend_yield !== null ? `${formatNumber(d.fundamental.metrics.dividend_yield, 2)}%` : "N/A"} sub={d.fundamental.metricNotes?.dividend_yield} />
                                 </TabsContent>
 
-                                <TabsContent value="quarterly">
-                                    <div className="overflow-x-auto rounded-lg border border-border/70 bg-background/60">
-                                        <table className="w-full text-[11px]">
+                                <TabsContent value="quarterly" className="mt-3">
+                                    <div className="overflow-x-auto rounded-xl border border-border/70 bg-background/60">
+                                        <table className="min-w-full text-[11px] sm:text-xs">
                                             <thead>
                                                 <tr className="border-b border-border bg-muted/30">
-                                                    <th className="text-left pb-2 text-muted-foreground font-medium">Periode</th>
-                                                    <th className="text-right pb-2 text-muted-foreground font-medium">Revenue</th>
-                                                    <th className="text-right pb-2 text-muted-foreground font-medium">Laba Bersih</th>
-                                                    <th className="text-right pb-2 text-muted-foreground font-medium">NPM</th>
-                                                    <th className="text-right pb-2 text-muted-foreground font-medium">ROE</th>
-                                                    <th className="text-right pb-2 text-muted-foreground font-medium">EPS</th>
+                                                    <th className="px-4 py-3 text-left text-muted-foreground font-medium first:pl-5">Periode</th>
+                                                    <th className="px-4 py-3 text-right text-muted-foreground font-medium">Revenue</th>
+                                                    <th className="px-4 py-3 text-right text-muted-foreground font-medium">Laba Bersih</th>
+                                                    <th className="px-4 py-3 text-right text-muted-foreground font-medium">NPM</th>
+                                                    <th className="px-4 py-3 text-right text-muted-foreground font-medium">ROE</th>
+                                                    <th className="px-4 py-3 text-right text-muted-foreground font-medium last:pr-5">EPS</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {d.fundamental.quarterly.map((q, i) => (
-                                                    <tr key={i} className="border-b border-border/40 hover:bg-muted/40 transition-colors">
-                                                        <td className="py-2 font-medium font-ibm-plex-mono">{q.period}</td>
-                                                        <td className="py-2 text-right font-ibm-plex-mono">{formatFinancialMagnitude(q.revenue)}</td>
-                                                        <td className="py-2 text-right font-ibm-plex-mono">{formatFinancialMagnitude(q.netIncome)}</td>
-                                                        <td className="py-2 text-right font-ibm-plex-mono">{q.npm !== null ? `${formatNumber(q.npm, 2)}%` : "N/A"}</td>
-                                                        <td className="py-2 text-right font-ibm-plex-mono">{q.roe !== null ? `${formatNumber(q.roe, 2)}%` : "N/A"}</td>
-                                                        <td className="py-2 text-right font-ibm-plex-mono">{q.eps !== null ? formatNumber(q.eps, 2) : "N/A"}</td>
+                                                    <tr key={i} className="border-b border-border/40 transition-colors hover:bg-muted/30 last:border-0">
+                                                        <td className="px-4 py-3 font-medium font-ibm-plex-mono first:pl-5">{q.period}</td>
+                                                        <td className="px-4 py-3 text-right font-ibm-plex-mono whitespace-nowrap">{formatFinancialMagnitude(q.revenue, quarterlyFinancialScale)}</td>
+                                                        <td className="px-4 py-3 text-right font-ibm-plex-mono whitespace-nowrap">{formatFinancialMagnitude(q.netIncome, quarterlyFinancialScale)}</td>
+                                                        <td className="px-4 py-3 text-right font-ibm-plex-mono whitespace-nowrap">{q.npm !== null ? `${formatNumber(q.npm, 2)}%` : "N/A"}</td>
+                                                        <td className="px-4 py-3 text-right font-ibm-plex-mono whitespace-nowrap">{q.roe !== null ? `${formatNumber(q.roe, 2)}%` : "N/A"}</td>
+                                                        <td className="px-4 py-3 text-right font-ibm-plex-mono whitespace-nowrap last:pr-5">{q.eps !== null ? formatNumber(q.eps, 2) : "N/A"}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -681,23 +714,6 @@ function AnalyzeV2Content() {
                     </div>
                 </div>
             </div>
-
-            <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#d07225]/10">
-                            <LogIn className="h-6 w-6 text-[#d07225]" />
-                        </div>
-                        <DialogTitle className="text-center">Masuk untuk analisis saham</DialogTitle>
-                        <DialogDescription className="text-center">
-                            Kamu perlu login dulu untuk menggunakan halaman Analyze.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Button className="w-full bg-[#d07225] text-white hover:bg-[#b8641f]" onClick={() => openSignIn()}>
-                        Masuk
-                    </Button>
-                </DialogContent>
-            </Dialog>
         </div>
     )
 }

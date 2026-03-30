@@ -46,15 +46,15 @@ import {
   Copy,
   CheckCheck,
   Info,
+  Lock,
 } from "lucide-react"
 import { AddIndicatorModal } from "@/components/add-indicator-modal"
 import { FundamentalIndicatorDropdown } from "@/components/fundamental-indicator-dropdown"
 import { OnboardingTutorial } from "@/components/onboarding-tutorial"
-import { SignInButton, useUser, useClerk } from "@clerk/nextjs" // Added useClerk
-import { LogIn } from "lucide-react"
+import { useUser, useClerk } from "@clerk/nextjs"
 import { toast } from "sonner"
 import type { BacktestRequest } from "@/lib/api"
-import { useUserTier } from "@/context/user-tier-context"; // Added import
+import { useUserTier } from "@/context/user-tier-context"
 
 interface Indicator {
   id: string
@@ -112,10 +112,37 @@ const strategyBuilderIndicatorEditClass = "p-3"
 const strategyBuilderAddIndicatorButtonClass =
   "w-full h-11 rounded-xl border border-slate-300 bg-white px-4 text-[11px] font-mono font-semibold text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.12)] transition-colors hover:border-[#d07225] hover:bg-[#d07225]/5"
 
+const NON_BANDAR_MAX_BACKTEST_YEARS = 2
+const BACKTEST_PERIOD_LIMIT_MESSAGE = "Periode backtest di atas 2 tahun hanya tersedia untuk tier Bandar."
+
+const backtestPeriodOptions: Array<{ label: string; bandarOnly?: boolean }> = [
+  { label: "Last 1 month" },
+  { label: "Last 3 months" },
+  { label: "Last 6 months" },
+  { label: "Last 1 year" },
+  { label: "Last 2 years" },
+  { label: "Last 3 years", bandarOnly: true },
+  { label: "Last 5 years", bandarOnly: true },
+]
+
+function formatDateInput(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+function parseDateInput(value: string) {
+  if (!value) return null
+
+  const parsedDate = new Date(`${value}T00:00:00`)
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
+}
+
 export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults }: BacktestStrategyBuilderProps) {
   const { isSignedIn, isLoaded } = useUser()
   const { openSignIn } = useClerk()
-  const { refreshTier } = useUserTier(); // Added hook usage
+  const { tier, refreshTier } = useUserTier()
   const searchParams = useSearchParams()
   const strategyId = searchParams.get('strategyId')
   const [loadedStrategyId, setLoadedStrategyId] = useState<string | null>(null)
@@ -148,7 +175,6 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState<string>("strategy")
   const [isPrivate, setIsPrivate] = useState(false)
-  const [userTier, setUserTier] = useState<string>("free")
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: "1",
@@ -195,18 +221,55 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
 
   // Backtest preset state
   const [backtestPeriod, setBacktestPeriod] = useState<string>("Last 1 year")
+  const normalizedUserTier = tier.toLowerCase()
+  const isBandarUser = normalizedUserTier === "bandar" || normalizedUserTier === "admin"
 
-  const backtestPeriodOptions = [
-    "Last 1 month",
-    "Last 3 months",
-    "Last 6 months",
-    "Last 1 year",
-    "Last 2 years",
-    "Last 3 years",
-    "Last 5 years",
-  ]
+  const clampBacktestRangeForTier = useCallback(
+    (nextStartDate: string, nextEndDate: string, options?: { notify?: boolean }) => {
+      if (isBandarUser) {
+        return { startDate: nextStartDate, endDate: nextEndDate, adjusted: false }
+      }
+
+      const parsedStartDate = parseDateInput(nextStartDate)
+      const parsedEndDate = parseDateInput(nextEndDate)
+
+      if (!parsedStartDate || !parsedEndDate) {
+        return { startDate: nextStartDate, endDate: nextEndDate, adjusted: false }
+      }
+
+      const earliestAllowedStart = new Date(parsedEndDate)
+      earliestAllowedStart.setFullYear(earliestAllowedStart.getFullYear() - NON_BANDAR_MAX_BACKTEST_YEARS)
+
+      if (parsedStartDate >= earliestAllowedStart) {
+        return { startDate: nextStartDate, endDate: nextEndDate, adjusted: false }
+      }
+
+      if (options?.notify) {
+        toast.info("Fitur Bandar", {
+          description: BACKTEST_PERIOD_LIMIT_MESSAGE,
+        })
+      }
+
+      return {
+        startDate: formatDateInput(earliestAllowedStart),
+        endDate: formatDateInput(parsedEndDate),
+        adjusted: true,
+      }
+    },
+    [isBandarUser],
+  )
 
   const applyPreset = (period: string) => {
+    const selectedOption = backtestPeriodOptions.find((option) => option.label === period)
+
+    if (selectedOption?.bandarOnly && !isBandarUser) {
+      toast.info("Fitur Bandar", {
+        description: BACKTEST_PERIOD_LIMIT_MESSAGE,
+      })
+      applyPreset("Last 2 years")
+      return
+    }
+
     setBacktestPeriod(period)
     const end = new Date()
     const start = new Date()
@@ -235,14 +298,28 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
         break
     }
 
-    setEndDate(end.toISOString().split("T")[0])
-    setStartDate(start.toISOString().split("T")[0])
+    setEndDate(formatDateInput(end))
+    setStartDate(formatDateInput(start))
   }
 
   // Initialize with default preset
   useEffect(() => {
     applyPreset("Last 1 year")
   }, [])
+
+  useEffect(() => {
+    if (isBandarUser) return
+
+    const { startDate: clampedStartDate, adjusted } = clampBacktestRangeForTier(startDate, endDate)
+
+    if (adjusted) {
+      setStartDate(clampedStartDate)
+    }
+
+    if (backtestPeriodOptions.some((option) => option.label === backtestPeriod && option.bandarOnly)) {
+      setBacktestPeriod("Last 2 years")
+    }
+  }, [backtestPeriod, clampBacktestRangeForTier, endDate, isBandarUser, startDate])
 
   const marketCapOptions = ["small", "mid", "large"]
   const sectorOptions = [
@@ -274,14 +351,31 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   }
 
   const runLoadedStrategyConfig = useCallback(async (config: BacktestRequest) => {
+    const allowedRange = clampBacktestRangeForTier(
+      config.backtestConfig.startDate,
+      config.backtestConfig.endDate,
+      { notify: true },
+    )
+    const configToRun =
+      allowedRange.adjusted
+        ? {
+          ...config,
+          backtestConfig: {
+            ...config.backtestConfig,
+            startDate: allowedRange.startDate,
+            endDate: allowedRange.endDate,
+          },
+        }
+        : config
+
     try {
-      await onRunBacktest(config, true)
+      await onRunBacktest(configToRun, true)
       scrollToBottom()
       refreshTier()
     } catch (error) {
       console.error("Failed to run loaded strategy:", error)
     }
-  }, [onRunBacktest, refreshTier])
+  }, [clampBacktestRangeForTier, onRunBacktest, refreshTier])
 
   // Close sector dropdown when clicking outside
   // Close dropdowns when clicking outside
@@ -382,27 +476,6 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
     }
   }, [chatMessages])
-
-  // Fetch user's subscription tier
-  useEffect(() => {
-    const fetchUserTier = async () => {
-      if (!isSignedIn) return
-
-      try {
-        const response = await fetch('/api/user/tier')
-        if (response.ok) {
-          const data = await response.json()
-          setUserTier(data.tier || 'free')
-        }
-      } catch (error) {
-        console.error('Failed to fetch user tier:', error)
-        setUserTier('free')
-      }
-    }
-
-    fetchUserTier()
-  }, [isSignedIn])
-
 
   const toggleMarketCap = (cap: string) => {
     setMarketCaps((prev) => (prev.includes(cap) ? prev.filter((c) => c !== cap) : [...prev, cap]))
@@ -574,6 +647,8 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   }
 
   const buildBacktestConfig = (): BacktestRequest => {
+    const allowedRange = clampBacktestRangeForTier(startDate, endDate)
+
     return {
       backtestId: `backtest_${Date.now()}`,
       filters: {
@@ -591,8 +666,8 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
       technicalIndicators: technicalIndicators.map(mapTechnicalIndicator),
       backtestConfig: {
         initialCapital,
-        startDate,
-        endDate,
+        startDate: allowedRange.startDate,
+        endDate: allowedRange.endDate,
         tradingCosts: {
           brokerFee: 0.15,
           sellFee: 0.15,
@@ -778,9 +853,14 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
     }
 
     if (config.backtestConfig) {
+      const allowedRange = clampBacktestRangeForTier(
+        config.backtestConfig.startDate,
+        config.backtestConfig.endDate,
+      )
+
       setInitialCapital(config.backtestConfig.initialCapital)
-      setStartDate(config.backtestConfig.startDate)
-      setEndDate(config.backtestConfig.endDate)
+      setStartDate(allowedRange.startDate)
+      setEndDate(allowedRange.endDate)
       if (config.backtestConfig.riskManagement) {
         setStopLoss(config.backtestConfig.riskManagement.stopLossPercent)
         setTakeProfit(config.backtestConfig.riskManagement.takeProfitPercent)
@@ -1606,9 +1686,19 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                   </div>
 
                   <Tabs defaultValue="preset" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 h-8">
-                      <TabsTrigger value="preset" className="text-xs font-mono">Preset</TabsTrigger>
-                      <TabsTrigger value="custom" className="text-xs font-mono">Custom</TabsTrigger>
+                    <TabsList className="grid h-10 w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-100 p-0.5">
+                      <TabsTrigger
+                        value="preset"
+                        className="h-full rounded-[10px] text-xs font-mono data-[state=active]:shadow-[0_1px_2px_rgba(15,23,42,0.08)]"
+                      >
+                        Preset
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="custom"
+                        className="h-full rounded-[10px] text-xs font-mono data-[state=active]:shadow-[0_1px_2px_rgba(15,23,42,0.08)]"
+                      >
+                        Custom
+                      </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="preset" className="mt-2.5">
@@ -1617,8 +1707,18 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                           <SelectValue placeholder="Select period" />
                         </SelectTrigger>
                         <SelectContent>
-                          {backtestPeriodOptions.map((period) => (
-                            <SelectItem key={period} value={period} className="font-mono text-xs">{period}</SelectItem>
+                          {backtestPeriodOptions.map((option) => (
+                            <SelectItem
+                              key={option.label}
+                              value={option.label}
+                              disabled={Boolean(option.bandarOnly && !isBandarUser)}
+                              className="font-mono text-xs"
+                            >
+                              <span className="flex items-center gap-2">
+                                <span>{option.label}</span>
+                                {option.bandarOnly && <Lock className="h-3 w-3 text-muted-foreground opacity-70" />}
+                              </span>
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -1628,11 +1728,31 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5 block">Start</Label>
-                          <Input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setBacktestPeriod("") }} className="border-slate-300 h-9 bg-white text-xs font-mono" />
+                          <Input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => {
+                              const allowedRange = clampBacktestRangeForTier(e.target.value, endDate, { notify: true })
+                              setStartDate(allowedRange.startDate)
+                              setEndDate(allowedRange.endDate)
+                              setBacktestPeriod("")
+                            }}
+                            className="border-slate-300 h-9 bg-white text-xs font-mono"
+                          />
                         </div>
                         <div>
                           <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5 block">End</Label>
-                          <Input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setBacktestPeriod("") }} className="border-slate-300 h-9 bg-white text-xs font-mono" />
+                          <Input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => {
+                              const allowedRange = clampBacktestRangeForTier(startDate, e.target.value, { notify: true })
+                              setStartDate(allowedRange.startDate)
+                              setEndDate(allowedRange.endDate)
+                              setBacktestPeriod("")
+                            }}
+                            className="border-slate-300 h-9 bg-white text-xs font-mono"
+                          />
                         </div>
                       </div>
                     </TabsContent>
@@ -1747,10 +1867,10 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                 id="private-toggle"
                 checked={isPrivate}
                 onCheckedChange={setIsPrivate}
-                disabled={userTier !== "bandar" || isSaving}
+                disabled={!isBandarUser || isSaving}
               />
             </div>
-            {userTier !== "bandar" && (
+            {!isBandarUser && (
               <p className="text-xs text-muted-foreground">
                 💡 Upgrade ke tier <strong>Bandar</strong> untuk membuat strategi privat
               </p>

@@ -38,6 +38,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Strategy as CardStrategy } from "@/components/cards/types"
 import type { BacktestRequest, BacktestResult } from "@/lib/api"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 
 // Dialog states for unsubscribe: 'confirm' | 'loading' | 'success'
 type UnsubscribeDialogState = 'confirm' | 'loading' | 'success'
@@ -119,6 +120,56 @@ function PortfolioEmptyState({
                     </button>
                 ) : null}
             </div>
+        </div>
+    )
+}
+
+function ShimmerBlock({ className }: { className?: string }) {
+    return (
+        <div
+            className={cn(
+                "rounded-md bg-gradient-to-r from-muted to-muted/50",
+                className
+            )}
+        />
+    )
+}
+
+function TradingJournalMetricSkeleton() {
+    return (
+        <div className="animate-pulse rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
+            <ShimmerBlock className="h-3 w-24 rounded-full" />
+            <ShimmerBlock className="mt-3 h-8 w-20" />
+        </div>
+    )
+}
+
+function TradingJournalLoadingSkeleton() {
+    return (
+        <div className="space-y-6">
+            {[1, 2].map((group) => (
+                <div key={group} className="animate-pulse space-y-3">
+                    <ShimmerBlock className="h-4 w-36 rounded-full" />
+                    <section className="rounded-3xl border border-border/70 bg-white/80 px-4 py-4 shadow-[0_14px_34px_rgba(54,53,55,0.06)]">
+                        <div className="grid grid-cols-5 gap-4 border-b border-border/60 pb-3">
+                            {[1, 2, 3, 4, 5].map((column) => (
+                                <ShimmerBlock key={column} className="h-3 w-full max-w-[110px] rounded-full" />
+                            ))}
+                        </div>
+                        <div className="space-y-3 pt-4">
+                            {[1, 2, 3, 4].map((row) => (
+                                <div key={row} className="grid grid-cols-5 gap-4">
+                                    <ShimmerBlock className="h-4 w-16" />
+                                    <ShimmerBlock className="h-4 w-14" />
+                                    <ShimmerBlock className="h-4 w-20" />
+                                    <ShimmerBlock className="h-4 w-20" />
+                                    <ShimmerBlock className="h-4 w-24 justify-self-end" />
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                </div>
+            ))}
         </div>
     )
 }
@@ -1207,40 +1258,45 @@ export default function Portfolio() {
                                     Riwayat trade hasil backtest strategi ini, diurutkan dari hari terbaru dan dikelompokkan per tanggal.
                                 </DialogDescription>
                                 <div className="mt-4 grid gap-3 sm:grid-cols-4">
-                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
-                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total Buy</div>
-                                        <div className="mt-1 text-lg font-semibold text-foreground">{selectedJournalSummary.buyCount}</div>
-                                    </div>
-                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
-                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total Sell</div>
-                                        <div className="mt-1 text-lg font-semibold text-foreground">
-                                            {selectedJournalSummary.sellCount}
-                                        </div>
-                                    </div>
-                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
-                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Annualized Return</div>
-                                        <div className="mt-1 text-lg font-semibold text-foreground">
-                                            {selectedSubscribedStrategy.backtestSummary?.annualizedReturn !== undefined
-                                                ? `${selectedSubscribedStrategy.backtestSummary.annualizedReturn > 0 ? "+" : ""}${selectedSubscribedStrategy.backtestSummary.annualizedReturn.toFixed(2)}%`
-                                                : "N/A"}
-                                        </div>
-                                    </div>
-                                    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
-                                        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Drawdown</div>
-                                        <div className="mt-1 text-lg font-semibold text-foreground">
-                                            {`${(selectedSubscribedStrategy.backtestSummary?.maxDrawdown ?? selectedSubscribedStrategy.maxDrawdown).toFixed(2)}%`}
-                                        </div>
-                                    </div>
+                                    {isLoadingSelectedSubscribedStrategy ? (
+                                        Array.from({ length: 4 }).map((_, index) => (
+                                            <TradingJournalMetricSkeleton key={index} />
+                                        ))
+                                    ) : (
+                                        <>
+                                            <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
+                                                <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total Buy</div>
+                                                <div className="mt-1 text-lg font-semibold text-foreground">{selectedJournalSummary.buyCount}</div>
+                                            </div>
+                                            <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
+                                                <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Total Sell</div>
+                                                <div className="mt-1 text-lg font-semibold text-foreground">
+                                                    {selectedJournalSummary.sellCount}
+                                                </div>
+                                            </div>
+                                            <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
+                                                <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Annualized Return</div>
+                                                <div className="mt-1 text-lg font-semibold text-foreground">
+                                                    {selectedSubscribedStrategy.backtestSummary?.annualizedReturn !== undefined
+                                                        ? `${selectedSubscribedStrategy.backtestSummary.annualizedReturn > 0 ? "+" : ""}${selectedSubscribedStrategy.backtestSummary.annualizedReturn.toFixed(2)}%`
+                                                        : "N/A"}
+                                                </div>
+                                            </div>
+                                            <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
+                                                <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Drawdown</div>
+                                                <div className="mt-1 text-lg font-semibold text-foreground">
+                                                    {`${(selectedSubscribedStrategy.backtestSummary?.maxDrawdown ?? selectedSubscribedStrategy.maxDrawdown).toFixed(2)}%`}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </DialogHeader>
 
                             <ScrollArea className="max-h-[70vh] px-6 py-5">
                                 <div className="space-y-6">
                                     {isLoadingSelectedSubscribedStrategy ? (
-                                        <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Memuat trade history dari backtest...
-                                        </div>
+                                        <TradingJournalLoadingSkeleton />
                                     ) : null}
                                     {!isLoadingSelectedSubscribedStrategy && selectedJournalEntries.length === 0 ? (
                                         <div className="rounded-3xl border border-border/70 bg-white/80 px-6 py-12 text-center shadow-[0_14px_34px_rgba(54,53,55,0.06)]">

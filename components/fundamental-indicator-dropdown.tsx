@@ -15,7 +15,7 @@ interface FundamentalIndicatorDropdownProps {
 }
 
 const strategyBuilderAddIndicatorButtonClass =
-    "w-full h-11 rounded-xl border border-slate-300 bg-white px-4 text-[11px] font-mono font-semibold text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.12)] transition-colors hover:border-[#d07225] hover:bg-[#d07225]/5"
+    "w-full h-11 rounded-xl border border-slate-300 bg-white px-4 text-[11px] font-mono font-semibold text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.12)] transition-colors hover:border-[#d07225] hover:bg-[#d07225]/5 hover:text-foreground"
 
 const fundamentalIndicators = [
     { name: "PE Ratio", description: "Rasio Harga terhadap Laba - mengukur valuasi saham", params: { min: 0, max: 50 } },

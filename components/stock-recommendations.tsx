@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { useClerk, useUser } from "@clerk/nextjs"
-import { TrendingUp, TrendingDown, Sparkles, BarChart3, ArrowRight, ArrowUpRight, Wallet } from "lucide-react"
+import { TrendingUp, TrendingDown, Sparkles, BarChart3, ArrowRight, ArrowUpRight, Wallet, Info } from "lucide-react"
 import Image from "next/image"
 import {
   Tooltip,
@@ -601,7 +601,23 @@ export function StockRecommendations({ signals = [], trades = [], currentPortfol
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-xs text-muted-foreground">Entry Date:</span>
+                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                Entry Date:
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+                                      aria-label="Informasi entry date"
+                                    >
+                                      <Info className="h-3 w-3" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[240px] text-xs">
+                                    Tanggal entry menunjukkan kapan posisi mulai dibuka setelah sinyal muncul. Dari tanggal ini, durasi holding saham mulai dihitung.
+                                  </TooltipContent>
+                                </Tooltip>
+                              </span>
                               <span className="text-xs font-medium text-foreground">{pos.entryDate}</span>
                             </div>
                             <div className="flex justify-between items-center">

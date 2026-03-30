@@ -238,7 +238,7 @@ type ColumnId = keyof typeof COLUMN_LABELS
 const COLUMN_CONFIGS: ColumnConfig[] = [
   { id: "changeD1Pct", label: "1D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "change5DPct", label: "5D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
-  { id: "change1MPct", label: "1M Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "change1MPct", label: "1M Chg", kind: "percent", sortable: true, headClassName: "w-[120px] text-right", cellClassName: "w-[120px] text-right font-ibm-plex-mono" },
   { id: "change1YPct", label: "1Y Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "close", label: "Harga", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "open", label: "Open", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
@@ -1362,15 +1362,15 @@ export function ScreenerPage() {
   const columns: DataTableColumn<ScreenerRow>[] = [
     {
       id: "stockCode",
-      headClassName: "min-w-[160px]",
+      headClassName: "w-[136px] min-w-[136px]",
       header: (
         <button className="inline-flex items-center gap-2" onClick={() => handleSort("stockCode")}>
           Saham <ArrowUpDown className="h-3.5 w-3.5" />
         </button>
       ),
-      cellClassName: "py-2",
+      cellClassName: "py-2 pr-2",
       cell: (row) => (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <TickerCircleIcon ticker={row.stockCode} />
           <Link href={`/analyze-v2?ticker=${row.stockCode}`} className="font-ibm-plex-mono text-sm font-semibold tracking-[0.1em] text-foreground hover:text-[#d07225]">
             {row.stockCode}
