@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@clerk/nextjs/server"
+import type postgres from "postgres"
 
 import { genkiClient } from "@/db/genki"
 import { ensureUserInDatabase } from "@/lib/ensure-user"
@@ -166,33 +167,161 @@ function normalizeScreenerRow(row: ScreenerDbRow) {
   }
 }
 
-// removed buildWhereClause
+type ScreenerFilters = {
+  tickers?: string[]
+  marketCap?: string[]
+  minDailyValue?: number
+  syariah?: boolean
+  sectors?: string[]
+}
+
+async function queryLatestSnapshotRows(filters: ScreenerFilters) {
+  const params: postgres.ParameterOrJSON<never>[] = []
+  const whereClauses = ["date = (SELECT MAX(date) FROM core.mv_stock_daily)"]
+
+  if (filters.tickers && filters.tickers.length > 0) {
+    params.push(filters.tickers)
+    whereClauses.push(`stock_code = ANY($${params.length}::text[])`)
+  }
+
+  if (filters.marketCap && filters.marketCap.length > 0) {
+    params.push(filters.marketCap.map((value) => value.toLowerCase()))
+    whereClauses.push(`LOWER(market_cap_group) = ANY($${params.length}::text[])`)
+  }
+
+  if (filters.sectors && filters.sectors.length > 0) {
+    params.push(filters.sectors)
+    whereClauses.push(`sector = ANY($${params.length}::text[])`)
+  }
+
+  if (filters.syariah !== undefined) {
+    params.push(filters.syariah)
+    whereClauses.push(`(CASE WHEN is_syariah = true OR is_syariah = 1 THEN true ELSE false END) = $${params.length}`)
+  }
+
+  if (filters.minDailyValue !== undefined) {
+    params.push(filters.minDailyValue)
+    whereClauses.push(`COALESCE(prev_daily_value, close * volume, 0) >= $${params.length}`)
+  }
+
+  return genkiClient.unsafe<ScreenerDbRow[]>(
+    `
+      WITH latest_view AS (
+        SELECT
+          mv.*,
+          CASE
+            WHEN mv.prev_close IS NOT NULL AND mv.prev_close <> 0
+              THEN ((mv.close / mv.prev_close) - 1) * 100
+            ELSE NULL
+          END AS change_d1_pct,
+          CASE
+            WHEN LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
+              AND LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
+              THEN ((mv.close / LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
+            ELSE NULL
+          END AS change_5d_pct,
+          CASE
+            WHEN LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
+              AND LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
+              THEN ((mv.close / LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
+            ELSE NULL
+          END AS change_1m_pct,
+          CASE
+            WHEN LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
+              AND LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
+              THEN ((mv.close / LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
+            ELSE NULL
+          END AS change_1y_pct
+        FROM core.mv_stock_daily mv
+      )
+      SELECT
+        stock_code,
+        open,
+        high,
+        low,
+        close,
+        volume,
+        freq,
+        valuasi,
+        nbsa,
+        prev_close,
+        gap_pct,
+        prev_daily_value,
+        is_valid_ohlcv,
+        is_zero_ohlc,
+        month,
+        sector,
+        assets,
+        liabilities,
+        equity,
+        sales,
+        ebt,
+        profit,
+        profit_attributable,
+        book_value,
+        eps,
+        pe_ratio,
+        pbv,
+        der,
+        roa,
+        roe,
+        npm,
+        financial_date::text,
+        market_cap,
+        market_cap_group,
+        is_syariah,
+        sma_20,
+        sma_50,
+        volume_sma_20,
+        value_sma_20,
+        nbsa_5d,
+        value_5d,
+        nbsa_ratio_5d,
+        change_d1_pct,
+        change_5d_pct,
+        change_1m_pct,
+        change_1y_pct
+      FROM latest_view
+      WHERE ${whereClauses.join("\n        AND ")}
+      ORDER BY stock_code ASC
+    `,
+    params,
+  )
+}
 
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth()
 
-    if (userId) {
-      await ensureUserInDatabase()
+    if (!userId) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+          details: "Silakan login terlebih dahulu untuk menjalankan screener.",
+        },
+        { status: 401 },
+      )
+    }
 
-      const user = await getUserWithSyncedSubscriptionState(userId)
-      if (!user) {
-        return NextResponse.json(
-          { error: "User not found" },
-          { status: 404 },
-        )
-      }
+    await ensureUserInDatabase()
 
-      const { limit, used } = getDailyQuotaSnapshot(user, "screening")
-      if (limit !== -1 && used >= limit) {
-        return NextResponse.json(
-          {
-            error: "Daily screening limit reached",
-            details: `Anda telah menggunakan ${used}/${limit} screening untuk hari ini. Upgrade paket Anda untuk lebih banyak.`,
-          },
-          { status: 403 },
-        )
-      }
+    const user = await getUserWithSyncedSubscriptionState(userId)
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 },
+      )
+    }
+
+    const { limit, used } = getDailyQuotaSnapshot(user, "screening")
+    if (limit !== -1 && used >= limit) {
+      return NextResponse.json(
+        {
+          error: "Daily screening limit reached",
+          details: `Anda telah menggunakan ${used}/${limit} screening untuk hari ini. Upgrade paket Anda untuk lebih banyak.`,
+        },
+        { status: 403 },
+      )
     }
 
     const body = await request.json()
@@ -208,43 +337,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const railwayUrl = process.env.RAILWAY_URL || ""
-    if (!railwayUrl) {
-      return NextResponse.json(
-        {
-          error: "Server configuration error",
-          details: "RAILWAY_URL environment variable is not configured.",
-        },
-        { status: 500 },
-      )
-    }
-    const baseUrl = railwayUrl.startsWith("http") ? railwayUrl : `https://${railwayUrl}`
-
-    const response = await fetch(`${baseUrl}/screen_stocks`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(parsed.data), // parsed.data contains config
-    });
-
-    if (!response.ok) {
-      const details = await response.text();
-      return NextResponse.json(
-        {
-          error: `API Error: ${response.status} ${response.statusText}`,
-          details,
-        },
-        { status: response.status },
-      )
-    }
-
-    const result = await response.json();
-    const signals = result.signals || [];
-    const summary = result.summary || {};
-    const dateRange = result.dateRange || null;
-    const screeningId = result.screeningId || parsed.data.config.backtestId;
-
     const latestDateResult = await genkiClient<{ latest_date: string | null; stocks_scanned: string | number }[]>`
       SELECT
         MAX(date)::text AS latest_date,
@@ -252,95 +344,67 @@ export async function POST(request: NextRequest) {
       FROM core.mv_stock_daily
     `
     const latestDate = latestDateResult[0]?.latest_date ?? null
+    const technicalIndicators = parsed.data.config.technicalIndicators ?? []
+    const runsInUniverseMode = technicalIndicators.length === 0
 
-    const tickers = Array.from(new Set(signals.map((s: { ticker: string }) => s.ticker))) as string[];
-
+    let screeningId = parsed.data.config.backtestId
+    let summary: Record<string, unknown> = {}
+    let dateRange: { from?: string; to?: string } | null = null
     let dbRows: ScreenerDbRow[] = [];
-    if (tickers.length > 0) {
-      dbRows = await genkiClient.unsafe<ScreenerDbRow[]>(
-        `
-          WITH latest_view AS (
-            SELECT
-              mv.*,
-              CASE
-                WHEN mv.prev_close IS NOT NULL AND mv.prev_close <> 0
-                  THEN ((mv.close / mv.prev_close) - 1) * 100
-                ELSE NULL
-              END AS change_d1_pct,
-              CASE
-                WHEN LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
-                  AND LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
-                  THEN ((mv.close / LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
-                ELSE NULL
-              END AS change_5d_pct,
-              CASE
-                WHEN LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
-                  AND LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
-                  THEN ((mv.close / LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
-                ELSE NULL
-              END AS change_1m_pct,
-              CASE
-                WHEN LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
-                  AND LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
-                  THEN ((mv.close / LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
-                ELSE NULL
-              END AS change_1y_pct
-            FROM core.mv_stock_daily mv
-          )
-          SELECT
-            stock_code,
-            open,
-            high,
-            low,
-            close,
-            volume,
-            freq,
-            valuasi,
-            nbsa,
-            prev_close,
-            gap_pct,
-            prev_daily_value,
-            is_valid_ohlcv,
-            is_zero_ohlc,
-            month,
-            sector,
-            assets,
-            liabilities,
-            equity,
-            sales,
-            ebt,
-            profit,
-            profit_attributable,
-            book_value,
-            eps,
-            pe_ratio,
-            pbv,
-            der,
-            roa,
-            roe,
-            npm,
-            financial_date::text,
-            market_cap,
-            market_cap_group,
-            is_syariah,
-            sma_20,
-            sma_50,
-            volume_sma_20,
-            value_sma_20,
-            nbsa_5d,
-            value_5d,
-            nbsa_ratio_5d,
-            change_d1_pct,
-            change_5d_pct,
-            change_1m_pct,
-            change_1y_pct
-          FROM latest_view
-          WHERE date = (SELECT MAX(date) FROM core.mv_stock_daily)
-            AND stock_code = ANY($1::text[])
-          ORDER BY stock_code ASC
-        `,
-        [tickers],
-      )
+
+    if (runsInUniverseMode) {
+      dbRows = await queryLatestSnapshotRows(parsed.data.config.filters ?? {})
+      summary = {
+        totalSignals: dbRows.length,
+        uniqueStocks: dbRows.length,
+        byDay: latestDate ? { [latestDate]: dbRows.length } : {},
+        stocksScanned: Number(latestDateResult[0]?.stocks_scanned ?? 0),
+        passedFilters: dbRows.length,
+        passedFundamentals: dbRows.length,
+      }
+      dateRange = latestDate ? { from: latestDate, to: latestDate } : null
+    } else {
+      const railwayUrl = process.env.RAILWAY_URL || ""
+      if (!railwayUrl) {
+        return NextResponse.json(
+          {
+            error: "Server configuration error",
+            details: "RAILWAY_URL environment variable is not configured.",
+          },
+          { status: 500 },
+        )
+      }
+      const baseUrl = railwayUrl.startsWith("http") ? railwayUrl : `https://${railwayUrl}`
+
+      const response = await fetch(`${baseUrl}/screen_stocks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(parsed.data),
+      });
+
+      if (!response.ok) {
+        const details = await response.text();
+        return NextResponse.json(
+          {
+            error: `API Error: ${response.status} ${response.statusText}`,
+            details,
+          },
+          { status: response.status },
+        )
+      }
+
+      const result = await response.json();
+      const signals = result.signals || [];
+      summary = result.summary || {};
+      dateRange = result.dateRange || null;
+      screeningId = result.screeningId || parsed.data.config.backtestId;
+
+      const tickers = Array.from(new Set(signals.map((s: { ticker: string }) => s.ticker))) as string[];
+      if (tickers.length > 0) {
+        dbRows = await queryLatestSnapshotRows({ tickers })
+      }
     }
 
     const rows = dbRows.map(normalizeScreenerRow)

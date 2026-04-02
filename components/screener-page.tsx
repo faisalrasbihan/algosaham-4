@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Bell, BellPlus, ArrowUpDown, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Sparkles, Check } from "lucide-react"
@@ -338,10 +338,10 @@ const QUICK_FILTER_LIBRARY: Record<string, FilterDefinition> = {
     groupLabel: "Screener Metrics",
   },
   ma5GapPct: {
-    label: "MA-5",
+    label: "MA-50",
     category: "technical",
     mode: "range",
-    description: "Jarak harga terhadap MA-5.",
+    description: "Jarak harga terhadap MA-50.",
     defaultParams: { min: "0", max: "" },
     groupLabel: "Screener Metrics",
   },
@@ -356,14 +356,6 @@ const QUICK_FILTER_LIBRARY: Record<string, FilterDefinition> = {
       { label: "Sideways", value: "sideways" },
       { label: "Downtrend", value: "downtrend" },
     ],
-    groupLabel: "Screener Metrics",
-  },
-  technicalScore: {
-    label: "Technical Score",
-    category: "technical",
-    mode: "range",
-    description: "Skor teknikal internal.",
-    defaultParams: { min: "70", max: "" },
     groupLabel: "Screener Metrics",
   },
   pe: {
@@ -387,32 +379,6 @@ const QUICK_FILTER_LIBRARY: Record<string, FilterDefinition> = {
     description: "Return on equity.",
     defaultParams: { min: "10", max: "" },
   },
-  epsGrowth: {
-    label: "EPS YoY",
-    category: "fundamental",
-    mode: "range",
-    description: "Pertumbuhan EPS tahunan.",
-    defaultParams: { min: "0", max: "" },
-  },
-  valuation: {
-    label: "Value",
-    category: "fundamental",
-    mode: "select",
-    description: "Kategori valuasi.",
-    defaultParams: { value: "value" },
-    options: [
-      { label: "Value", value: "value" },
-      { label: "Fair", value: "fair" },
-      { label: "Premium", value: "premium" },
-    ],
-  },
-  fundamentalScore: {
-    label: "Fundamental Score",
-    category: "fundamental",
-    mode: "range",
-    description: "Skor fundamental internal.",
-    defaultParams: { min: "70", max: "" },
-  },
 }
 
 const technicalParamOptions: Record<string, Record<string, FilterOption[]>> = {
@@ -425,8 +391,8 @@ const technicalParamOptions: Record<string, Record<string, FilterOption[]>> = {
   [technicalIndicatorNameToKey("Volatility Regime")]: {
     mode: [
       { label: "Both", value: "BOTH" },
-      { label: "Low", value: "LOW" },
-      { label: "High", value: "HIGH" },
+      { label: "Low", value: "LOW_VOL" },
+      { label: "High", value: "HIGH_VOL" },
     ],
   },
   [technicalIndicatorNameToKey("Calendar Effect")]: {
@@ -499,6 +465,15 @@ type ScreenerRule = {
   params: Record<string, string>
 }
 
+const CLIENT_SIDE_RULE_KEYS: FilterKey[] = [
+  "changePct",
+  "monthChangePct",
+  "ytdChangePct",
+  "ma20GapPct",
+  "ma5GapPct",
+  "trend",
+]
+
 const SCREENER_PRESETS: ScreenerPreset[] = [
   {
     id: "calm-volume-dry-up",
@@ -522,7 +497,7 @@ const SCREENER_PRESETS: ScreenerPreset[] = [
       screeningId: "calm_before_the_move__low_volatility_regime",
       fundamentalIndicators: [],
       technicalIndicators: [
-        { type: "VOLATILITY_REGIME", period: 20, lookback: 60, lowThreshold: -0.5, highThreshold: 1, mode: "LOW" },
+        { type: "VOLATILITY_REGIME", period: 20, lookback: 60, lowThreshold: -0.5, highThreshold: 1, mode: "LOW_VOL" },
       ],
     },
   },
@@ -813,6 +788,23 @@ function getConfiguredRuleParams(params: Record<string, string>) {
   )
 }
 
+function getConfiguredRuleParamsWithDefaults(
+  params: Record<string, string>,
+  defaultParams: Record<string, string>,
+) {
+  return {
+    ...getConfiguredRuleParams(defaultParams),
+    ...getConfiguredRuleParams(params),
+  }
+}
+
+function parseOptionalNumberWithDefault(
+  value: string | undefined,
+  fallbackValue: string | undefined,
+) {
+  return parseOptionalNumber(value) ?? parseOptionalNumber(fallbackValue)
+}
+
 function findFilterKeyByApiType(type: string, category: RuleCategory): FilterKey | null {
   const matchedEntry = (Object.entries(FILTER_LIBRARY) as [FilterKey, FilterDefinition][])
     .find(([_, definition]) => definition.category === category && definition.apiType === type)
@@ -823,10 +815,6 @@ function findFilterKeyByApiType(type: string, category: RuleCategory): FilterKey
     PE_RATIO: "pe",
     PBV: "pbv",
     ROE: "roe",
-    EPS_GROWTH: "epsGrowth",
-    VALUATION: "valuation",
-    FUNDAMENTAL_SCORE: "fundamentalScore",
-    TECHNICAL_SCORE: "technicalScore",
     TREND: "trend",
     DAILY_CHANGE: "changePct",
     MONTH_CHANGE: "monthChangePct",
@@ -855,6 +843,8 @@ function createRuleFromPresetIndicator(indicator: PresetIndicatorConfig, categor
 
 function formatRuleSummary(rule: ScreenerRule) {
   const definition = FILTER_LIBRARY[rule.key]
+  const usesPercentageDisplay = ["changePct", "monthChangePct", "ytdChangePct", "ma20GapPct", "ma5GapPct"].includes(rule.key)
+  const appendPercent = (value: string) => (usesPercentageDisplay ? `${value}%` : value)
 
   if (definition.mode === "params") {
     const configuredCount = Object.values(rule.params).filter((value) => value.trim() !== "").length
@@ -869,10 +859,75 @@ function formatRuleSummary(rule: ScreenerRule) {
   const min = rule.params.min?.trim()
   const max = rule.params.max?.trim()
 
-  if (min && max) return `${definition.label}: ${min}-${max}`
-  if (min) return `${definition.label} ≥ ${min}`
-  if (max) return `${definition.label} ≤ ${max}`
+  if (min && max) return `${definition.label}: ${appendPercent(min)}-${appendPercent(max)}`
+  if (min) return `${definition.label} ≥ ${appendPercent(min)}`
+  if (max) return `${definition.label} ≤ ${appendPercent(max)}`
   return definition.label
+}
+
+function getPercentGap(close: number | null, average: number | null) {
+  if (close === null || average === null || average === 0) return null
+  return ((close - average) / average) * 100
+}
+
+function matchesRangeRule(value: number | null, rule: ScreenerRule) {
+  if (value === null) return false
+
+  const min = parseOptionalNumber(rule.params.min)
+  const max = parseOptionalNumber(rule.params.max)
+
+  if (min !== undefined && value < min) return false
+  if (max !== undefined && value > max) return false
+  return true
+}
+
+function matchesClientSideRule(row: ScreenerRow, rule: ScreenerRule) {
+  const closeVsSma20 = getPercentGap(row.close, row.sma20)
+  const closeVsSma50 = getPercentGap(row.close, row.sma50)
+  const isUptrend =
+    row.close !== null &&
+    row.sma20 !== null &&
+    row.sma50 !== null &&
+    row.close >= row.sma20 &&
+    row.sma20 >= row.sma50
+  const isDowntrend =
+    row.close !== null &&
+    row.sma20 !== null &&
+    row.sma50 !== null &&
+    row.close <= row.sma20 &&
+    row.sma20 <= row.sma50
+
+  switch (rule.key) {
+    case "changePct":
+      return matchesRangeRule(row.changeD1Pct, rule)
+    case "monthChangePct":
+      return matchesRangeRule(row.change1MPct, rule)
+    case "ytdChangePct":
+      return matchesRangeRule(row.change1YPct, rule)
+    case "ma20GapPct":
+      return matchesRangeRule(closeVsSma20, rule)
+    case "ma5GapPct":
+      return matchesRangeRule(closeVsSma50, rule)
+    case "trend":
+      if (rule.params.value === "uptrend") return isUptrend
+      if (rule.params.value === "downtrend") return isDowntrend
+      return !isUptrend && !isDowntrend
+    default:
+      return true
+  }
+}
+
+function matchesFundamentalRule(row: ScreenerRow, rule: ScreenerRule) {
+  switch (rule.key) {
+    case "pe":
+      return matchesRangeRule(row.peRatio, rule)
+    case "pbv":
+      return matchesRangeRule(row.pbv, rule)
+    case "roe":
+      return matchesRangeRule(row.roe, rule)
+    default:
+      return true
+  }
 }
 
 function TickerCircleIcon({ ticker }: { ticker: string }) {
@@ -901,6 +956,7 @@ function TickerCircleIcon({ ticker }: { ticker: string }) {
 export function ScreenerPage() {
   const { isLoaded, isSignedIn } = useUser()
   const { openSignIn } = useClerk()
+  const signInOpenedRef = useRef(false)
   const [search, setSearch] = useState("")
   const [sectorFilter, setSectorFilter] = useState("all")
   const [marketCapFilter, setMarketCapFilter] = useState("all")
@@ -1044,45 +1100,31 @@ export function ScreenerPage() {
               return { type: "PBV", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
             case "roe":
               return { type: "ROE", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
-            case "epsGrowth":
-              return { type: "EPS_GROWTH", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
-            case "valuation":
-              return { type: "VALUATION", value: rule.params.value }
-            case "fundamentalScore":
-              return { type: "FUNDAMENTAL_SCORE", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
             default:
               return { type: rule.key.toUpperCase(), min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
           }
         }),
       technicalIndicators: activeRules
         .filter((rule) => rule.category === "technical")
+        .filter((rule) => !CLIENT_SIDE_RULE_KEYS.includes(rule.key))
         .map((rule) => {
           const definition = FILTER_LIBRARY[rule.key]
 
           if (definition.mode === "params") {
             return {
               type: definition.apiType ?? technicalIndicatorNameToApiType(definition.label),
-              ...getConfiguredRuleParams(rule.params),
+              ...getConfiguredRuleParamsWithDefaults(rule.params, definition.defaultParams),
             }
           }
 
           switch (rule.key) {
             case "rsi":
-              return { type: "RSI", oversold: parseOptionalNumber(rule.params.min), overbought: parseOptionalNumber(rule.params.max) }
-            case "trend":
-              return { type: "TREND", value: rule.params.value }
-            case "changePct":
-              return { type: "DAILY_CHANGE", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
-            case "monthChangePct":
-              return { type: "MONTH_CHANGE", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
-            case "ytdChangePct":
-              return { type: "YEAR_CHANGE", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
-            case "ma20GapPct":
-              return { type: "MA20_GAP", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
-            case "ma5GapPct":
-              return { type: "MA5_GAP", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
-            case "technicalScore":
-              return { type: "TECHNICAL_SCORE", min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
+              return {
+                type: "RSI",
+                period: 14,
+                oversold: parseOptionalNumberWithDefault(rule.params.min, definition.defaultParams.min),
+                overbought: parseOptionalNumberWithDefault(rule.params.max, definition.defaultParams.max),
+              }
             default:
               return { type: rule.key.toUpperCase(), min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
           }
@@ -1111,6 +1153,15 @@ export function ScreenerPage() {
   }
 
   async function runScreener() {
+    if (!isLoaded) return
+
+    if (!isSignedIn) {
+      signInOpenedRef.current = true
+      void openSignIn()
+      return
+    }
+
+    signInOpenedRef.current = false
     setIsRunning(true)
     setRunError(null)
 
@@ -1123,6 +1174,11 @@ export function ScreenerPage() {
 
       const result = await response.json() as ScreenerApiResponse & { error?: string; details?: string }
       if (!response.ok) {
+        if (response.status === 401) {
+          signInOpenedRef.current = true
+          void openSignIn()
+          return
+        }
         throw new Error(result.details || result.error || "Gagal menjalankan screener.")
       }
 
@@ -1139,10 +1195,6 @@ export function ScreenerPage() {
     }
   }
 
-  useEffect(() => {
-    void runScreener()
-  }, [])
-
   const filteredRows = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase()
 
@@ -1158,7 +1210,13 @@ export function ScreenerPage() {
           syariahFilter === "all" ||
           (syariahFilter === "yes" && row.isSyariah) ||
           (syariahFilter === "no" && !row.isSyariah)
-        return matchesSearch && matchesSector && matchesMarketCap && matchesSyariah
+        const matchesFundamentals = activeRules
+          .filter((rule) => rule.category === "fundamental")
+          .every((rule) => matchesFundamentalRule(row, rule))
+        const matchesClientRules = activeRules
+          .filter((rule) => CLIENT_SIDE_RULE_KEYS.includes(rule.key))
+          .every((rule) => matchesClientSideRule(row, rule))
+        return matchesSearch && matchesSector && matchesMarketCap && matchesSyariah && matchesFundamentals && matchesClientRules
       })
       .sort((a, b) => {
         const aValue = a[sortKey]
@@ -1172,7 +1230,7 @@ export function ScreenerPage() {
         const result = Number(aValue ?? 0) - Number(bValue ?? 0)
         return sortDirection === "asc" ? result : -result
       })
-  }, [marketCapFilter, screenerRows, search, sectorFilter, sortDirection, sortKey, syariahFilter])
+  }, [activeRules, marketCapFilter, screenerRows, search, sectorFilter, sortDirection, sortKey, syariahFilter])
 
   function toggleRadar(ticker: string) {
     setRadarTickers((current) => current.includes(ticker) ? current.filter((item) => item !== ticker) : [...current, ticker])
@@ -1309,8 +1367,11 @@ export function ScreenerPage() {
   }
 
   function handleOpenSaveStrategy() {
-    if (isLoaded && !isSignedIn) {
-      openSignIn()
+    if (!isLoaded) return
+
+    if (!isSignedIn) {
+      signInOpenedRef.current = true
+      void openSignIn()
       return
     }
 
@@ -1481,7 +1542,7 @@ export function ScreenerPage() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-10 gap-2 border-border/70 bg-transparent px-3 text-foreground hover:border-[#d07225]/35 hover:bg-[#d07225]/5"
+                      className="h-10 gap-2 border-border/70 bg-transparent px-3 text-foreground hover:border-[#d07225]/35 hover:bg-[#d07225]/5 hover:text-foreground"
                     >
                       <Sparkles className="h-4 w-4 text-[#d07225]" />
                       Preset
@@ -1552,7 +1613,7 @@ export function ScreenerPage() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-10 gap-2 border-[#d7dddc] bg-white px-3 text-[#487b78] hover:border-[#bfd0ce] hover:bg-[#f7f9f9] hover:text-[#3f6a68]"
+                      className="h-10 gap-2 border-[#d7dddc] bg-white px-3 text-black hover:border-[#bfd0ce] hover:bg-[#f7f9f9] hover:text-black"
                     >
                       <Plus className="h-4 w-4" />
                       Indicator
@@ -1584,10 +1645,10 @@ export function ScreenerPage() {
                               key={key}
                               disabled={alreadyActive}
                               onClick={() => addRule(key)}
-                              className="flex items-start justify-between gap-3 py-2"
+                              className="flex cursor-pointer items-start justify-between gap-3 py-2 text-foreground focus:bg-[#d07225]/15 focus:text-foreground data-[highlighted]:bg-[#d07225]/15 data-[highlighted]:text-foreground"
                             >
                               <div>
-                                <div className="text-sm font-medium">{definition.label}</div>
+                                <div className="text-sm font-medium text-foreground">{definition.label}</div>
                                 <div className="text-xs text-muted-foreground">{definition.description}</div>
                               </div>
                               <Plus className="h-3.5 w-3.5 self-center text-muted-foreground" />
@@ -1611,10 +1672,10 @@ export function ScreenerPage() {
                             key={key}
                             disabled={alreadyActive}
                             onClick={() => addRule(key)}
-                            className="flex items-start justify-between gap-3 py-2"
+                            className="flex cursor-pointer items-start justify-between gap-3 py-2 text-foreground focus:bg-[#d07225]/15 focus:text-foreground data-[highlighted]:bg-[#d07225]/15 data-[highlighted]:text-foreground"
                           >
                             <div>
-                              <div className="text-sm font-medium">{definition.label}</div>
+                              <div className="text-sm font-medium text-foreground">{definition.label}</div>
                               <div className="text-xs text-muted-foreground">{definition.description}</div>
                             </div>
                             <Plus className="h-3.5 w-3.5 self-center text-muted-foreground" />
@@ -1875,7 +1936,7 @@ export function ScreenerPage() {
                       : "border-transparent bg-[#d07225] text-white hover:bg-[#b8641f]"
                       }`}
                     onClick={handleRunScreener}
-                    disabled={isRunning}
+                    disabled={isRunning || !isLoaded}
                   >
                     {isRunning ? (
                       <>
@@ -1893,12 +1954,12 @@ export function ScreenerPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-11 w-11 rounded-md border-border/70 bg-background font-ibm-plex-mono text-foreground hover:border-[#d07225]/35 hover:bg-[#d07225]/5"
+                    className="h-11 w-11 rounded-md border-border/70 bg-background font-ibm-plex-mono text-foreground hover:border-[#d07225]/35 hover:bg-[#d07225]/5 hover:text-[#d07225]"
                     onClick={handleOpenSaveStrategy}
                     aria-label="Create New Strategy"
                     title="Create New Strategy"
                   >
-                    <Bell className="h-4 w-4" />
+                    <Save className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -1945,7 +2006,7 @@ export function ScreenerPage() {
               columns={visibleColumns}
               data={filteredRows}
               getRowId={(row) => row.stockCode}
-              emptyMessage="Tidak ada saham yang cocok dengan filter saat ini."
+              emptyMessage=""
               tableClassName={screenerTableClassName}
               initialPageSize={20}
               pageSizeOptions={[20, 40, 60, 80]}

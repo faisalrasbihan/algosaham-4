@@ -47,6 +47,7 @@ interface DataTableProps<T> {
   data: T[]
   getRowId: (row: T) => string
   emptyMessage?: string
+  emptyOverlay?: React.ReactNode
   toolbar?: React.ReactNode
   className?: string
   tableClassName?: string
@@ -61,6 +62,7 @@ export function DataTable<T>({
   data,
   getRowId,
   emptyMessage = "No results.",
+  emptyOverlay,
   toolbar,
   className,
   tableClassName,
@@ -141,9 +143,16 @@ export function DataTable<T>({
     })
   }, [data.length])
 
+  const isEmpty = table.getRowModel().rows.length === 0
+
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-border/70 bg-white shadow-sm", className)}>
+    <div className={cn("relative overflow-hidden rounded-xl border border-border/70 bg-white shadow-sm", className)}>
       {toolbar ? <div className="border-b bg-white px-4 py-4">{toolbar}</div> : null}
+      {isEmpty && emptyOverlay ? (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex min-h-[260px] items-center justify-center px-6">
+          {emptyOverlay}
+        </div>
+      ) : null}
       <div className="overflow-x-auto bg-white">
         <Table className={cn("min-w-full", tableClassName)}>
           <TableHeader className="bg-white">
@@ -165,9 +174,9 @@ export function DataTable<T>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
+            {isEmpty ? (
               <TableRow className="bg-white">
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={columns.length} className={cn("h-24 text-center text-muted-foreground", emptyOverlay ? "text-transparent" : undefined)}>
                   {emptyMessage}
                 </TableCell>
               </TableRow>

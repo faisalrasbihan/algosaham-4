@@ -1711,12 +1711,24 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                             <SelectItem
                               key={option.label}
                               value={option.label}
-                              disabled={Boolean(option.bandarOnly && !isBandarUser)}
-                              className="font-mono text-xs"
+                              className={`font-mono text-xs ${option.bandarOnly && !isBandarUser ? "text-muted-foreground" : ""}`}
                             >
                               <span className="flex items-center gap-2">
                                 <span>{option.label}</span>
-                                {option.bandarOnly && <Lock className="h-3 w-3 text-muted-foreground opacity-70" />}
+                                {option.bandarOnly && !isBandarUser && (
+                                  <TooltipProvider delayDuration={150}>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="inline-flex items-center">
+                                          <Lock className="h-3 w-3 text-muted-foreground opacity-70" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="right" className="max-w-[220px] text-xs">
+                                        Periode backtest di atas 2 tahun khusus untuk pengguna tier Bandar.
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
                               </span>
                             </SelectItem>
                           ))}
