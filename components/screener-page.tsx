@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Bell, BellPlus, ArrowUpDown, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Sparkles, Check } from "lucide-react"
+import { Bell, BellPlus, ArrowUpDown, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Sparkles, Check, Info } from "lucide-react"
 import { toast } from "sonner"
 
 import { Navbar } from "@/components/navbar"
@@ -44,6 +44,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type { BacktestRequest } from "@/lib/api"
 import {
   technicalIndicatorCategories,
@@ -235,6 +241,52 @@ const COLUMN_LABELS = {
 
 type ColumnId = keyof typeof COLUMN_LABELS
 
+const COLUMN_TOOLTIPS: Record<ColumnId, string> = {
+  stockCode: "Kode saham emiten yang muncul di hasil screener.",
+  open: "Harga pembukaan pada sesi perdagangan terakhir.",
+  high: "Harga tertinggi pada sesi perdagangan terakhir.",
+  low: "Harga terendah pada sesi perdagangan terakhir.",
+  close: "Harga penutupan terakhir pada snapshot screener.",
+  changeD1Pct: "Persentase perubahan harga dibanding penutupan 1 hari bursa sebelumnya.",
+  change5DPct: "Persentase perubahan harga dibanding penutupan 5 hari bursa sebelumnya.",
+  change1MPct: "Persentase perubahan harga dibanding penutupan sekitar 1 bulan atau 21 hari bursa sebelumnya.",
+  change1YPct: "Persentase perubahan harga dibanding penutupan sekitar 1 tahun atau 252 hari bursa sebelumnya.",
+  freq: "Frekuensi transaksi saham pada snapshot terakhir.",
+  valuasi: "Nilai valuasi atau market cap versi dataset screener.",
+  nbsa: "Nilai net buy sell asing pada periode harian terakhir.",
+  prevClose: "Harga penutupan pada hari bursa sebelumnya.",
+  gapPct: "Persentase gap harian dari field gap pada snapshot data.",
+  prevDailyValue: "Nilai transaksi harian pada sesi sebelumnya.",
+  isValidOhlcv: "Menandakan data open, high, low, close, dan volume valid.",
+  isZeroOhlc: "Menandakan ada nilai open, high, low, atau close yang bernilai nol.",
+  month: "Bulan dari snapshot data yang sedang digunakan.",
+  assets: "Total aset perusahaan dari laporan keuangan terbaru.",
+  liabilities: "Total liabilitas atau kewajiban perusahaan.",
+  equity: "Total ekuitas perusahaan.",
+  sales: "Total penjualan atau pendapatan perusahaan.",
+  ebt: "Earnings before tax atau laba sebelum pajak.",
+  profit: "Laba bersih perusahaan.",
+  profitAttributable: "Laba yang dapat diatribusikan ke pemilik entitas induk.",
+  bookValue: "Nilai buku perusahaan atau book value.",
+  eps: "Earnings per share atau laba per saham.",
+  peRatio: "Price to earnings ratio, yaitu harga dibanding laba per saham.",
+  pbv: "Price to book value, yaitu harga dibanding nilai buku.",
+  der: "Debt to equity ratio, yaitu utang dibanding ekuitas.",
+  roa: "Return on assets, yaitu laba terhadap aset dalam persen.",
+  roe: "Return on equity, yaitu laba terhadap ekuitas dalam persen.",
+  npm: "Net profit margin, yaitu laba bersih terhadap penjualan dalam persen.",
+  financialDate: "Tanggal laporan keuangan yang dipakai untuk data fundamental.",
+  marketCap: "Kapitalisasi pasar emiten pada snapshot terbaru.",
+  sma20: "Simple moving average harga penutupan 20 hari.",
+  sma50: "Simple moving average harga penutupan 50 hari.",
+  volumeSma20: "Rata-rata volume transaksi 20 hari.",
+  valueSma20: "Rata-rata nilai transaksi 20 hari.",
+  nbsa5d: "Akumulasi net buy sell asing selama 5 hari terakhir.",
+  value5d: "Akumulasi nilai transaksi selama 5 hari terakhir.",
+  nbsaRatio5d: "Rasio net buy sell asing terhadap nilai transaksi 5 hari dalam persen.",
+  action: "Aksi cepat untuk menambahkan saham ke radar atau membuat alert.",
+}
+
 const COLUMN_CONFIGS: ColumnConfig[] = [
   { id: "changeD1Pct", label: "1D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "change5DPct", label: "5D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
@@ -288,6 +340,63 @@ const COLUMN_TEMPLATES = {
 
 type ColumnTemplateKey = keyof typeof COLUMN_TEMPLATES
 const FIXED_COLUMN_IDS: ColumnId[] = ["stockCode", "action"]
+
+const SCREENER_SECTOR_OPTIONS = [
+  "Energy",
+  "Basic Materials",
+  "Industrials",
+  "Consumer Cyclicals",
+  "Consumer Non-Cyclicals",
+  "Healthcare",
+  "Financials",
+  "Properties & Real Estate",
+  "Technology",
+  "Transportation & Logistics",
+  "Infrastructure",
+] as const
+
+const QUICK_FILTER_RELATED_COLUMNS: Partial<Record<string, ColumnId[]>> = {
+  changePct: ["changeD1Pct"],
+  monthChangePct: ["change1MPct"],
+  ytdChangePct: ["change1YPct"],
+  ma20GapPct: ["close", "sma20"],
+  ma5GapPct: ["close", "sma50"],
+  trend: ["close", "sma20", "sma50"],
+  pe: ["peRatio"],
+  pbv: ["pbv"],
+  roe: ["roe"],
+}
+
+const METRIC_GUIDE_ITEMS = [
+  {
+    label: "Harga",
+    description: "Harga penutupan terakhir pada snapshot screener.",
+  },
+  {
+    label: "Gap %",
+    description: "Gap harian yang berasal dari field `gap_pct` pada snapshot harian. Dipisahkan dari change 1D yang dihitung dari close vs prev close.",
+  },
+  {
+    label: "1D / 5D / 1M / 1Y Chg",
+    description: "Perubahan persentase close saat ini dibanding close 1, 5, 21, dan 252 hari bursa sebelumnya.",
+  },
+  {
+    label: "PE",
+    description: "Price to Earnings ratio: harga saham dibanding earnings per share.",
+  },
+  {
+    label: "ROE",
+    description: "Return on Equity: laba terhadap ekuitas, ditampilkan dalam persen.",
+  },
+  {
+    label: "Market Cap",
+    description: "Nilai kapitalisasi pasar emiten pada snapshot terbaru.",
+  },
+  {
+    label: "SMA 20 / SMA 50",
+    description: "Rata-rata pergerakan harga penutupan 20 dan 50 hari.",
+  },
+] as const
 
 function formatParamLabel(paramKey: string) {
   return paramKey
@@ -841,6 +950,10 @@ function createRuleFromPresetIndicator(indicator: PresetIndicatorConfig, categor
   return createRuleWithParams(filterKey, nextParams)
 }
 
+function getRelatedColumnsForRule(ruleKey: FilterKey): ColumnId[] {
+  return QUICK_FILTER_RELATED_COLUMNS[ruleKey] ?? []
+}
+
 function formatRuleSummary(rule: ScreenerRule) {
   const definition = FILTER_LIBRARY[rule.key]
   const usesPercentageDisplay = ["changePct", "monthChangePct", "ytdChangePct", "ma20GapPct", "ma5GapPct"].includes(rule.key)
@@ -1063,6 +1176,10 @@ export function ScreenerPage() {
       ).sort(),
     [screenerRows],
   )
+  const sectorOptions = useMemo(
+    () => Array.from(new Set([...SCREENER_SECTOR_OPTIONS, ...sectors])).sort(),
+    [sectors],
+  )
   const normalizedIndicatorSearch = indicatorSearch.trim().toLowerCase()
   const filteredTechnicalFilterGroups = technicalFilterGroups
     .map(({ groupLabel, entries }) => ({
@@ -1277,8 +1394,17 @@ export function ScreenerPage() {
     setColumnTemplate("recommended")
   }
 
+  function ensureColumnsVisible(columnIds: ColumnId[]) {
+    if (columnIds.length === 0) return
+
+    setVisibleColumnIds((current) =>
+      Array.from(new Set([...FIXED_COLUMN_IDS, ...current, ...columnIds])) as ColumnId[],
+    )
+  }
+
   function addRule(key: FilterKey) {
     setActivePresetId(null)
+    ensureColumnsVisible(getRelatedColumnsForRule(key))
     setActiveRules((current) => {
       if (current.some((rule) => rule.key === key)) return current
       return [...current, createRule(key)]
@@ -1311,6 +1437,7 @@ export function ScreenerPage() {
     setEditingRuleId(null)
     setActiveRules(nextRules)
     setActivePresetId(preset.id)
+    ensureColumnsVisible(nextRules.flatMap((rule) => getRelatedColumnsForRule(rule.key)))
 
     if (preset.config.filters?.marketCap?.length === 1) {
       const [marketCap] = preset.config.filters.marketCap
@@ -1410,7 +1537,8 @@ export function ScreenerPage() {
     }
 
     if (column.kind === "percent") {
-      return formatPercent(typeof value === "number" ? value : null, 2)
+      const digits = column.id === "nbsaRatio5d" ? 6 : 2
+      return formatPercent(typeof value === "number" ? value : null, digits)
     }
 
     if (column.kind === "currency") {
@@ -1420,15 +1548,36 @@ export function ScreenerPage() {
     return formatNumericValue(typeof value === "number" ? value : null)
   }
 
+  function renderColumnHeader(columnId: ColumnId, label: string, sortable = false) {
+    const headerContent = sortable ? (
+      <button className="inline-flex items-center gap-2" onClick={() => handleSort(columnId as SortKey)}>
+        {label} <ArrowUpDown className="h-3.5 w-3.5" />
+      </button>
+    ) : (
+      <span className="inline-flex items-center gap-2">
+        {label}
+      </span>
+    )
+
+    return (
+      <TooltipProvider delayDuration={150}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {headerContent}
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="max-w-[240px] text-xs leading-relaxed">{COLUMN_TOOLTIPS[columnId]}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )
+  }
+
   const columns: DataTableColumn<ScreenerRow>[] = [
     {
       id: "stockCode",
       headClassName: "w-[136px] min-w-[136px]",
-      header: (
-        <button className="inline-flex items-center gap-2" onClick={() => handleSort("stockCode")}>
-          Saham <ArrowUpDown className="h-3.5 w-3.5" />
-        </button>
-      ),
+      header: renderColumnHeader("stockCode", "Saham", true),
       cellClassName: "py-2 pr-2",
       cell: (row) => (
         <div className="flex items-center gap-2">
@@ -1443,11 +1592,7 @@ export function ScreenerPage() {
       id: column.id,
       headClassName: column.headClassName,
       cellClassName: column.cellClassName,
-      header: column.sortable ? (
-        <button className="inline-flex items-center gap-2" onClick={() => handleSort(column.id as SortKey)}>
-          {column.label} <ArrowUpDown className="h-3.5 w-3.5" />
-        </button>
-      ) : column.label,
+      header: renderColumnHeader(column.id, column.label, column.sortable),
       cell: (row: ScreenerRow) => {
         const value = row[column.id]
         const isPositivePercent = column.kind === "percent" && typeof value === "number" && value > 0
@@ -1464,7 +1609,7 @@ export function ScreenerPage() {
       id: "action",
       headClassName: "min-w-[96px] text-right",
       cellClassName: "text-right",
-      header: "Action",
+      header: renderColumnHeader("action", "Action"),
       cell: (row) => {
         const inRadar = radarTickers.includes(row.stockCode)
         return (
@@ -1840,7 +1985,7 @@ export function ScreenerPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua sektor</SelectItem>
-                    {sectors.map((sector) => (
+                    {sectorOptions.map((sector) => (
                       <SelectItem key={sector} value={sector}>{sector}</SelectItem>
                     ))}
                   </SelectContent>
@@ -1921,11 +2066,44 @@ export function ScreenerPage() {
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  <div className="font-ibm-plex-mono text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-2 font-ibm-plex-mono text-sm text-muted-foreground">
                     <span>{activeRules.length} filter aktif</span>
-                    <span className="px-2">→</span>
+                    <span>→</span>
                     <span className="text-[#487b78]">{filteredRows.length} saham ditemukan</span>
-                    {latestSnapshotDate ? <span className="pl-2">latest: {latestSnapshotDate}</span> : null}
+                    {latestSnapshotDate ? <span>latest: {latestSnapshotDate}</span> : null}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 rounded-full text-muted-foreground hover:bg-[#d07225]/10 hover:text-[#d07225]"
+                          aria-label="Definisi metrik screener"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-[320px] space-y-3 border-border/70 bg-card p-4">
+                        <div className="space-y-1">
+                          <div className="font-ibm-plex-mono text-sm font-semibold text-foreground">Definisi metrik</div>
+                          <p className="text-xs leading-relaxed text-muted-foreground">
+                            Ringkasan arti parameter utama yang muncul di hasil screener.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          {METRIC_GUIDE_ITEMS.map((item) => (
+                            <div key={item.label} className="space-y-1">
+                              <div className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground">
+                                {item.label}
+                              </div>
+                              <p className="text-xs leading-relaxed text-muted-foreground">
+                                {item.description}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
 
@@ -2001,7 +2179,24 @@ export function ScreenerPage() {
             </section>
           )}
 
-          <div id="screener-results">
+          <div id="screener-results" className="space-y-2">
+            {visibleColumns.length > 10 ? (
+              <TooltipProvider>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Geser tabel ke samping untuk melihat semua kolom.</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex text-muted-foreground hover:text-foreground" aria-label="Informasi scroll tabel">
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Tabel akan melebar otomatis saat kolom yang dipilih semakin banyak.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
+            ) : null}
             <DataTable
               columns={visibleColumns}
               data={filteredRows}
