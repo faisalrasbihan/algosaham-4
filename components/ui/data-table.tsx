@@ -55,6 +55,7 @@ interface DataTableProps<T> {
   initialPageSize?: number
   pageSizeOptions?: number[]
   paginationResetKey?: string
+  itemLabel?: string
 }
 
 export function DataTable<T>({
@@ -70,6 +71,7 @@ export function DataTable<T>({
   initialPageSize = 10,
   pageSizeOptions = [10, 20, 30, 40, 50],
   paginationResetKey,
+  itemLabel = "results",
 }: DataTableProps<T>) {
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
@@ -207,7 +209,7 @@ export function DataTable<T>({
 
       <div className="flex flex-col gap-3 border-t bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-muted-foreground">
-          Menampilkan {table.getRowModel().rows.length} dari {data.length} saham
+          Menampilkan {table.getRowModel().rows.length} dari {data.length} {itemLabel}
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">

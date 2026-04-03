@@ -267,7 +267,7 @@ export default function Strategies() {
             <div className="px-6">
               <SectionHeading
                 title="Strategy Showcase"
-                description="Top-performing strategies we curated for you"
+                description="Strategi dengan kinerja terbaik yang kami pilihkan untuk Anda"
               />
               <CardCarousel className="-mx-6 pt-1">
                 {isLoadingShowcase ? (

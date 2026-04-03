@@ -1303,6 +1303,9 @@ export function ScreenerPage() {
       setLatestSnapshotDate(result.latestDate)
       setScreeningSummary(result.summary)
       setScreeningDateRange(result.dateRange)
+      toast.success("Screener selesai dijalankan.", {
+        description: `${result.rows.length} saham ditemukan.`,
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : "Gagal menjalankan screener."
       setRunError(message)
