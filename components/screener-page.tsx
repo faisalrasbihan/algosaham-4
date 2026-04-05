@@ -835,24 +835,14 @@ function getColumnTemplate(template: ColumnTemplateKey): ColumnId[] {
   return [...COLUMN_TEMPLATES[template]]
 }
 
+function getDefaultColumnTemplate(): ColumnId[] {
+  return getColumnTemplate("recommended")
+}
+
 function formatPercent(value: number | null, digits = 1) {
   if (value === null) return "—"
   const sign = value > 0 ? "+" : ""
   return `${sign}${value.toFixed(digits)}%`
-}
-
-function normalizeStoredColumnIds(columnId: string): ColumnId[] {
-  if (columnId === "ticker") return ["stockCode"]
-  if (columnId === "price") return ["close"]
-  if (columnId === "changePct") return ["gapPct"]
-  if (columnId === "monthChangePct") return ["change1MPct"]
-  if (columnId === "ytdChangePct") return ["change1YPct"]
-  if (columnId === "value") return ["valuasi"]
-  if (columnId === "ma20") return ["sma20"]
-  if (columnId === "ma5" || columnId === "ma50") return ["sma50"]
-  if (columnId === "pe") return ["peRatio"]
-  if (columnId in COLUMN_LABELS) return [columnId as ColumnId]
-  return []
 }
 
 function createRule(key: FilterKey): ScreenerRule {
@@ -1080,8 +1070,7 @@ export function ScreenerPage() {
   const [alerts, setAlerts] = useState<SavedAlert[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [alertDraft, setAlertDraft] = useState<AlertDraft>(defaultAlertDraft)
-  const [columnTemplate, setColumnTemplate] = useState<ColumnTemplateKey>("recommended")
-  const [visibleColumnIds, setVisibleColumnIds] = useState<ColumnId[]>(() => getColumnTemplate("recommended"))
+  const [visibleColumnIds, setVisibleColumnIds] = useState<ColumnId[]>(() => getDefaultColumnTemplate())
   const [activeRules, setActiveRules] = useState<ScreenerRule[]>([])
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
   const [saveStrategyOpen, setSaveStrategyOpen] = useState(false)
@@ -1101,8 +1090,6 @@ export function ScreenerPage() {
   useEffect(() => {
     const storedRadar = window.localStorage.getItem("algosaham-screener-radar")
     const storedAlerts = window.localStorage.getItem("algosaham-screener-alerts")
-    const storedColumns = window.localStorage.getItem("algosaham-screener-columns")
-    const storedTemplate = window.localStorage.getItem("algosaham-screener-column-template")
 
     if (storedRadar) {
       try {
@@ -1118,21 +1105,6 @@ export function ScreenerPage() {
       } catch {
         setAlerts([])
       }
-    }
-
-    if (storedColumns) {
-      try {
-        const parsed = JSON.parse(storedColumns) as string[]
-        const normalizedColumns = parsed.flatMap((columnId) => normalizeStoredColumnIds(columnId))
-        const normalized = Array.from(new Set([...FIXED_COLUMN_IDS, ...normalizedColumns])) as ColumnId[]
-        setVisibleColumnIds(normalized)
-      } catch {
-        setVisibleColumnIds(getColumnTemplate("recommended"))
-      }
-    }
-
-    if (storedTemplate && storedTemplate in COLUMN_TEMPLATES) {
-      setColumnTemplate(storedTemplate as ColumnTemplateKey)
     }
   }, [])
 
@@ -1156,14 +1128,6 @@ export function ScreenerPage() {
     }
     return () => clearInterval(interval)
   }, [isRunning])
-
-  useEffect(() => {
-    window.localStorage.setItem("algosaham-screener-columns", JSON.stringify(visibleColumnIds))
-  }, [visibleColumnIds])
-
-  useEffect(() => {
-    window.localStorage.setItem("algosaham-screener-column-template", columnTemplate)
-  }, [columnTemplate])
 
   const sectors = useMemo(
     () =>
@@ -1394,7 +1358,10 @@ export function ScreenerPage() {
 
       return Array.from(new Set([...FIXED_COLUMN_IDS, ...next])) as ColumnId[]
     })
-    setColumnTemplate("recommended")
+  }
+
+  function selectDefaultColumns() {
+    setVisibleColumnIds(getDefaultColumnTemplate())
   }
 
   function ensureColumnsVisible(columnIds: ColumnId[]) {
@@ -1497,6 +1464,7 @@ export function ScreenerPage() {
   }
 
   function handleOpenSaveStrategy() {
+    if (!activePresetId && activeRules.length === 0) return
     if (!isLoaded) return
 
     if (!isSignedIn) {
@@ -1646,6 +1614,7 @@ export function ScreenerPage() {
 
   const visibleColumns = columns.filter((column) => visibleColumnIds.includes(column.id as ColumnId))
   const activePreset = SCREENER_PRESETS.find((preset) => preset.id === activePresetId) ?? null
+  const canSaveStrategy = Boolean(activePresetId || activeRules.length > 0)
   const screenerTableClassName =
     visibleColumns.length <= 8
       ? "w-max min-w-[720px] md:min-w-[980px]"
@@ -1761,7 +1730,7 @@ export function ScreenerPage() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-10 gap-2 border-[#d7dddc] bg-white px-3 text-black hover:border-[#bfd0ce] hover:bg-[#f7f9f9] hover:text-black"
+                      className="h-10 gap-2 border-border/70 bg-transparent px-3 text-foreground hover:border-[#d07225]/35 hover:bg-[#d07225]/5 hover:text-foreground"
                     >
                       <Plus className="h-4 w-4" />
                       Indicator
@@ -2045,7 +2014,7 @@ export function ScreenerPage() {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        className="h-11 gap-2 rounded-md border-border/70 bg-white px-4 text-foreground shadow-sm hover:border-border/70 hover:bg-white"
+                        className="h-11 gap-2 rounded-md border-border/70 bg-transparent px-4 text-foreground shadow-sm hover:border-[#d07225]/35 hover:bg-[#d07225]/5 hover:text-foreground"
                       >
                         <Columns3 className="h-4 w-4 text-muted-foreground" />
                         Pilih kolom
@@ -2053,6 +2022,10 @@ export function ScreenerPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
+                      <DropdownMenuItem onSelect={selectDefaultColumns}>
+                        Pilih semua kolom default
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuGroup>
                         {Object.entries(COLUMN_LABELS)
                           .filter(([columnId]) => !FIXED_COLUMN_IDS.includes(columnId as ColumnId))
@@ -2137,6 +2110,7 @@ export function ScreenerPage() {
                     size="icon"
                     className="h-11 w-11 rounded-md border-border/70 bg-background font-ibm-plex-mono text-foreground hover:border-[#d07225]/35 hover:bg-[#d07225]/5 hover:text-[#d07225]"
                     onClick={handleOpenSaveStrategy}
+                    disabled={!canSaveStrategy}
                     aria-label="Create New Strategy"
                     title="Create New Strategy"
                   >

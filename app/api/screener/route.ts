@@ -196,7 +196,7 @@ async function queryLatestSnapshotRows(filters: ScreenerFilters) {
 
   if (filters.syariah !== undefined) {
     params.push(filters.syariah)
-    whereClauses.push(`(CASE WHEN is_syariah = true OR is_syariah = 1 THEN true ELSE false END) = $${params.length}`)
+    whereClauses.push(`COALESCE(is_syariah, 0) = CASE WHEN $${params.length}::boolean THEN 1 ELSE 0 END`)
   }
 
   if (filters.minDailyValue !== undefined) {

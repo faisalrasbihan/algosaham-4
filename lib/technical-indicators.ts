@@ -10,6 +10,8 @@ export interface TechnicalIndicatorCategoryDefinition {
   indicators: TechnicalIndicatorDefinition[]
 }
 
+export type TechnicalIndicatorTier = "ritel" | "suhu" | "bandar"
+
 export const technicalIndicatorCategories: TechnicalIndicatorCategoryDefinition[] = [
   {
     id: "momentum",
@@ -78,6 +80,7 @@ export const technicalIndicatorCategories: TechnicalIndicatorCategoryDefinition[
       { name: "Morning Star", description: "3-candle bullish reversal pattern", params: {} },
       { name: "Three White Soldiers", description: "3 consecutive strong bullish candles", params: { minBodyPct: 60 } },
       { name: "Three Inside Up", description: "Bullish Harami confirmation", params: {} },
+      { name: "Rising Three Methods", description: "Bullish continuation after brief consolidation", params: {} },
     ],
   },
   {
@@ -138,4 +141,100 @@ export function technicalIndicatorNameToKey(name: string) {
 
 export function technicalIndicatorNameToApiType(name: string) {
   return name.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "")
+}
+
+const RITEL_TECHNICAL_INDICATOR_NAMES = [
+  "SMA Trend",
+  "SMA Crossover",
+  "EMA Crossover",
+  "RSI",
+  "MACD",
+  "Bollinger Bands",
+  "Volume SMA",
+  "Volatility Breakout",
+  "ATR",
+  "VWAP",
+]
+
+const SUHU_TECHNICAL_INDICATOR_NAMES = [
+  ...RITEL_TECHNICAL_INDICATOR_NAMES,
+  "Supertrend",
+  "ADX",
+  "Stochastic",
+  "Parabolic SAR",
+  "Pivot Points",
+  "Donchian Channel",
+  "Keltner Channel",
+  "OBV",
+  "Volume Price Trend",
+  "Volatility Regime",
+  "Sector Relative Strength",
+  "Calendar Effect",
+  "Volume Dry Up",
+  "Accumulation Distribution",
+  "Doji",
+  "Hammer",
+  "Inverted Hammer",
+  "Bullish Marubozu",
+  "Bullish Engulfing",
+  "Bullish Harami",
+  "Piercing Line",
+  "Tweezer Bottom",
+  "Morning Star",
+  "Three White Soldiers",
+  "Three Inside Up",
+  "Rising Three Methods",
+]
+
+const BANDAR_TECHNICAL_INDICATOR_NAMES = [
+  ...SUHU_TECHNICAL_INDICATOR_NAMES,
+  "Ascending Triangle",
+  "Ascending Triangle Imminent",
+  "Bull Flag",
+  "Bull Flag Imminent",
+  "Double Bottom",
+  "Double Bottom Imminent",
+  "Falling Wedge",
+  "Falling Wedge Imminent",
+  "Cup and Handle",
+  "Inverse Head Shoulders",
+  "Rounding Bottom",
+  "Foreign Flow",
+  "Foreign Reversal",
+  "ARA Recovery",
+  "ARB Recovery",
+  "ARA Breakout",
+  "Accumulation Base",
+  "Base Breakout",
+  "Climax Volume",
+]
+
+const RITEL_TECHNICAL_INDICATORS = new Set(RITEL_TECHNICAL_INDICATOR_NAMES)
+const SUHU_TECHNICAL_INDICATORS = new Set(SUHU_TECHNICAL_INDICATOR_NAMES)
+const BANDAR_TECHNICAL_INDICATORS = new Set(BANDAR_TECHNICAL_INDICATOR_NAMES)
+
+export function normalizeTechnicalIndicatorTier(tier: string | null | undefined): TechnicalIndicatorTier {
+  if (!tier) return "ritel"
+  const normalized = tier.toLowerCase()
+  if (normalized === "admin") return "bandar"
+  if (normalized === "suhu" || normalized === "bandar" || normalized === "ritel") {
+    return normalized
+  }
+  return "ritel"
+}
+
+export function getTechnicalIndicatorRequiredTier(name: string): TechnicalIndicatorTier {
+  if (RITEL_TECHNICAL_INDICATORS.has(name)) return "ritel"
+  if (SUHU_TECHNICAL_INDICATORS.has(name)) return "suhu"
+  if (BANDAR_TECHNICAL_INDICATORS.has(name)) return "bandar"
+  return "bandar"
+}
+
+export function isTechnicalIndicatorAvailableForTier(name: string, tier: string | null | undefined) {
+  const normalizedTier = normalizeTechnicalIndicatorTier(tier)
+  const requiredTier = getTechnicalIndicatorRequiredTier(name)
+
+  if (normalizedTier === "bandar") return true
+  if (normalizedTier === "suhu") return requiredTier !== "bandar"
+  return requiredTier === "ritel"
 }

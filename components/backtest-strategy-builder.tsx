@@ -39,10 +39,7 @@ import {
   Sparkles,
   Loader2,
   Zap,
-  Search,
-  FileCode,
   CheckCircle,
-  Clock,
   Copy,
   CheckCheck,
   Info,
@@ -55,39 +52,17 @@ import { useUser, useClerk } from "@clerk/nextjs"
 import { toast } from "sonner"
 import type { BacktestRequest } from "@/lib/api"
 import { useUserTier } from "@/context/user-tier-context"
+import {
+  getTechnicalIndicatorRequiredTier,
+  isTechnicalIndicatorAvailableForTier,
+  normalizeTechnicalIndicatorTier,
+} from "@/lib/technical-indicators"
 
 interface Indicator {
   id: string
   name: string
   type: "fundamental" | "technical"
   params: Record<string, any>
-}
-
-interface ThinkingStep {
-  id: string
-  icon: "thinking" | "search" | "file" | "check" | "clock"
-  text: string
-  status: "pending" | "done"
-}
-
-interface StrategyCard {
-  name: string
-  description: string
-  indicators: string[]
-  version: string
-}
-
-interface ChatMessage {
-  id: string
-  role: "user" | "assistant"
-  content: string
-  timestamp: Date
-  isThinking?: boolean
-  thinkingSteps?: ThinkingStep[]
-  strategyCard?: StrategyCard
-  thinkingTime?: number
-  workTime?: number
-  backtestConfig?: BacktestRequest
 }
 
 interface BacktestStrategyBuilderProps {
@@ -112,18 +87,55 @@ const strategyBuilderIndicatorEditClass = "p-3"
 const strategyBuilderAddIndicatorButtonClass =
   "w-full h-11 rounded-xl border border-slate-300 bg-white px-4 text-[11px] font-mono font-semibold text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.12)] transition-colors hover:border-[#d07225] hover:bg-[#d07225]/5"
 
-const NON_BANDAR_MAX_BACKTEST_YEARS = 2
-const BACKTEST_PERIOD_LIMIT_MESSAGE = "Periode backtest di atas 2 tahun hanya tersedia untuk tier Bandar."
+type TierBacktestAccess = {
+  maxMonths: number
+  maxPresetLabel: string
+  upgradeHint: string
+}
 
-const backtestPeriodOptions: Array<{ label: string; bandarOnly?: boolean }> = [
-  { label: "Last 1 month" },
-  { label: "Last 3 months" },
-  { label: "Last 6 months" },
-  { label: "Last 1 year" },
-  { label: "Last 2 years" },
-  { label: "Last 3 years", bandarOnly: true },
-  { label: "Last 5 years", bandarOnly: true },
+const BACKTEST_ACCESS_BY_TIER: Record<"ritel" | "suhu" | "bandar" | "admin", TierBacktestAccess> = {
+  ritel: {
+    maxMonths: 6,
+    maxPresetLabel: "Last 6 months",
+    upgradeHint: "Suhu",
+  },
+  suhu: {
+    maxMonths: 24,
+    maxPresetLabel: "Last 2 years",
+    upgradeHint: "Bandar",
+  },
+  bandar: {
+    maxMonths: 48,
+    maxPresetLabel: "Last 4 years",
+    upgradeHint: "Bandar",
+  },
+  admin: {
+    maxMonths: 48,
+    maxPresetLabel: "Last 4 years",
+    upgradeHint: "Bandar",
+  },
+}
+
+const backtestPeriodOptions: Array<{ label: string; months: number }> = [
+  { label: "Last 1 month", months: 1 },
+  { label: "Last 3 months", months: 3 },
+  { label: "Last 6 months", months: 6 },
+  { label: "Last 1 year", months: 12 },
+  { label: "Last 2 years", months: 24 },
+  { label: "Last 3 years", months: 36 },
+  { label: "Last 4 years", months: 48 },
 ]
+
+type BacktestPeriodMode = "preset" | "custom"
+
+function formatBacktestDurationLabel(months: number) {
+  if (months % 12 === 0) {
+    const years = months / 12
+    return `${years} tahun`
+  }
+
+  return `${months} bulan`
+}
 
 function formatDateInput(date: Date) {
   const year = date.getFullYear()
@@ -173,19 +185,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   const [saveWithBacktest, setSaveWithBacktest] = useState(false)
   const [editingIndicators, setEditingIndicators] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState(false)
-  const [activeTab, setActiveTab] = useState<string>("strategy")
   const [isPrivate, setIsPrivate] = useState(false)
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content:
-        "Hello! I'm your AI strategy assistant. I can help you build, analyze, and optimize trading strategies. What would you like to create today?",
-      timestamp: new Date(),
-    },
-  ])
-  const [chatInput, setChatInput] = useState("")
-  const [isAgentThinking, setIsAgentThinking] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
     filters: false,
     fundamental: false,
@@ -195,21 +195,6 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   })
   const [isTutorialActive, setIsTutorialActive] = useState(false)
   const [hasVisited, setHasVisited] = useState<boolean | null>(null)
-
-  // Session ID state
-  const [sessionId, setSessionId] = useState<string>("")
-
-  // Initialize session ID
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      let id = localStorage.getItem("backtester_session_id")
-      if (!id) {
-        id = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        localStorage.setItem("backtester_session_id", id)
-      }
-      setSessionId(id)
-    }
-  }, [])
 
   // Backtest config states
   const [stopLoss, setStopLoss] = useState<number | string>(7)
@@ -221,15 +206,47 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
 
   // Backtest preset state
   const [backtestPeriod, setBacktestPeriod] = useState<string>("Last 1 year")
-  const normalizedUserTier = tier.toLowerCase()
+  const [backtestPeriodMode, setBacktestPeriodMode] = useState<BacktestPeriodMode>("preset")
+  const normalizedUserTier = tier.toLowerCase() as keyof typeof BACKTEST_ACCESS_BY_TIER
+  const technicalIndicatorTier = normalizeTechnicalIndicatorTier(tier)
+  const tierBacktestAccess = BACKTEST_ACCESS_BY_TIER[normalizedUserTier] ?? BACKTEST_ACCESS_BY_TIER.ritel
   const isBandarUser = normalizedUserTier === "bandar" || normalizedUserTier === "admin"
+  const backtestPeriodUpgradeTitle = tierBacktestAccess.upgradeHint === "Suhu" ? "Fitur Suhu" : "Fitur Bandar"
+  const backtestPeriodLimitMessage = `Periode backtest di atas ${formatBacktestDurationLabel(tierBacktestAccess.maxMonths)} hanya tersedia untuk tier ${tierBacktestAccess.upgradeHint} ke atas.`
+
+  const getTechnicalIndicatorGateCopy = useCallback((indicatorName: string) => {
+    const requiredTier = getTechnicalIndicatorRequiredTier(indicatorName)
+    const formattedTier = requiredTier.charAt(0).toUpperCase() + requiredTier.slice(1)
+
+    return {
+      title: requiredTier === "suhu" ? "Fitur Suhu" : "Fitur Bandar",
+      message: `Indikator ${indicatorName} hanya tersedia untuk tier ${formattedTier} ke atas.`,
+    }
+  }, [])
+
+  const filterTechnicalIndicatorsForTier = useCallback(
+    (indicators: Indicator[], options?: { notify?: boolean }) => {
+      const allowedIndicators = indicators.filter((indicator) =>
+        isTechnicalIndicatorAvailableForTier(indicator.name, technicalIndicatorTier),
+      )
+
+      if (options?.notify && allowedIndicators.length !== indicators.length) {
+        const removedNames = indicators
+          .filter((indicator) => !isTechnicalIndicatorAvailableForTier(indicator.name, technicalIndicatorTier))
+          .map((indicator) => indicator.name)
+
+        toast.info("Akses indikator teknikal", {
+          description: `Indikator berikut tidak tersedia untuk tier Anda dan dilewati: ${removedNames.join(", ")}.`,
+        })
+      }
+
+      return allowedIndicators
+    },
+    [technicalIndicatorTier],
+  )
 
   const clampBacktestRangeForTier = useCallback(
     (nextStartDate: string, nextEndDate: string, options?: { notify?: boolean }) => {
-      if (isBandarUser) {
-        return { startDate: nextStartDate, endDate: nextEndDate, adjusted: false }
-      }
-
       const parsedStartDate = parseDateInput(nextStartDate)
       const parsedEndDate = parseDateInput(nextEndDate)
 
@@ -238,15 +255,15 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
       }
 
       const earliestAllowedStart = new Date(parsedEndDate)
-      earliestAllowedStart.setFullYear(earliestAllowedStart.getFullYear() - NON_BANDAR_MAX_BACKTEST_YEARS)
+      earliestAllowedStart.setMonth(earliestAllowedStart.getMonth() - tierBacktestAccess.maxMonths)
 
       if (parsedStartDate >= earliestAllowedStart) {
         return { startDate: nextStartDate, endDate: nextEndDate, adjusted: false }
       }
 
       if (options?.notify) {
-        toast.info("Fitur Bandar", {
-          description: BACKTEST_PERIOD_LIMIT_MESSAGE,
+        toast.info(backtestPeriodUpgradeTitle, {
+          description: backtestPeriodLimitMessage,
         })
       }
 
@@ -256,47 +273,29 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
         adjusted: true,
       }
     },
-    [isBandarUser],
+    [backtestPeriodLimitMessage, tierBacktestAccess.maxMonths],
   )
 
   const applyPreset = (period: string) => {
     const selectedOption = backtestPeriodOptions.find((option) => option.label === period)
 
-    if (selectedOption?.bandarOnly && !isBandarUser) {
-      toast.info("Fitur Bandar", {
-        description: BACKTEST_PERIOD_LIMIT_MESSAGE,
-      })
-      applyPreset("Last 2 years")
+    if (!selectedOption) {
       return
     }
 
+    if (selectedOption.months > tierBacktestAccess.maxMonths) {
+      toast.info(backtestPeriodUpgradeTitle, {
+        description: backtestPeriodLimitMessage,
+      })
+      applyPreset(tierBacktestAccess.maxPresetLabel)
+      return
+    }
+
+    setBacktestPeriodMode("preset")
     setBacktestPeriod(period)
     const end = new Date()
     const start = new Date()
-
-    switch (period) {
-      case "Last 1 month":
-        start.setMonth(end.getMonth() - 1)
-        break
-      case "Last 3 months":
-        start.setMonth(end.getMonth() - 3)
-        break
-      case "Last 6 months":
-        start.setMonth(end.getMonth() - 6)
-        break
-      case "Last 1 year":
-        start.setFullYear(end.getFullYear() - 1)
-        break
-      case "Last 2 years":
-        start.setFullYear(end.getFullYear() - 2)
-        break
-      case "Last 3 years":
-        start.setFullYear(end.getFullYear() - 3)
-        break
-      case "Last 5 years":
-        start.setFullYear(end.getFullYear() - 5)
-        break
-    }
+    start.setMonth(end.getMonth() - selectedOption.months)
 
     setEndDate(formatDateInput(end))
     setStartDate(formatDateInput(start))
@@ -304,22 +303,21 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
 
   // Initialize with default preset
   useEffect(() => {
-    applyPreset("Last 1 year")
-  }, [])
+    applyPreset(tierBacktestAccess.maxPresetLabel)
+  }, [tierBacktestAccess.maxPresetLabel])
 
   useEffect(() => {
-    if (isBandarUser) return
-
     const { startDate: clampedStartDate, adjusted } = clampBacktestRangeForTier(startDate, endDate)
 
     if (adjusted) {
       setStartDate(clampedStartDate)
     }
 
-    if (backtestPeriodOptions.some((option) => option.label === backtestPeriod && option.bandarOnly)) {
-      setBacktestPeriod("Last 2 years")
+    const selectedOption = backtestPeriodOptions.find((option) => option.label === backtestPeriod)
+    if (selectedOption && selectedOption.months > tierBacktestAccess.maxMonths) {
+      setBacktestPeriod(tierBacktestAccess.maxPresetLabel)
     }
-  }, [backtestPeriod, clampBacktestRangeForTier, endDate, isBandarUser, startDate])
+  }, [backtestPeriod, clampBacktestRangeForTier, endDate, startDate, tierBacktestAccess.maxMonths, tierBacktestAccess.maxPresetLabel])
 
   const marketCapOptions = ["small", "mid", "large"]
   const sectorOptions = [
@@ -337,7 +335,6 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   ]
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const chatContainerRef = useRef<HTMLDivElement>(null)
   const sectorDropdownRef = useRef<HTMLDivElement>(null)
   const tickerDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -471,12 +468,6 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
     loadStrategyFromUrl()
   }, [strategyId, isLoaded, isSignedIn, loadedStrategyId, runLoadedStrategyConfig])
 
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
-    }
-  }, [chatMessages])
-
   const toggleMarketCap = (cap: string) => {
     setMarketCaps((prev) => (prev.includes(cap) ? prev.filter((c) => c !== cap) : [...prev, cap]))
   }
@@ -522,6 +513,14 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   }
 
   const addIndicator = (indicator: Omit<Indicator, "id">) => {
+    if (indicator.type === "technical" && !isTechnicalIndicatorAvailableForTier(indicator.name, technicalIndicatorTier)) {
+      const gateCopy = getTechnicalIndicatorGateCopy(indicator.name)
+      toast.info(gateCopy.title, {
+        description: gateCopy.message,
+      })
+      return
+    }
+
     const newIndicator = { ...indicator, id: Date.now().toString() }
     if (indicator.type === "fundamental") {
       setFundamentalIndicators((prev) => [...prev, newIndicator])
@@ -648,6 +647,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
 
   const buildBacktestConfig = (): BacktestRequest => {
     const allowedRange = clampBacktestRangeForTier(startDate, endDate)
+    const allowedTechnicalIndicators = filterTechnicalIndicatorsForTier(technicalIndicators)
 
     return {
       backtestId: `backtest_${Date.now()}`,
@@ -663,7 +663,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
         min: ind.params.min === "" ? undefined : Number(ind.params.min),
         max: ind.params.max === "" ? undefined : Number(ind.params.max),
       })),
-      technicalIndicators: technicalIndicators.map(mapTechnicalIndicator),
+      technicalIndicators: allowedTechnicalIndicators.map(mapTechnicalIndicator),
       backtestConfig: {
         initialCapital,
         startDate: allowedRange.startDate,
@@ -783,6 +783,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
       "MORNING_STAR": "Morning Star",
       "THREE_WHITE_SOLDIERS": "Three White Soldiers",
       "THREE_INSIDE_UP": "Three Inside Up",
+      "RISING_THREE_METHODS": "Rising Three Methods",
       "FALLING_WEDGE": "Falling Wedge",
       "DOUBLE_BOTTOM": "Double Bottom",
       "BULL_FLAG": "Bull Flag",
@@ -849,7 +850,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
           params: params
         }
       })
-      setTechnicalIndicators(newTechnicalIndicators)
+      setTechnicalIndicators(filterTechnicalIndicatorsForTier(newTechnicalIndicators, { notify: true }))
     }
 
     if (config.backtestConfig) {
@@ -861,194 +862,15 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
       setInitialCapital(config.backtestConfig.initialCapital)
       setStartDate(allowedRange.startDate)
       setEndDate(allowedRange.endDate)
+      setBacktestPeriod("")
+      setBacktestPeriodMode("custom")
       if (config.backtestConfig.riskManagement) {
         setStopLoss(config.backtestConfig.riskManagement.stopLossPercent)
         setTakeProfit(config.backtestConfig.riskManagement.takeProfitPercent)
         setMaxHoldingPeriod(config.backtestConfig.riskManagement.maxHoldingDays.toString())
       }
     }
-
-    setActiveTab("strategy")
     scrollToBottom()
-  }
-
-  const handleApplyStrategy = (config: BacktestRequest) => {
-    applyStrategyFromConfig(config)
-  }
-
-  const handleSendMessage = async () => {
-    if (!chatInput.trim() || isAgentThinking) return
-
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      role: "user",
-      content: chatInput,
-      timestamp: new Date(),
-    }
-
-    setChatMessages((prev) => [...prev, userMessage])
-    const currentInput = chatInput
-    setChatInput("")
-    setIsAgentThinking(true)
-
-    // Add immediate thinking feedback
-    const thinkingMessageId = (Date.now() + 1).toString()
-    const thinkingMessage: ChatMessage = {
-      id: thinkingMessageId,
-      role: "assistant",
-      content: "",
-      timestamp: new Date(),
-      isThinking: true,
-      thinkingSteps: [
-        { id: "1", icon: "thinking", text: "Analyzing your request...", status: "pending" },
-      ],
-      thinkingTime: 0,
-    }
-    setChatMessages((prev) => [...prev, thinkingMessage])
-
-    try {
-      const startTime = Date.now()
-
-      // Update thinking steps while waiting
-      const stepInterval = setInterval(() => {
-        setChatMessages((prev) => {
-          return prev.map(msg => {
-            if (msg.id === thinkingMessageId && msg.isThinking) {
-              const time = Math.floor((Date.now() - startTime) / 1000)
-              return { ...msg, thinkingTime: time }
-            }
-            return msg
-          })
-        })
-      }, 1000)
-
-      let currentSessionId = sessionId;
-      if (!currentSessionId && typeof window !== 'undefined') {
-        currentSessionId = localStorage.getItem("backtester_session_id") || "default_session"
-      }
-
-      const response = await fetch("/agent/invoke", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          input_text: currentInput,
-          session_id: currentSessionId,
-        }),
-      })
-
-      clearInterval(stepInterval)
-
-      if (!response.ok) {
-        throw new Error("Failed to get response from agent")
-      }
-
-      const data = await response.json()
-      const endTime = Date.now()
-      const totalTime = (endTime - startTime) / 1000
-
-      // Remove thinking message and add actual response
-      setChatMessages((prev) => {
-        const withoutThinking = prev.filter((m) => m.id !== thinkingMessageId)
-
-        let strategyCard: StrategyCard | undefined
-
-        if (data.config_ready && data.backtest_config) {
-          // Construct strategy card from config
-          const config = data.backtest_config as BacktestRequest
-
-          // Generate indicator descriptions
-          const indicatorDescriptions = [
-            ...config.fundamentalIndicators.map((i: any) => `${mapApiFundamentalTypeToUiName(i.type)} (${i.min ?? ''} - ${i.max ?? ''})`),
-            ...config.technicalIndicators.map((i: any) => {
-              const { type, ...params } = i
-              const paramStr = Object.entries(params)
-                .map(([k, v]) => `${k}:${v}`)
-                .join(', ')
-              return `${mapApiTypeToUiName(type)} ${paramStr ? `(${paramStr})` : ''}`
-            })
-          ]
-
-          strategyCard = {
-            name: "Agent Generated Strategy",
-            description: "Strategy configuration generated based on your requirements.",
-            indicators: indicatorDescriptions.slice(0, 3),
-            version: "v1",
-          }
-        }
-
-        const newMessage: ChatMessage = {
-          id: (Date.now() + 2).toString(),
-          role: "assistant",
-          content: data.response,
-          timestamp: new Date(),
-          thinkingTime: totalTime,
-          strategyCard: strategyCard,
-          backtestConfig: data.backtest_config
-        }
-
-        return [...withoutThinking, newMessage]
-      })
-
-    } catch (error) {
-      console.error("Agent error:", error)
-      setChatMessages((prev) => {
-        const withoutThinking = prev.filter((m) => m.id !== thinkingMessageId)
-        return [
-          ...withoutThinking,
-          {
-            id: Date.now().toString(),
-            role: "assistant",
-            content: "I apologize, but I encountered an error processing your request. Please try again.",
-            timestamp: new Date(),
-          },
-        ]
-      })
-    } finally {
-      setIsAgentThinking(false)
-    }
-  }
-
-
-  const renderThinkingIcon = (icon: string, status: string) => {
-    if (status === "pending") {
-      return <Loader2 className="h-3.5 w-3.5 text-muted-foreground animate-spin" />
-    }
-    switch (icon) {
-      case "thinking":
-        return <Sparkles className="h-3.5 w-3.5 text-[#d07225]" />
-      case "search":
-        return <Search className="h-3.5 w-3.5 text-[#8cbcb9]" />
-      case "file":
-        return <FileCode className="h-3.5 w-3.5 text-[#8d6a9f]" />
-      case "check":
-        return <CheckCircle className="h-3.5 w-3.5 text-green-600" />
-      default:
-        return <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-    }
-  }
-
-  // Helper to render bold text from **text** pattern
-  const renderMessageContent = (content: string) => {
-    if (!content) return null
-
-    // Split by ** pattern
-    const parts = content.split(/(\*\*.*?\*\*)/g)
-
-    return (
-      <span className="whitespace-pre-wrap">
-        {parts.map((part, i) => {
-          if (part.startsWith("**") && part.endsWith("**")) {
-            return (
-              <strong key={i} className="font-semibold text-foreground">
-                {part.slice(2, -2)}
-              </strong>
-            )
-          }
-          // Handle newlines as breaks or simple text
-          return part
-        })}
-      </span>
-    )
   }
 
 
@@ -1061,158 +883,78 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
     setIsTutorialActive(false)
   }
 
+  useEffect(() => {
+    setTechnicalIndicators((prev) => filterTechnicalIndicatorsForTier(prev))
+  }, [filterTechnicalIndicatorsForTier])
+
   return (
     <div className="h-full flex flex-col relative">
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+      <Tabs defaultValue="strategy" className="flex-1 flex flex-col min-h-0">
         <div className="px-5 pt-4 pb-3 flex items-center justify-between bg-card">
           <TabsList className="h-9">
             <TabsTrigger value="strategy" className="text-xs font-mono font-semibold gap-1.5 data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:shadow-sm">
               <Settings className="h-3.5 w-3.5" />
               Builder
             </TabsTrigger>
-            <TabsTrigger value="chat" className="text-xs font-mono font-semibold gap-1.5 data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:shadow-sm">
+            <TabsTrigger
+              value="chat"
+              className="text-xs font-mono font-semibold gap-1.5 text-slate-500 data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:shadow-sm"
+            >
               <Sparkles className="h-3.5 w-3.5" />
               Agent
+              <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.18em] text-slate-500">
+                Soon
+              </span>
             </TabsTrigger>
           </TabsList>
           <OnboardingTutorial onComplete={handleTutorialComplete} onStart={handleTutorialStart} />
         </div>
 
         <TabsContent value="chat" className="flex-1 flex flex-col m-0 overflow-hidden">
-          <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-            {chatMessages.map((message) => (
-              <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                {message.role === "user" ? (
-                  <div className="max-w-[85%] rounded-lg px-4 py-2.5 bg-slate-200 text-foreground">
-                    <p className="text-sm leading-relaxed">{message.content}</p>
-                    <span className="text-xs mt-1.5 block text-muted-foreground">
-                      {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </div>
-                ) : message.isThinking ? (
-                  <div className="max-w-[90%] space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>Thinking for {message.thinkingTime}s</span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {message.thinkingSteps?.map((step) => (
-                        <div key={step.id} className="flex items-center gap-2 text-sm">
-                          {renderThinkingIcon(step.icon, step.status)}
-                          <span className={step.status === "done" ? "text-foreground" : "text-muted-foreground"}>
-                            {step.text}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="max-w-[90%] space-y-3">
-                    {message.thinkingTime && (
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1.5">
-                          <Sparkles className="h-3 w-3" />
-                          Thought for {message.thinkingTime}s
-                        </span>
-                        {message.workTime && (
-                          <span className="flex items-center gap-1.5">
-                            <Clock className="h-3 w-3" />
-                            Worked for {message.workTime}s
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    <div className="text-sm leading-relaxed text-foreground">
-                      {renderMessageContent(message.content)}
-                    </div>
-                    {message.strategyCard && (
-                      <div className="border rounded-lg overflow-hidden bg-slate-50">
-                        <div className="px-3 py-2 border-b bg-white flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="h-5 w-5 rounded bg-[#d07225]/10 flex items-center justify-center">
-                              <Zap className="h-3 w-3 text-[#d07225]" />
-                            </div>
-                            <span className="text-sm font-medium">{message.strategyCard.name}</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground bg-slate-100 px-1.5 py-0.5 rounded">
-                            {message.strategyCard.version}
-                          </span>
-                        </div>
-                        <div className="px-3 py-2 space-y-2">
-                          <p className="text-xs text-muted-foreground">{message.strategyCard.description}</p>
-                          <div className="space-y-1">
-                            {message.strategyCard.indicators.map((indicator, idx) => (
-                              <div key={idx} className="flex items-center gap-2 text-xs">
-                                <CheckCircle className="h-3 w-3 text-green-600" />
-                                <span className="text-foreground">{indicator}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="px-3 py-2 border-t bg-white">
-                          <Button
-                            size="sm"
-                            className="w-full h-7 text-xs bg-[#d07225] hover:bg-[#a65b1d] text-white"
-                            // @ts-ignore - backtestConfig is dynamically added
-                            onClick={() => message.backtestConfig && handleApplyStrategy(message.backtestConfig)}
-                          >
-                            Apply to Strategy Builder
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                    {!message.thinkingTime && (
-                      <span className="text-xs block text-muted-foreground">
-                        {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    )}
-                  </div>
-                )}
+          <div className="flex-1 p-6">
+            <div className="relative mx-auto flex h-full w-full max-w-xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-[linear-gradient(145deg,#fff9f2_0%,#ffffff_45%,#f5f7fb_100%)] p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+              <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#d07225]/50 to-transparent" />
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#d07225]/20 bg-white/80 px-3 py-1 text-[11px] font-mono font-semibold uppercase tracking-[0.2em] text-[#b76421] backdrop-blur">
+                <Sparkles className="h-3.5 w-3.5" />
+                AI Chatbot
               </div>
-            ))}
-          </div>
-
-          <div className="p-3 border-t space-y-3">
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs h-7 bg-transparent"
-                onClick={() => setChatInput("Build me a momentum strategy")}
-                disabled={isAgentThinking}
-              >
-                <Zap className="h-3 w-3 mr-1" />
-                Momentum Strategy
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs h-7 bg-transparent"
-                onClick={() => setChatInput("Create a value investing strategy")}
-                disabled={isAgentThinking}
-              >
-                <TrendingUp className="h-3 w-3 mr-1" />
-                Value Strategy
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Ask the agent to build a strategy..."
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                className="text-sm"
-                disabled={isAgentThinking}
-              />
-              <Button
-                size="icon"
-                onClick={handleSendMessage}
-                className="bg-[#d07225] hover:bg-[#a65b1d]"
-                disabled={isAgentThinking}
-              >
-                {isAgentThinking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </Button>
+              <div className="flex-1 space-y-4">
+                <div className="space-y-2">
+                  <h3 className="text-3xl font-semibold tracking-tight text-slate-900">Coming Soon</h3>
+                  <p className="max-w-lg text-sm leading-7 text-slate-600">
+                    We&apos;re redesigning the backtest assistant to be faster, simpler, and better connected to the builder.
+                    For now, strategy creation stays focused in the manual builder on this page.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-white/80 bg-white/80 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+                    <p className="text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-slate-500">Status</p>
+                    <p className="mt-2 text-sm font-medium text-slate-800">Temporarily unavailable</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/80 bg-white/80 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+                    <p className="text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-slate-500">What to use</p>
+                    <p className="mt-2 text-sm font-medium text-slate-800">Builder tab for filters, indicators, and backtests</p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 border-t border-slate-200/80 pt-4">
+                <div className="flex gap-2">
+                  <Input
+                    value=""
+                    readOnly
+                    disabled
+                    placeholder="Ask the agent to build a strategy..."
+                    className="text-sm"
+                  />
+                  <Button
+                    size="icon"
+                    disabled
+                    className="bg-slate-300 text-slate-500 hover:bg-slate-300"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>
@@ -1685,7 +1427,11 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                     </div>
                   </div>
 
-                  <Tabs defaultValue="preset" className="w-full">
+                  <Tabs
+                    value={backtestPeriodMode}
+                    onValueChange={(value) => setBacktestPeriodMode(value as BacktestPeriodMode)}
+                    className="w-full"
+                  >
                     <TabsList className="grid h-10 w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-100 p-0.5">
                       <TabsTrigger
                         value="preset"
@@ -1707,15 +1453,18 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                           <SelectValue placeholder="Select period" />
                         </SelectTrigger>
                         <SelectContent>
-                          {backtestPeriodOptions.map((option) => (
+                          {backtestPeriodOptions.map((option) => {
+                            const isLocked = option.months > tierBacktestAccess.maxMonths
+
+                            return (
                             <SelectItem
                               key={option.label}
                               value={option.label}
-                              className={`font-mono text-xs ${option.bandarOnly && !isBandarUser ? "text-muted-foreground" : ""}`}
+                              className={`font-mono text-xs ${isLocked ? "text-muted-foreground" : ""}`}
                             >
                               <span className="flex items-center gap-2">
                                 <span>{option.label}</span>
-                                {option.bandarOnly && !isBandarUser && (
+                                {isLocked && (
                                   <TooltipProvider delayDuration={150}>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
@@ -1724,14 +1473,15 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                                         </span>
                                       </TooltipTrigger>
                                       <TooltipContent side="right" className="max-w-[220px] text-xs">
-                                        Periode backtest di atas 2 tahun khusus untuk pengguna tier Bandar.
+                                        {backtestPeriodLimitMessage}
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
                                 )}
                               </span>
                             </SelectItem>
-                          ))}
+                            )
+                          })}
                         </SelectContent>
                       </Select>
                     </TabsContent>
@@ -1747,6 +1497,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                               const allowedRange = clampBacktestRangeForTier(e.target.value, endDate, { notify: true })
                               setStartDate(allowedRange.startDate)
                               setEndDate(allowedRange.endDate)
+                              setBacktestPeriodMode("custom")
                               setBacktestPeriod("")
                             }}
                             className="border-slate-300 h-9 bg-white text-xs font-mono"
@@ -1761,6 +1512,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                               const allowedRange = clampBacktestRangeForTier(startDate, e.target.value, { notify: true })
                               setStartDate(allowedRange.startDate)
                               setEndDate(allowedRange.endDate)
+                              setBacktestPeriodMode("custom")
                               setBacktestPeriod("")
                             }}
                             className="border-slate-300 h-9 bg-white text-xs font-mono"
@@ -1937,7 +1689,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
         </DialogContent>
       </Dialog>
 
-      <AddIndicatorModal open={showModal} onOpenChange={setShowModal} type={modalType} onAddIndicator={addIndicator} />
+      <AddIndicatorModal open={showModal} onOpenChange={setShowModal} type={modalType} onAddIndicator={addIndicator} userTier={tier} />
     </div>
   )
 }

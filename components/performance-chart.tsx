@@ -395,8 +395,8 @@ export function PerformanceChart({ data, selectedBenchmark = "ihsg" }: Performan
   }
 
   return (
-    <div className="w-full h-full">
-      <div ref={chartContainerRef} className="h-full w-full relative" />
+    <div className="w-full h-full min-w-0">
+      <div ref={chartContainerRef} className="relative h-full w-full min-w-0" />
       {/* Chart Legend */}
       {/* Chart Legend removed as per user request */}
     </div>

@@ -228,7 +228,7 @@ export function StrategyPreviewDialog({
             <DialogContent
                 className={previewState === 'confirm'
                     ? "sm:max-w-md"
-                    : "max-w-5xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col"
+                    : "max-w-5xl w-[95vw] h-[90vh] min-w-0 p-0 gap-0 overflow-hidden flex flex-col"
                 }
                 onPointerDownOutside={(e) => {
                     if (loading) e.preventDefault()
@@ -340,8 +340,8 @@ export function StrategyPreviewDialog({
                         </div>
 
                         {/* Scrollable Content */}
-                        <ScrollArea className="flex-1 h-[calc(90vh-80px)]">
-                            <div className="p-6">
+                        <ScrollArea className="flex-1 min-w-0 h-[calc(90vh-80px)]">
+                            <div className="min-w-0 p-6">
                                 {/* Loading State */}
                                 {loading && (
                                     <div className="flex flex-col items-center justify-center py-32">
@@ -403,7 +403,7 @@ export function StrategyPreviewDialog({
                                 {results && !loading && (
                                     <div className="space-y-6">
                                         {/* === SECTION 1: Performance Chart === */}
-                                        <Card className="rounded-md">
+                                        <Card className="rounded-md min-w-0">
                                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                                 <CardTitle className="text-foreground font-mono font-bold text-base">
                                                     Performance Chart
@@ -430,8 +430,8 @@ export function StrategyPreviewDialog({
                                                     </button>
                                                 </div>
                                             </CardHeader>
-                                            <CardContent>
-                                                <div className="h-[350px]">
+                                            <CardContent className="min-w-0">
+                                                <div className="h-[350px] w-full min-w-0">
                                                     <PerformanceChart
                                                         data={results?.dailyPortfolio}
                                                         selectedBenchmark={selectedBenchmark}

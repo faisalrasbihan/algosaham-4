@@ -187,7 +187,7 @@
 
 /* Subtle dotted background pattern */
 .dotted-background {
-  background-image: radial-gradient(circle, #d0d5dc 1px, transparent 1px);
+  background-image: radial-gradient(circle, #b8c0ca 1px, transparent 1px);
   background-size: 25px 25px;
   background-position: 0 0, 16px 16px;
 }

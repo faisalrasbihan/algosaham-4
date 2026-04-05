@@ -207,7 +207,7 @@ export function MarketplaceStrategyCard({ strategy, isSubscribed = false, isLock
 
                     <div className={cn("flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t", isSubscribed ? "border-[#ecd7c4]" : "border-border")}>
                         <Calendar className="w-3 h-3" />
-                        Created: {new Date(strategy.createdDate).toLocaleDateString()}
+                        Beginning Date: {new Date(strategy.createdDate).toLocaleDateString()}
                     </div>
 
                     <Button

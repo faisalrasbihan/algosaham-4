@@ -7,8 +7,12 @@ import { Input } from "@/components/ui/input"
 import {
   technicalIndicatorCategories,
   technicalIndicatorCount,
+  getTechnicalIndicatorRequiredTier,
+  isTechnicalIndicatorAvailableForTier,
   type TechnicalIndicatorDefinition,
 } from "@/lib/technical-indicators"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { toast } from "sonner"
 import {
   Search,
   Plus,
@@ -23,6 +27,7 @@ import {
   Shield,
   Globe,
   Settings2,
+  Lock,
 } from "lucide-react"
 
 interface Indicator {
@@ -36,6 +41,7 @@ interface AddIndicatorModalProps {
   onOpenChange: (open: boolean) => void
   type: "fundamental" | "technical"
   onAddIndicator: (indicator: Omit<Indicator, "id">) => void
+  userTier?: string
 }
 
 // Fundamental indicators matching API spec
@@ -81,7 +87,15 @@ const technicalCategories: IndicatorCategory[] = technicalIndicatorCategories.ma
   indicators: category.indicators as TechnicalIndicatorDefinition[],
 }))
 
-export function AddIndicatorModal({ open, onOpenChange, type, onAddIndicator }: AddIndicatorModalProps) {
+function getTierGateCopy(requiredTier: string) {
+  const normalizedTier = requiredTier.toLowerCase()
+  return {
+    title: normalizedTier === "suhu" ? "Fitur Suhu" : "Fitur Bandar",
+    message: `Indikator ini hanya tersedia untuk tier ${requiredTier} ke atas.`,
+  }
+}
+
+export function AddIndicatorModal({ open, onOpenChange, type, onAddIndicator, userTier }: AddIndicatorModalProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(["momentum"]))
 
@@ -94,6 +108,17 @@ export function AddIndicatorModal({ open, onOpenChange, type, onAddIndicator }: 
   }, [open])
 
   const handleAddIndicator = (indicator: IndicatorDef, indicatorType: "fundamental" | "technical") => {
+    if (indicatorType === "technical") {
+      const requiredTier = getTechnicalIndicatorRequiredTier(indicator.name)
+      if (!isTechnicalIndicatorAvailableForTier(indicator.name, userTier)) {
+        const gateCopy = getTierGateCopy(requiredTier)
+        toast.info(gateCopy.title, {
+          description: gateCopy.message,
+        })
+        return
+      }
+    }
+
     onAddIndicator({
       name: indicator.name,
       type: indicatorType,
@@ -230,30 +255,56 @@ export function AddIndicatorModal({ open, onOpenChange, type, onAddIndicator }: 
                     {/* Expanded indicator list */}
                     {isExpanded && (
                       <div className="ml-3 mb-1.5 border-l-[1.5px] pl-5" style={{ borderColor: "rgba(208, 114, 37, 0.15)" }}>
-                        {category.indicators.map((indicator, index) => (
-                          <button
-                            key={index}
-                            type="button"
-                            onClick={() => handleAddIndicator(indicator, "technical")}
-                            className="w-full flex items-center justify-between py-2 px-2.5 -ml-1 rounded hover:bg-secondary/60 transition-colors group text-left"
-                            title={`Add ${indicator.name}`}
-                          >
-                            <div className="min-w-0 flex-1 mr-3">
-                              <div className="text-[13px] font-mono text-foreground leading-tight">
-                                {indicator.name}
-                              </div>
-                              <div className="text-xs text-muted-foreground leading-tight mt-0.5">
-                                {indicator.description}
-                              </div>
-                            </div>
-                            <span
-                              aria-hidden="true"
-                              className="flex-shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md border border-transparent text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-hover:border-[#d07225]/30 group-hover:bg-[#d07225]/5 group-hover:text-[#d07225] group-focus-visible:border-[#d07225]/30 group-focus-visible:bg-[#d07225]/5 group-focus-visible:text-[#d07225] transition-all"
+                        {category.indicators.map((indicator, index) => {
+                          const requiredTier = getTechnicalIndicatorRequiredTier(indicator.name)
+                          const isLocked = !isTechnicalIndicatorAvailableForTier(indicator.name, userTier)
+                          const gateCopy = getTierGateCopy(requiredTier)
+
+                          return (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => handleAddIndicator(indicator, "technical")}
+                              className={`w-full flex items-center justify-between py-2 px-2.5 -ml-1 rounded transition-colors group text-left ${
+                                isLocked ? "bg-slate-50/80 hover:bg-slate-100/90" : "hover:bg-secondary/60"
+                              }`}
+                              title={isLocked ? gateCopy.message : `Add ${indicator.name}`}
                             >
-                              <Plus className="h-3.5 w-3.5" />
-                            </span>
-                          </button>
-                        ))}
+                              <div className="min-w-0 flex-1 mr-3">
+                                <div className={`text-[13px] font-mono leading-tight ${isLocked ? "text-muted-foreground" : "text-foreground"}`}>
+                                  {indicator.name}
+                                </div>
+                                <div className="text-xs text-muted-foreground leading-tight mt-0.5">
+                                  {indicator.description}
+                                </div>
+                              </div>
+                              {isLocked ? (
+                                <TooltipProvider delayDuration={150}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span
+                                        aria-hidden="true"
+                                        className="flex-shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md border border-slate-200 bg-white text-muted-foreground"
+                                      >
+                                        <Lock className="h-3.5 w-3.5" />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right" className="max-w-[220px] text-xs">
+                                      {gateCopy.message}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <span
+                                  aria-hidden="true"
+                                  className="flex-shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md border border-transparent text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-hover:border-[#d07225]/30 group-hover:bg-[#d07225]/5 group-hover:text-[#d07225] group-focus-visible:border-[#d07225]/30 group-focus-visible:bg-[#d07225]/5 group-focus-visible:text-[#d07225] transition-all"
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </span>
+                              )}
+                            </button>
+                          )
+                        })}
                       </div>
                     )}
                   </div>

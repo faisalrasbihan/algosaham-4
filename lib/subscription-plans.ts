@@ -237,7 +237,7 @@ export const PRICING_MATRIX_SECTIONS: PricingMatrixSection[] = [
         values: {
           ritel: false,
           suhu: false,
-          bandar: true,
+          bandar: "Coming Soon",
         },
       },
       {
@@ -245,7 +245,7 @@ export const PRICING_MATRIX_SECTIONS: PricingMatrixSection[] = [
         values: {
           ritel: false,
           suhu: false,
-          bandar: true,
+          bandar: "Coming Soon",
         },
       },
     ],
