@@ -257,11 +257,14 @@ export default function Strategies() {
   }
 
   return (
-    <div className="min-h-screen bg-background dotted-background">
-      <Navbar />
-      <TickerTape />
-      <div className="flex-1 overflow-y-auto mt-8 pb-8">
-        <div className="space-y-12">
+    <div className="h-screen overflow-hidden bg-background dotted-background bg-fixed">
+      <div className="fixed inset-x-0 top-0 z-40">
+        <Navbar />
+        <TickerTape />
+      </div>
+
+      <div className="h-full overflow-y-auto pt-[104px]">
+        <div className="space-y-12 pt-6">
           {/* Featured / Showcase Section */}
           <section>
             <div className="px-6">
@@ -384,9 +387,9 @@ export default function Strategies() {
             </div>
           </section> */}
         </div>
-      </div>
 
-      <Footer />
+        <Footer />
+      </div>
 
       {/* Subscribe Confirmation Dialog */}
       <Dialog open={subscribeDialogOpen} onOpenChange={(open) => {

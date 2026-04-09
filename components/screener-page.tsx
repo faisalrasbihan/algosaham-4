@@ -1623,10 +1623,13 @@ export function ScreenerPage() {
         : "w-max min-w-[1500px] md:min-w-[2200px]"
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <TickerTape />
-      <main className="flex-1 dotted-background">
+    <div className="h-screen overflow-hidden bg-background dotted-background bg-fixed">
+      <div className="fixed inset-x-0 top-0 z-40">
+        <Navbar />
+        <TickerTape />
+      </div>
+
+      <main className="h-full overflow-y-auto pt-[104px]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
           <section className="rounded-2xl border border-border/70 bg-card shadow-sm overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-[#487b78] via-[#d07225] to-transparent" />
@@ -2187,9 +2190,9 @@ export function ScreenerPage() {
           </div>
 
         </div>
-      </main>
 
-      <Footer />
+        <Footer />
+      </main>
 
       <Dialog open={saveStrategyOpen} onOpenChange={setSaveStrategyOpen}>
         <DialogContent className="border-border/70 bg-card shadow-xl">

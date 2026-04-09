@@ -151,6 +151,170 @@ function parseDateInput(value: string) {
   return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
 }
 
+function isPlainObject(value: unknown): value is Record<string, any> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function readNumberField(value: unknown, fieldName: string) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsedValue = Number(value)
+    if (Number.isFinite(parsedValue)) {
+      return parsedValue
+    }
+  }
+
+  throw new Error(`${fieldName} must be a valid number.`)
+}
+
+function readOptionalStringArray(value: unknown, fieldName: string) {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new Error(`${fieldName} must be an array of strings.`)
+  }
+
+  return value
+}
+
+function parseBacktestRequestFromJson(input: string): BacktestRequest {
+  let parsed: unknown
+
+  try {
+    parsed = JSON.parse(input)
+  } catch {
+    throw new Error("Invalid JSON. Please check the format and try again.")
+  }
+
+  const rawConfig =
+    isPlainObject(parsed) && isPlainObject(parsed.config)
+      ? parsed.config
+      : parsed
+
+  if (!isPlainObject(rawConfig)) {
+    throw new Error("Backtest config must be a JSON object.")
+  }
+
+  const filters = isPlainObject(rawConfig.filters) ? rawConfig.filters : {}
+  const backtestConfig = rawConfig.backtestConfig
+
+  if (!isPlainObject(backtestConfig)) {
+    throw new Error("Missing `backtestConfig` in the pasted JSON.")
+  }
+
+  if (!isPlainObject(backtestConfig.tradingCosts)) {
+    throw new Error("Missing `backtestConfig.tradingCosts` in the pasted JSON.")
+  }
+
+  if (!isPlainObject(backtestConfig.portfolio)) {
+    throw new Error("Missing `backtestConfig.portfolio` in the pasted JSON.")
+  }
+
+  if (!isPlainObject(backtestConfig.riskManagement)) {
+    throw new Error("Missing `backtestConfig.riskManagement` in the pasted JSON.")
+  }
+
+  const fundamentalIndicators = rawConfig.fundamentalIndicators
+  const technicalIndicators = rawConfig.technicalIndicators
+
+  if (fundamentalIndicators !== undefined && !Array.isArray(fundamentalIndicators)) {
+    throw new Error("`fundamentalIndicators` must be an array.")
+  }
+
+  if (technicalIndicators !== undefined && !Array.isArray(technicalIndicators)) {
+    throw new Error("`technicalIndicators` must be an array.")
+  }
+
+  const parsedFundamentalIndicators = (fundamentalIndicators ?? []).map((indicator: unknown, index: number) => {
+    if (!isPlainObject(indicator) || typeof indicator.type !== "string") {
+      throw new Error(`fundamentalIndicators[${index}] must include a string \`type\`.`)
+    }
+
+    return {
+      type: indicator.type,
+      min: indicator.min === undefined ? undefined : readNumberField(indicator.min, `fundamentalIndicators[${index}].min`),
+      max: indicator.max === undefined ? undefined : readNumberField(indicator.max, `fundamentalIndicators[${index}].max`),
+    }
+  })
+
+  const parsedTechnicalIndicators = (technicalIndicators ?? []).map((indicator: unknown, index: number) => {
+    if (!isPlainObject(indicator) || typeof indicator.type !== "string") {
+      throw new Error(`technicalIndicators[${index}] must include a string \`type\`.`)
+    }
+
+    return indicator as BacktestRequest["technicalIndicators"][number]
+  })
+
+  return {
+    backtestId:
+      typeof rawConfig.backtestId === "string" && rawConfig.backtestId.trim()
+        ? rawConfig.backtestId
+        : `backtest_${Date.now()}`,
+    filters: {
+      marketCap: readOptionalStringArray(filters.marketCap, "filters.marketCap") ?? ["large"],
+      syariah: typeof filters.syariah === "boolean" ? filters.syariah : undefined,
+      minDailyValue:
+        filters.minDailyValue === undefined
+          ? undefined
+          : readNumberField(filters.minDailyValue, "filters.minDailyValue"),
+      tickers: readOptionalStringArray(filters.tickers, "filters.tickers"),
+      sectors: readOptionalStringArray(filters.sectors, "filters.sectors"),
+    },
+    fundamentalIndicators: parsedFundamentalIndicators,
+    technicalIndicators: parsedTechnicalIndicators,
+    backtestConfig: {
+      initialCapital: readNumberField(backtestConfig.initialCapital, "backtestConfig.initialCapital"),
+      startDate:
+        typeof backtestConfig.startDate === "string" && backtestConfig.startDate.trim()
+          ? backtestConfig.startDate
+          : (() => {
+            throw new Error("`backtestConfig.startDate` must be a non-empty string.")
+          })(),
+      endDate:
+        typeof backtestConfig.endDate === "string" && backtestConfig.endDate.trim()
+          ? backtestConfig.endDate
+          : (() => {
+            throw new Error("`backtestConfig.endDate` must be a non-empty string.")
+          })(),
+      tradingCosts: {
+        brokerFee: readNumberField(backtestConfig.tradingCosts.brokerFee, "backtestConfig.tradingCosts.brokerFee"),
+        sellFee: readNumberField(backtestConfig.tradingCosts.sellFee, "backtestConfig.tradingCosts.sellFee"),
+        minimumFee: readNumberField(backtestConfig.tradingCosts.minimumFee, "backtestConfig.tradingCosts.minimumFee"),
+      },
+      portfolio: {
+        positionSizePercent: readNumberField(
+          backtestConfig.portfolio.positionSizePercent,
+          "backtestConfig.portfolio.positionSizePercent",
+        ),
+        minPositionPercent: readNumberField(
+          backtestConfig.portfolio.minPositionPercent,
+          "backtestConfig.portfolio.minPositionPercent",
+        ),
+        maxPositions: readNumberField(backtestConfig.portfolio.maxPositions, "backtestConfig.portfolio.maxPositions"),
+      },
+      riskManagement: {
+        stopLossPercent: readNumberField(
+          backtestConfig.riskManagement.stopLossPercent,
+          "backtestConfig.riskManagement.stopLossPercent",
+        ),
+        takeProfitPercent: readNumberField(
+          backtestConfig.riskManagement.takeProfitPercent,
+          "backtestConfig.riskManagement.takeProfitPercent",
+        ),
+        maxHoldingDays: readNumberField(
+          backtestConfig.riskManagement.maxHoldingDays,
+          "backtestConfig.riskManagement.maxHoldingDays",
+        ),
+      },
+    },
+  }
+}
+
 export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults }: BacktestStrategyBuilderProps) {
   const { isSignedIn, isLoaded } = useUser()
   const { openSignIn } = useClerk()
@@ -176,11 +340,16 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   const [showModal, setShowModal] = useState(false)
   const [modalType, setModalType] = useState<"fundamental" | "technical">("fundamental")
   const [showSaveModal, setShowSaveModal] = useState(false)
+  const [showJsonConfigModal, setShowJsonConfigModal] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [runMenuOpen, setRunMenuOpen] = useState(false)
   const [savedStrategyName, setSavedStrategyName] = useState("")
   const [strategyName, setStrategyName] = useState("")
   const [strategyDescription, setStrategyDescription] = useState("")
+  const [jsonConfigInput, setJsonConfigInput] = useState("")
+  const [jsonConfigError, setJsonConfigError] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+  const [isRunningJsonConfig, setIsRunningJsonConfig] = useState(false)
   const [pendingRunBacktest, setPendingRunBacktest] = useState(false)
   const [saveWithBacktest, setSaveWithBacktest] = useState(false)
   const [editingIndicators, setEditingIndicators] = useState<Record<string, boolean>>({})
@@ -347,14 +516,15 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
     }
   }
 
-  const runLoadedStrategyConfig = useCallback(async (config: BacktestRequest) => {
-    const allowedRange = clampBacktestRangeForTier(
-      config.backtestConfig.startDate,
-      config.backtestConfig.endDate,
-      { notify: true },
-    )
-    const configToRun =
-      allowedRange.adjusted
+  const prepareBacktestConfigForExecution = useCallback(
+    (config: BacktestRequest, options?: { notify?: boolean }) => {
+      const allowedRange = clampBacktestRangeForTier(
+        config.backtestConfig.startDate,
+        config.backtestConfig.endDate,
+        { notify: options?.notify },
+      )
+
+      return allowedRange.adjusted
         ? {
           ...config,
           backtestConfig: {
@@ -364,15 +534,48 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
           },
         }
         : config
+    },
+    [clampBacktestRangeForTier],
+  )
+
+  const executeBacktestConfig = useCallback(async (
+    config: BacktestRequest,
+    options?: { skipAuthCheck?: boolean; preparedConfig?: BacktestRequest },
+  ) => {
+    const skipAuthCheck = options?.skipAuthCheck ?? false
+
+    if (!skipAuthCheck) {
+      if (!isLoaded) return false
+      if (!isSignedIn) {
+        openSignIn()
+        return false
+      }
+    }
+
+    const configToRun = options?.preparedConfig ?? prepareBacktestConfigForExecution(config, { notify: true })
 
     try {
-      await onRunBacktest(configToRun, true)
+      await onRunBacktest(configToRun, skipAuthCheck)
       scrollToBottom()
       refreshTier()
+      return true
     } catch (error) {
-      console.error("Failed to run loaded strategy:", error)
+      console.error("Backtest failed:", error)
+      const msg = error instanceof Error ? error.message : ""
+      const isQuotaError = msg.toLowerCase().includes("limit reached") || msg.toLowerCase().includes("upgrade your plan")
+      if (!isQuotaError) {
+        toast.error("Backtest Failed", {
+          description: msg || "An unknown error occurred",
+        })
+      }
+      return false
     }
-  }, [clampBacktestRangeForTier, onRunBacktest, refreshTier])
+  }, [isLoaded, isSignedIn, onRunBacktest, openSignIn, prepareBacktestConfigForExecution, refreshTier])
+
+  const runLoadedStrategyConfig = useCallback(async (config: BacktestRequest) => {
+    const configToRun = prepareBacktestConfigForExecution(config, { notify: true })
+    await executeBacktestConfig(configToRun, { skipAuthCheck: true, preparedConfig: configToRun })
+  }, [executeBacktestConfig, prepareBacktestConfigForExecution])
 
   // Close sector dropdown when clicking outside
   // Close dropdowns when clicking outside
@@ -711,30 +914,8 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
     // If called from event handler, isInitial will be an event object. Ensure it's explicitly boolean true.
     const skipAuthCheck = typeof isInitial === 'boolean' && isInitial
 
-    if (!skipAuthCheck) {
-      if (!isLoaded) return
-      if (!isSignedIn) {
-        openSignIn()
-        return
-      }
-    }
-
     const config = buildBacktestConfig()
-    try {
-      await onRunBacktest(config, skipAuthCheck)
-      scrollToBottom()
-      // Refresh user tier limits after running backtest
-      refreshTier();
-    } catch (error) {
-      console.error("Backtest failed:", error)
-      const msg = error instanceof Error ? error.message : ""
-      const isQuotaError = msg.toLowerCase().includes('limit reached') || msg.toLowerCase().includes('upgrade your plan')
-      if (!isQuotaError) {
-        toast.error("Backtest Failed", {
-          description: msg || "An unknown error occurred",
-        })
-      }
-    }
+    await executeBacktestConfig(config, { skipAuthCheck })
   }
 
 
@@ -872,6 +1053,57 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
     }
     scrollToBottom()
   }
+
+  const handleRunJsonConfig = async () => {
+    setJsonConfigError("")
+    setIsRunningJsonConfig(true)
+
+    try {
+      const parsedConfig = parseBacktestRequestFromJson(jsonConfigInput)
+      const configToRun = prepareBacktestConfigForExecution(parsedConfig, { notify: true })
+
+      applyStrategyFromConfig(configToRun)
+
+      const didRun = await executeBacktestConfig(configToRun, { preparedConfig: configToRun })
+
+      if (didRun) {
+        setShowJsonConfigModal(false)
+        setJsonConfigInput("")
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to run the pasted JSON config."
+      setJsonConfigError(message)
+      toast.error("Invalid JSON config", {
+        description: message,
+      })
+    } finally {
+      setIsRunningJsonConfig(false)
+    }
+  }
+
+  const openDialogFromRunMenu = useCallback((openDialog: () => void) => {
+    setRunMenuOpen(false)
+
+    window.setTimeout(() => {
+      openDialog()
+    }, 0)
+  }, [])
+
+  const handleSaveAndRunMenuSelect = useCallback(() => {
+    if (isLoaded && !isSignedIn) {
+      setSaveWithBacktest(true)
+      setRunMenuOpen(false)
+      openSignIn()
+      return
+    }
+
+    setSaveWithBacktest(true)
+    openDialogFromRunMenu(() => setShowSaveModal(true))
+  }, [isLoaded, isSignedIn, openDialogFromRunMenu, openSignIn])
+
+  const handleJsonConfigMenuSelect = useCallback(() => {
+    openDialogFromRunMenu(() => setShowJsonConfigModal(true))
+  }, [openDialogFromRunMenu])
 
 
 
@@ -1537,16 +1769,32 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                   <Play className="h-4 w-4 mr-2" />
                   Run Backtest
                 </Button>
-                <DropdownMenu>
+                <DropdownMenu modal={false} open={runMenuOpen} onOpenChange={setRunMenuOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button className="bg-[#d07225] hover:bg-[#a65b1d] text-white h-10 px-2.5 rounded-l-none">
                       <ChevronDown className="h-3.5 w-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-52" align="end">
-                    <DropdownMenuItem onClick={() => { if (isLoaded && !isSignedIn) { setSaveWithBacktest(true); openSignIn() } else { setSaveWithBacktest(true); setShowSaveModal(true) } }} className="font-mono text-xs">
+                    <DropdownMenuItem
+                      onSelect={(event) => {
+                        event.preventDefault()
+                        handleSaveAndRunMenuSelect()
+                      }}
+                      className="font-mono text-xs"
+                    >
                       <Play className="h-3.5 w-3.5 mr-2" />
                       Save & Run
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={(event) => {
+                        event.preventDefault()
+                        handleJsonConfigMenuSelect()
+                      }}
+                      className="font-mono text-xs"
+                    >
+                      <Play className="h-3.5 w-3.5 mr-2" />
+                      Run JSON Config
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleCopyConfig} className="font-mono text-xs">
                       {copied ? (<><CheckCheck className="h-3.5 w-3.5 mr-2 text-green-600" /><span className="text-green-600">Copied!</span></>) : (<><Copy className="h-3.5 w-3.5 mr-2" />Copy Config JSON</>)}
@@ -1650,6 +1898,61 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
               className="font-mono"
             >
               {isSaving ? "Saving..." : saveWithBacktest ? "Run & Save" : "Save Strategy"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showJsonConfigModal}
+        onOpenChange={(open) => {
+          setShowJsonConfigModal(open)
+          if (!open) {
+            setJsonConfigError("")
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-mono">Run Backtest from JSON</DialogTitle>
+            <DialogDescription className="font-mono text-xs text-muted-foreground">
+              Paste a backtest config JSON here. You can use the payload from &quot;Copy Config JSON&quot; or a wrapped
+              object with a top-level <code className="font-mono">config</code> field.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div>
+              <Label htmlFor="json-backtest-config" className="text-sm font-medium">
+                Backtest Config JSON
+              </Label>
+              <textarea
+                id="json-backtest-config"
+                value={jsonConfigInput}
+                onChange={(e) => {
+                  setJsonConfigInput(e.target.value)
+                  if (jsonConfigError) {
+                    setJsonConfigError("")
+                  }
+                }}
+                placeholder={`{\n  "backtestId": "backtest_123",\n  "filters": {\n    "marketCap": ["large"]\n  },\n  "fundamentalIndicators": [],\n  "technicalIndicators": [],\n  "backtestConfig": {\n    "initialCapital": 100000000,\n    "startDate": "2025-01-01",\n    "endDate": "2025-12-31",\n    "tradingCosts": {\n      "brokerFee": 0.15,\n      "sellFee": 0.15,\n      "minimumFee": 1000\n    },\n    "portfolio": {\n      "positionSizePercent": 25,\n      "minPositionPercent": 5,\n      "maxPositions": 4\n    },\n    "riskManagement": {\n      "stopLossPercent": 7,\n      "takeProfitPercent": 15,\n      "maxHoldingDays": 14\n    }\n  }\n}`}
+                className="mt-1 flex min-h-[360px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 font-mono"
+                disabled={isRunningJsonConfig}
+              />
+            </div>
+            {jsonConfigError && (
+              <p className="text-sm text-destructive font-mono">{jsonConfigError}</p>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowJsonConfigModal(false)} disabled={isRunningJsonConfig}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRunJsonConfig}
+              disabled={!jsonConfigInput.trim() || isRunningJsonConfig}
+              className="font-mono"
+            >
+              {isRunningJsonConfig ? "Running..." : "Run Backtest"}
             </Button>
           </DialogFooter>
         </DialogContent>
