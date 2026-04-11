@@ -1,4 +1,5 @@
 import type { BacktestResult } from "@/lib/api";
+import { normalizeBacktestContractConfig } from "@/lib/backtest-contract";
 import {
   getDailyQuotaSnapshot,
   getUserWithSyncedSubscriptionState,
@@ -258,6 +259,7 @@ export async function runBacktestWithQuota({
   errors,
 }: RunBacktestWithQuotaOptions): Promise<BacktestResult> {
   const railwayUrl = getRailwayUrl(errors);
+  const normalizedConfig = normalizeBacktestContractConfig(config as Record<string, any>);
 
   let quotaUserExists = false;
 
@@ -284,7 +286,7 @@ export async function runBacktestWithQuota({
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ config }),
+    body: JSON.stringify({ config: normalizedConfig }),
   });
 
   if (!response.ok) {

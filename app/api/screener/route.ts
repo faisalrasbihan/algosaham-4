@@ -5,22 +5,55 @@ import type postgres from "postgres"
 
 import { genkiClient } from "@/db/genki"
 import { ensureUserInDatabase } from "@/lib/ensure-user"
+import { normalizeScreeningContractConfig } from "@/lib/backtest-contract"
 import {
   getDailyQuotaSnapshot,
   getUserWithSyncedSubscriptionState,
   incrementDailyQuotaUsage,
 } from "@/lib/server/subscription-state"
 
+const stopLossSchema = z.discriminatedUnion("method", [
+  z.object({
+    method: z.literal("FIXED"),
+    percent: z.number().min(0),
+  }),
+  z.object({
+    method: z.literal("ATR"),
+    atrMultiplier: z.number().min(0),
+    atrPeriod: z.number().int().positive().optional(),
+  }),
+])
+
+const takeProfitSchema = z.discriminatedUnion("method", [
+  z.object({
+    method: z.literal("FIXED"),
+    percent: z.number().min(0),
+  }),
+  z.object({
+    method: z.literal("ATR"),
+    atrMultiplier: z.number().min(0),
+    atrPeriod: z.number().int().positive().optional(),
+  }),
+  z.object({
+    method: z.literal("RISK_REWARD"),
+    riskRewardRatio: z.number().min(0),
+  }),
+])
+
 const screenerRequestSchema = z.object({
   config: z.object({
-    backtestId: z.string().min(1),
+    screeningId: z.string().min(1),
     filters: z.object({
       tickers: z.array(z.string()).optional(),
       marketCap: z.array(z.string()).optional(),
       minDailyValue: z.number().optional(),
       syariah: z.boolean().optional(),
       sectors: z.array(z.string()).optional(),
-    }).default({}),
+      rules: z.record(z.object({
+        min: z.number().optional(),
+        max: z.number().optional(),
+      })).optional(),
+    }).optional(),
     fundamentalIndicators: z.array(z.object({
       type: z.string(),
       min: z.number().optional(),
@@ -29,28 +62,18 @@ const screenerRequestSchema = z.object({
     technicalIndicators: z.array(z.object({
       type: z.string(),
     }).passthrough()).optional().default([]),
-    backtestConfig: z.object({
-      initialCapital: z.number().positive(),
-      startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      tradingCosts: z.object({
-        brokerFee: z.number().min(0),
-        sellFee: z.number().min(0),
-        minimumFee: z.number().min(0),
-      }),
-      portfolio: z.object({
-        positionSizePercent: z.number().min(1).max(100),
-        minPositionPercent: z.number().min(0).max(100),
-        maxPositions: z.number().int().positive(),
-      }),
-      riskManagement: z.object({
-        stopLossPercent: z.number().min(0),
-        takeProfitPercent: z.number().min(0),
-        maxHoldingDays: z.number().int().positive(),
-      }),
-    }),
-    riskManagement: z.record(z.any()).optional(),
+    signalAlignmentDays: z.number().optional(),
+    riskManagement: z.object({
+      stopLoss: stopLossSchema.optional(),
+      takeProfit: takeProfitSchema.optional(),
+      maxHoldingDays: z.number().int().positive().optional(),
+      exitSignals: z.object({
+        exitRules: z.array(z.enum(["STOP_LOSS", "TAKE_PROFIT", "MAX_HOLD"])).optional(),
+        exitPriority: z.array(z.enum(["STOP_LOSS", "TAKE_PROFIT", "MAX_HOLD"])).optional(),
+      }).optional(),
+    }).optional(),
   }),
+  scan_days: z.number().int().positive().optional(),
 })
 
 type ScreenerDbRow = {
@@ -324,7 +347,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body =
+      rawBody && typeof rawBody === "object" && rawBody !== null && "config" in rawBody
+        ? {
+          ...rawBody,
+          config: normalizeScreeningContractConfig((rawBody as { config: Record<string, any> }).config),
+          scan_days:
+            typeof (rawBody as { scan_days?: number }).scan_days === "number"
+              ? (rawBody as { scan_days?: number }).scan_days
+              : 5,
+        }
+        : rawBody
     const parsed = screenerRequestSchema.safeParse(body)
 
     if (!parsed.success) {
@@ -344,13 +378,15 @@ export async function POST(request: NextRequest) {
       FROM core.mv_stock_daily
     `
     const latestDate = latestDateResult[0]?.latest_date ?? null
+    const scannedDays = parsed.data.scan_days ?? 5
     const technicalIndicators = parsed.data.config.technicalIndicators ?? []
     const runsInUniverseMode = technicalIndicators.length === 0
 
-    let screeningId = parsed.data.config.backtestId
+    let screeningId = parsed.data.config.screeningId
     let summary: Record<string, unknown> = {}
     let dateRange: { from?: string; to?: string } | null = null
     let dbRows: ScreenerDbRow[] = [];
+    let signals: Array<Record<string, unknown>> = []
 
     if (runsInUniverseMode) {
       dbRows = await queryLatestSnapshotRows(parsed.data.config.filters ?? {})
@@ -363,6 +399,24 @@ export async function POST(request: NextRequest) {
         passedFundamentals: dbRows.length,
       }
       dateRange = latestDate ? { from: latestDate, to: latestDate } : null
+      signals = dbRows.map((row) => ({
+        ticker: row.stock_code,
+        companyName: row.stock_code,
+        date: latestDate,
+        daysAgo: 0,
+        signal: "BUY",
+        reasons: ["Matched screener filters"],
+        price: toOptionalNumber(row.close),
+        currentPrice: toOptionalNumber(row.close),
+        sector: row.sector,
+        marketCap: row.market_cap_group?.toLowerCase() ?? null,
+        stopLoss: null,
+        takeProfit: null,
+        method: {
+          stopLoss: parsed.data.config.riskManagement?.stopLoss?.method ?? null,
+          takeProfit: parsed.data.config.riskManagement?.takeProfit?.method ?? null,
+        },
+      }))
     } else {
       const railwayUrl = process.env.RAILWAY_URL || ""
       if (!railwayUrl) {
@@ -381,7 +435,10 @@ export async function POST(request: NextRequest) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(parsed.data),
+        body: JSON.stringify({
+          config: parsed.data.config,
+          scan_days: scannedDays,
+        }),
       });
 
       if (!response.ok) {
@@ -396,12 +453,18 @@ export async function POST(request: NextRequest) {
       }
 
       const result = await response.json();
-      const signals = result.signals || [];
+      signals = Array.isArray(result.signals) ? result.signals : [];
       summary = result.summary || {};
       dateRange = result.dateRange || null;
-      screeningId = result.screeningId || parsed.data.config.backtestId;
+      screeningId = result.screeningId || parsed.data.config.screeningId;
 
-      const tickers = Array.from(new Set(signals.map((s: { ticker: string }) => s.ticker))) as string[];
+      const tickers = Array.from(
+        new Set(
+          signals
+            .map((signal) => (typeof signal.ticker === "string" ? signal.ticker : null))
+            .filter((ticker): ticker is string => ticker !== null),
+        ),
+      );
       if (tickers.length > 0) {
         dbRows = await queryLatestSnapshotRows({ tickers })
       }
@@ -415,6 +478,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       screeningId,
+      scannedDays,
+      signals,
       latestDate,
       rows,
       summary,

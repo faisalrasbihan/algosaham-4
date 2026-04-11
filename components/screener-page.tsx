@@ -50,7 +50,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import type { BacktestRequest } from "@/lib/api"
+import type { ScreenerRequest } from "@/lib/api"
+import { normalizeScreeningContractConfig } from "@/lib/backtest-contract"
 import {
   technicalIndicatorCategories,
   technicalIndicatorNameToApiType,
@@ -109,6 +110,25 @@ type ScreenerRow = {
 
 type ScreenerApiResponse = {
   screeningId: string
+  scannedDays: number
+  signals: Array<{
+    ticker: string
+    companyName: string
+    date: string | null
+    daysAgo: number
+    signal: string
+    reasons: string[]
+    price: number | null
+    currentPrice: number | null
+    sector: string | null
+    marketCap: string | null
+    stopLoss: number | null
+    takeProfit: number | null
+    method?: {
+      stopLoss: string | null
+      takeProfit: string | null
+    }
+  }>
   latestDate: string | null
   rows: ScreenerRow[]
   summary: {
@@ -1163,9 +1183,9 @@ export function ScreenerPage() {
       definition.description.toLowerCase().includes(normalizedIndicatorSearch),
     )
 
-  function buildScreenerConfig(): BacktestRequest {
-    return {
-      backtestId: activePresetId ? `screener_${activePresetId}` : `screener_${Date.now()}`,
+  function buildScreenerConfig(): ScreenerRequest {
+    return normalizeScreeningContractConfig({
+      screeningId: activePresetId ? `screener_${activePresetId}` : `screener_${Date.now()}`,
       filters: {
         marketCap: marketCapFilter === "all" ? [] : [marketCapFilter.toLowerCase()],
         syariah: syariahFilter === "all" ? undefined : syariahFilter === "yes",
@@ -1210,27 +1230,18 @@ export function ScreenerPage() {
               return { type: rule.key.toUpperCase(), min: parseOptionalNumber(rule.params.min), max: parseOptionalNumber(rule.params.max) }
           }
         }),
-      backtestConfig: {
-        initialCapital: 100000000,
-        startDate: "2025-01-01",
-        endDate: "2026-02-28",
-        tradingCosts: {
-          brokerFee: 0.15,
-          sellFee: 0.15,
-          minimumFee: 1000,
+      riskManagement: {
+        stopLoss: {
+          method: "FIXED",
+          percent: 8,
         },
-        portfolio: {
-          positionSizePercent: 25,
-          minPositionPercent: 5,
-          maxPositions: 4,
+        takeProfit: {
+          method: "FIXED",
+          percent: 20,
         },
-        riskManagement: {
-          stopLossPercent: 8,
-          takeProfitPercent: 20,
-          maxHoldingDays: 60,
-        },
+        maxHoldingDays: 60,
       },
-    }
+    })
   }
 
   async function runScreener() {
@@ -1250,7 +1261,7 @@ export function ScreenerPage() {
       const response = await fetch("/api/screener", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config: buildScreenerConfig() }),
+        body: JSON.stringify({ config: buildScreenerConfig(), scan_days: 5 }),
       })
 
       const result = await response.json() as ScreenerApiResponse & { error?: string; details?: string }

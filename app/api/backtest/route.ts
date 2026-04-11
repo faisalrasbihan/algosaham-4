@@ -2,12 +2,41 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from "@clerk/nextjs/server";
 import { BacktestExecutionError, runBacktestWithQuota } from "@/lib/server/backtest";
+import { normalizeBacktestContractConfig } from "@/lib/backtest-contract";
 
 // Environment-based logging - only log in development
 const isDev = process.env.NODE_ENV === 'development'
 const log = isDev ? console.log.bind(console) : () => { }
 
-// Zod schema for input validation (matches BACKTESTER_API_SPEC.md)
+const stopLossSchema = z.discriminatedUnion("method", [
+  z.object({
+    method: z.literal("FIXED"),
+    percent: z.number().min(0),
+  }),
+  z.object({
+    method: z.literal("ATR"),
+    atrMultiplier: z.number().min(0),
+    atrPeriod: z.number().int().positive().optional(),
+  }),
+])
+
+const takeProfitSchema = z.discriminatedUnion("method", [
+  z.object({
+    method: z.literal("FIXED"),
+    percent: z.number().min(0),
+  }),
+  z.object({
+    method: z.literal("ATR"),
+    atrMultiplier: z.number().min(0),
+    atrPeriod: z.number().int().positive().optional(),
+  }),
+  z.object({
+    method: z.literal("RISK_REWARD"),
+    riskRewardRatio: z.number().min(0),
+  }),
+])
+
+// Zod schema for input validation against the documented contract
 const backtestConfigSchema = z.object({
   config: z.object({
     backtestId: z.string().min(1),
@@ -17,7 +46,11 @@ const backtestConfigSchema = z.object({
       minDailyValue: z.number().optional(),
       syariah: z.boolean().optional(),
       sectors: z.array(z.string()).optional(),
-    }),
+      rules: z.record(z.object({
+        min: z.number().optional(),
+        max: z.number().optional(),
+      })).optional(),
+    }).optional(),
     fundamentalIndicators: z.array(z.object({
       type: z.string(),
       min: z.number().optional(),
@@ -26,25 +59,42 @@ const backtestConfigSchema = z.object({
     technicalIndicators: z.array(z.object({
       type: z.string(),
     }).passthrough()).optional().default([]),
+    signalAlignmentDays: z.number().optional(),
     backtestConfig: z.object({
       initialCapital: z.number().positive(),
       startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),
       endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),
       tradingCosts: z.object({
-        brokerFee: z.number().min(0),
-        sellFee: z.number().min(0),
-        minimumFee: z.number().min(0),
-      }),
+        brokerFee: z.number().min(0).optional(),
+        sellFee: z.number().min(0).optional(),
+        minimumFee: z.number().min(0).optional(),
+        slippageBps: z.number().min(0).optional(),
+        spreadBps: z.number().min(0).optional(),
+      }).optional(),
       portfolio: z.object({
-        positionSizePercent: z.number().min(1).max(100),
-        minPositionPercent: z.number().min(0).max(100),
-        maxPositions: z.number().int().positive(),
-      }),
+        positionSizePercent: z.number().min(1).max(100).optional(),
+        minPositionPercent: z.number().min(0).max(100).optional(),
+        maxPositions: z.number().int().positive().optional(),
+      }).optional(),
       riskManagement: z.object({
-        stopLossPercent: z.number().min(0),
-        takeProfitPercent: z.number().min(0),  // No upper limit per API spec
-        maxHoldingDays: z.number().int().positive(),
-      }),
+        stopLoss: stopLossSchema.optional(),
+        takeProfit: takeProfitSchema.optional(),
+        maxHoldingDays: z.number().int().positive().optional(),
+        exitSignals: z.object({
+          exitRules: z.array(z.enum(["STOP_LOSS", "TAKE_PROFIT", "MAX_HOLD"])).optional(),
+          exitPriority: z.array(z.enum(["STOP_LOSS", "TAKE_PROFIT", "MAX_HOLD"])).optional(),
+        }).optional(),
+      }).optional(),
+      dividendPolicy: z.object({
+        enabled: z.boolean().optional(),
+        eligibilityDate: z.string().optional(),
+        creditDate: z.string().optional(),
+        baseCurrency: z.string().optional(),
+        taxBps: z.number().min(0).optional(),
+        fxRates: z.record(z.number()).optional(),
+        skipNonBaseCurrency: z.boolean().optional(),
+      }).optional(),
+      signalAlignmentDays: z.number().optional(),
     }).refine(d => d.startDate < d.endDate, {
       message: 'startDate must be before endDate',
       path: ['endDate'],
@@ -52,29 +102,6 @@ const backtestConfigSchema = z.object({
   }),
   isInitial: z.boolean().optional(),
 })
-
-const defaultBacktestDates = {
-  startDate: '2024-01-01',
-  endDate: '2024-12-31',
-}
-
-const defaultTradingCosts = {
-  brokerFee: 0.15,
-  sellFee: 0.15,
-  minimumFee: 1000,
-}
-
-const defaultPortfolio = {
-  positionSizePercent: 25,
-  minPositionPercent: 5,
-  maxPositions: 4,
-}
-
-const defaultRiskManagement = {
-  stopLossPercent: 7,
-  takeProfitPercent: 15,
-  maxHoldingDays: 14,
-}
 
 type BacktestApiBody = {
   config?: Record<string, any>
@@ -94,43 +121,9 @@ function normalizeBacktestBody(body: unknown): BacktestApiBody {
     return requestBody
   }
 
-  const backtestConfig = rawConfig.backtestConfig ?? {}
-
   return {
     ...requestBody,
-    config: {
-      ...rawConfig,
-      backtestId:
-        typeof rawConfig.backtestId === 'string' && rawConfig.backtestId.trim().length > 0
-          ? rawConfig.backtestId
-          : `backtest_${Date.now()}`,
-      filters: {
-        marketCap:
-          Array.isArray(rawConfig.filters?.marketCap) && rawConfig.filters.marketCap.length > 0
-            ? rawConfig.filters.marketCap
-            : ['large'],
-        ...(rawConfig.filters ?? {}),
-      },
-      fundamentalIndicators: Array.isArray(rawConfig.fundamentalIndicators) ? rawConfig.fundamentalIndicators : [],
-      technicalIndicators: Array.isArray(rawConfig.technicalIndicators) ? rawConfig.technicalIndicators : [],
-      backtestConfig: {
-        initialCapital: backtestConfig.initialCapital ?? 100000000,
-        startDate: backtestConfig.startDate ?? defaultBacktestDates.startDate,
-        endDate: backtestConfig.endDate ?? defaultBacktestDates.endDate,
-        tradingCosts: {
-          ...defaultTradingCosts,
-          ...(backtestConfig.tradingCosts ?? {}),
-        },
-        portfolio: {
-          ...defaultPortfolio,
-          ...(backtestConfig.portfolio ?? {}),
-        },
-        riskManagement: {
-          ...defaultRiskManagement,
-          ...(backtestConfig.riskManagement ?? {}),
-        },
-      },
-    },
+    config: normalizeBacktestContractConfig(rawConfig),
   }
 }
 

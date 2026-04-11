@@ -51,6 +51,7 @@ import { OnboardingTutorial } from "@/components/onboarding-tutorial"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { toast } from "sonner"
 import type { BacktestRequest } from "@/lib/api"
+import { getFixedStopLossPercent, getFixedTakeProfitPercent, normalizeBacktestContractConfig } from "@/lib/backtest-contract"
 import { useUserTier } from "@/context/user-tier-context"
 import {
   getTechnicalIndicatorRequiredTier,
@@ -182,6 +183,14 @@ function readOptionalStringArray(value: unknown, fieldName: string) {
   return value
 }
 
+function readRequiredString(value: unknown, fieldName: string) {
+  if (typeof value === "string" && value.trim() !== "") {
+    return value
+  }
+
+  throw new Error(`${fieldName} must be a non-empty string.`)
+}
+
 function parseBacktestRequestFromJson(input: string): BacktestRequest {
   let parsed: unknown
 
@@ -215,10 +224,6 @@ function parseBacktestRequestFromJson(input: string): BacktestRequest {
     throw new Error("Missing `backtestConfig.portfolio` in the pasted JSON.")
   }
 
-  if (!isPlainObject(backtestConfig.riskManagement)) {
-    throw new Error("Missing `backtestConfig.riskManagement` in the pasted JSON.")
-  }
-
   const fundamentalIndicators = rawConfig.fundamentalIndicators
   const technicalIndicators = rawConfig.technicalIndicators
 
@@ -247,10 +252,10 @@ function parseBacktestRequestFromJson(input: string): BacktestRequest {
       throw new Error(`technicalIndicators[${index}] must include a string \`type\`.`)
     }
 
-    return indicator as BacktestRequest["technicalIndicators"][number]
+    return indicator as NonNullable<BacktestRequest["technicalIndicators"]>[number]
   })
 
-  return {
+  const normalizedConfig = normalizeBacktestContractConfig({
     backtestId:
       typeof rawConfig.backtestId === "string" && rawConfig.backtestId.trim()
         ? rawConfig.backtestId
@@ -269,18 +274,8 @@ function parseBacktestRequestFromJson(input: string): BacktestRequest {
     technicalIndicators: parsedTechnicalIndicators,
     backtestConfig: {
       initialCapital: readNumberField(backtestConfig.initialCapital, "backtestConfig.initialCapital"),
-      startDate:
-        typeof backtestConfig.startDate === "string" && backtestConfig.startDate.trim()
-          ? backtestConfig.startDate
-          : (() => {
-            throw new Error("`backtestConfig.startDate` must be a non-empty string.")
-          })(),
-      endDate:
-        typeof backtestConfig.endDate === "string" && backtestConfig.endDate.trim()
-          ? backtestConfig.endDate
-          : (() => {
-            throw new Error("`backtestConfig.endDate` must be a non-empty string.")
-          })(),
+      startDate: readRequiredString(backtestConfig.startDate, "backtestConfig.startDate"),
+      endDate: readRequiredString(backtestConfig.endDate, "backtestConfig.endDate"),
       tradingCosts: {
         brokerFee: readNumberField(backtestConfig.tradingCosts.brokerFee, "backtestConfig.tradingCosts.brokerFee"),
         sellFee: readNumberField(backtestConfig.tradingCosts.sellFee, "backtestConfig.tradingCosts.sellFee"),
@@ -297,22 +292,11 @@ function parseBacktestRequestFromJson(input: string): BacktestRequest {
         ),
         maxPositions: readNumberField(backtestConfig.portfolio.maxPositions, "backtestConfig.portfolio.maxPositions"),
       },
-      riskManagement: {
-        stopLossPercent: readNumberField(
-          backtestConfig.riskManagement.stopLossPercent,
-          "backtestConfig.riskManagement.stopLossPercent",
-        ),
-        takeProfitPercent: readNumberField(
-          backtestConfig.riskManagement.takeProfitPercent,
-          "backtestConfig.riskManagement.takeProfitPercent",
-        ),
-        maxHoldingDays: readNumberField(
-          backtestConfig.riskManagement.maxHoldingDays,
-          "backtestConfig.riskManagement.maxHoldingDays",
-        ),
-      },
+      riskManagement: isPlainObject(backtestConfig.riskManagement) ? backtestConfig.riskManagement : undefined,
     },
-  }
+  })
+
+  return normalizedConfig
 }
 
 export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults }: BacktestStrategyBuilderProps) {
@@ -518,6 +502,10 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
 
   const prepareBacktestConfigForExecution = useCallback(
     (config: BacktestRequest, options?: { notify?: boolean }) => {
+      if (!config.backtestConfig) {
+        return config
+      }
+
       const allowedRange = clampBacktestRangeForTier(
         config.backtestConfig.startDate,
         config.backtestConfig.endDate,
@@ -528,7 +516,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
         ? {
           ...config,
           backtestConfig: {
-            ...config.backtestConfig,
+            ...config.backtestConfig!,
             startDate: allowedRange.startDate,
             endDate: allowedRange.endDate,
           },
@@ -852,7 +840,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
     const allowedRange = clampBacktestRangeForTier(startDate, endDate)
     const allowedTechnicalIndicators = filterTechnicalIndicatorsForTier(technicalIndicators)
 
-    return {
+    return normalizeBacktestContractConfig({
       backtestId: `backtest_${Date.now()}`,
       filters: {
         marketCap: marketCaps.length > 0 ? marketCaps : ["large"],
@@ -882,12 +870,18 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
           maxPositions: 4,
         },
         riskManagement: {
-          stopLossPercent: Number(stopLoss),
-          takeProfitPercent: Number(takeProfit),
+          stopLoss: {
+            method: "FIXED",
+            percent: Number(stopLoss),
+          },
+          takeProfit: {
+            method: "FIXED",
+            percent: Number(takeProfit),
+          },
           maxHoldingDays: maxHoldingPeriod === "no-limit" ? 999999 : Number.parseInt(maxHoldingPeriod),
         },
       },
-    }
+    })
   }
 
   // Copy backtest configuration to clipboard
@@ -1046,9 +1040,9 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
       setBacktestPeriod("")
       setBacktestPeriodMode("custom")
       if (config.backtestConfig.riskManagement) {
-        setStopLoss(config.backtestConfig.riskManagement.stopLossPercent)
-        setTakeProfit(config.backtestConfig.riskManagement.takeProfitPercent)
-        setMaxHoldingPeriod(config.backtestConfig.riskManagement.maxHoldingDays.toString())
+        setStopLoss(getFixedStopLossPercent(config.backtestConfig.riskManagement))
+        setTakeProfit(getFixedTakeProfitPercent(config.backtestConfig.riskManagement))
+        setMaxHoldingPeriod((config.backtestConfig.riskManagement.maxHoldingDays ?? 14).toString())
       }
     }
     scrollToBottom()
@@ -1934,7 +1928,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                     setJsonConfigError("")
                   }
                 }}
-                placeholder={`{\n  "backtestId": "backtest_123",\n  "filters": {\n    "marketCap": ["large"]\n  },\n  "fundamentalIndicators": [],\n  "technicalIndicators": [],\n  "backtestConfig": {\n    "initialCapital": 100000000,\n    "startDate": "2025-01-01",\n    "endDate": "2025-12-31",\n    "tradingCosts": {\n      "brokerFee": 0.15,\n      "sellFee": 0.15,\n      "minimumFee": 1000\n    },\n    "portfolio": {\n      "positionSizePercent": 25,\n      "minPositionPercent": 5,\n      "maxPositions": 4\n    },\n    "riskManagement": {\n      "stopLossPercent": 7,\n      "takeProfitPercent": 15,\n      "maxHoldingDays": 14\n    }\n  }\n}`}
+                placeholder={`{\n  "config": {\n    "backtestId": "backtest_123",\n    "filters": {\n      "marketCap": ["large"]\n    },\n    "fundamentalIndicators": [],\n    "technicalIndicators": [],\n    "backtestConfig": {\n      "initialCapital": 100000000,\n      "startDate": "2025-01-01",\n      "endDate": "2025-12-31",\n      "tradingCosts": {\n        "brokerFee": 0.15,\n        "sellFee": 0.15,\n        "minimumFee": 1000\n      },\n      "portfolio": {\n        "positionSizePercent": 25,\n        "minPositionPercent": 5,\n        "maxPositions": 4\n      },\n      "riskManagement": {\n        "stopLoss": {\n          "method": "FIXED",\n          "percent": 7\n        },\n        "takeProfit": {\n          "method": "FIXED",\n          "percent": 15\n        },\n        "maxHoldingDays": 14\n      }\n    }\n  }\n}`}
                 className="mt-1 flex min-h-[360px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 font-mono"
                 disabled={isRunningJsonConfig}
               />

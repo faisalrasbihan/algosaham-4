@@ -37,6 +37,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { Strategy as CardStrategy } from "@/components/cards/types"
 import type { BacktestRequest, BacktestResult } from "@/lib/api"
+import { normalizeBacktestContractConfig } from "@/lib/backtest-contract"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
@@ -686,12 +687,7 @@ export default function Portfolio() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    config: {
-                        ...strategy.backtestConfig,
-                        backtestConfig: {
-                            ...strategy.backtestConfig.backtestConfig,
-                        },
-                    } satisfies BacktestRequest,
+                    config: normalizeBacktestContractConfig(strategy.backtestConfig),
                     isInitial: true,
                 }),
             })

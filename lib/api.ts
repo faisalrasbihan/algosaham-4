@@ -3,44 +3,122 @@
 const isDev = process.env.NODE_ENV === 'development'
 const log = isDev ? console.log.bind(console) : () => { }
 
-export interface BacktestRequest {
-  backtestId: string
-  filters: {
-    marketCap: string[]
-    syariah?: boolean
-    minDailyValue?: number
-    tickers?: string[]
-    sectors?: string[]
+export type FilterRule = {
+  min?: number
+  max?: number
+}
+
+export type TradingCosts = {
+  brokerFee?: number
+  sellFee?: number
+  minimumFee?: number
+  slippageBps?: number
+  spreadBps?: number
+}
+
+export type PortfolioConfig = {
+  positionSizePercent?: number
+  minPositionPercent?: number
+  maxPositions?: number
+}
+
+export type StopLossConfig =
+  | {
+    method: 'FIXED'
+    percent: number
   }
-  fundamentalIndicators: Array<{
-    type: string
-    min?: number
-    max?: number
-  }>
-  technicalIndicators: Array<{
-    type: string
-    [key: string]: any
-  }>
-  backtestConfig: {
+  | {
+    method: 'ATR'
+    atrMultiplier: number
+    atrPeriod?: number
+  }
+
+export type TakeProfitConfig =
+  | {
+    method: 'FIXED'
+    percent: number
+  }
+  | {
+    method: 'ATR'
+    atrMultiplier: number
+    atrPeriod?: number
+  }
+  | {
+    method: 'RISK_REWARD'
+    riskRewardRatio: number
+  }
+
+export type ExitSignalsConfig = {
+  exitRules?: Array<'STOP_LOSS' | 'TAKE_PROFIT' | 'MAX_HOLD'>
+  exitPriority?: Array<'STOP_LOSS' | 'TAKE_PROFIT' | 'MAX_HOLD'>
+}
+
+export type RiskManagementConfig = {
+  stopLoss?: StopLossConfig
+  takeProfit?: TakeProfitConfig
+  maxHoldingDays?: number
+  exitSignals?: ExitSignalsConfig
+}
+
+export type DividendPolicyConfig = {
+  enabled?: boolean
+  eligibilityDate?: string
+  creditDate?: string
+  baseCurrency?: string
+  taxBps?: number
+  fxRates?: Record<string, number>
+  skipNonBaseCurrency?: boolean
+}
+
+export type FundamentalIndicatorConfig = {
+  type: string
+  min?: number
+  max?: number
+}
+
+export type TechnicalIndicatorConfig = {
+  type: string
+  [key: string]: any
+}
+
+export type StrategyFilters = {
+  marketCap?: string[]
+  syariah?: boolean
+  minDailyValue?: number
+  tickers?: string[]
+  sectors?: string[]
+  rules?: Record<string, FilterRule>
+}
+
+export interface BacktestRequest {
+  backtestId?: string
+  screeningId?: string
+  filters?: StrategyFilters
+  fundamentalIndicators?: FundamentalIndicatorConfig[]
+  technicalIndicators?: TechnicalIndicatorConfig[]
+  signalAlignmentDays?: number
+  backtestConfig?: {
     initialCapital: number
     startDate: string
     endDate: string
-    tradingCosts: {
-      brokerFee: number
-      sellFee: number
-      minimumFee: number
-    }
-    portfolio: {
-      positionSizePercent: number
-      minPositionPercent: number
-      maxPositions: number
-    }
-    riskManagement: {
-      stopLossPercent: number
-      takeProfitPercent: number
-      maxHoldingDays: number
-    }
+    tradingCosts?: TradingCosts
+    portfolio?: PortfolioConfig
+    riskManagement?: RiskManagementConfig
+    dividendPolicy?: DividendPolicyConfig
+    signalAlignmentDays?: number
   }
+  riskManagement?: RiskManagementConfig
+}
+
+export interface ScreenerRequest {
+  backtestId?: string
+  screeningId?: string
+  filters?: StrategyFilters
+  fundamentalIndicators?: FundamentalIndicatorConfig[]
+  technicalIndicators?: TechnicalIndicatorConfig[]
+  signalAlignmentDays?: number
+  riskManagement?: RiskManagementConfig
+  backtestConfig?: BacktestRequest['backtestConfig']
 }
 
 export interface BacktestResult {
@@ -163,11 +241,10 @@ export class ApiService {
         try {
           const errorData = await response.json()
           if (errorData.message) {
-            errorMessage = errorData.message // Use the user-friendly message
+            errorMessage = errorData.message
           } else if (errorData.error) {
             errorMessage = errorData.error
           } else {
-            // Fallback to text if no JSON
             errorMessage = await response.text()
           }
         } catch (e) {
