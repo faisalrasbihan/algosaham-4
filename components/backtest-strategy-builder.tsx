@@ -171,6 +171,25 @@ function readNumberField(value: unknown, fieldName: string) {
   throw new Error(`${fieldName} must be a valid number.`)
 }
 
+function readOptionalNumberField(value: unknown) {
+  if (value === undefined || value === null || value === "") {
+    return undefined
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsedValue = Number(value)
+    if (Number.isFinite(parsedValue)) {
+      return parsedValue
+    }
+  }
+
+  return undefined
+}
+
 function readOptionalStringArray(value: unknown, fieldName: string) {
   if (value === undefined) {
     return undefined
@@ -242,8 +261,8 @@ function parseBacktestRequestFromJson(input: string): BacktestRequest {
 
     return {
       type: indicator.type,
-      min: indicator.min === undefined ? undefined : readNumberField(indicator.min, `fundamentalIndicators[${index}].min`),
-      max: indicator.max === undefined ? undefined : readNumberField(indicator.max, `fundamentalIndicators[${index}].max`),
+      min: readOptionalNumberField(indicator.min),
+      max: readOptionalNumberField(indicator.max),
     }
   })
 
@@ -805,7 +824,10 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   const mapTechnicalIndicator = (ind: Indicator) => {
     const cleanParams: Record<string, number> = {}
     Object.entries(ind.params).forEach(([k, v]) => {
-      cleanParams[k] = v === "" ? 0 : Number(v)
+      const parsedValue = readOptionalNumberField(v)
+      if (parsedValue !== undefined) {
+        cleanParams[k] = parsedValue
+      }
     })
 
     switch (ind.name) {
@@ -851,8 +873,8 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
       },
       fundamentalIndicators: fundamentalIndicators.map((ind) => ({
         type: fundamentalTypeMap[ind.name] || ind.name.toUpperCase().replace(/\s+/g, "_"),
-        min: ind.params.min === "" ? undefined : Number(ind.params.min),
-        max: ind.params.max === "" ? undefined : Number(ind.params.max),
+        min: readOptionalNumberField(ind.params.min),
+        max: readOptionalNumberField(ind.params.max),
       })),
       technicalIndicators: allowedTechnicalIndicators.map(mapTechnicalIndicator),
       backtestConfig: {
@@ -1010,7 +1032,10 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
         id: `fund_auto_${Date.now()}_${idx}`,
         name: mapApiFundamentalTypeToUiName(ind.type),
         type: "fundamental",
-        params: { min: ind.min, max: ind.max }
+        params: {
+          min: ind.min ?? "",
+          max: ind.max ?? "",
+        }
       }))
       setFundamentalIndicators(newFundamentalIndicators)
     }
@@ -1022,7 +1047,9 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
           id: `tech_auto_${Date.now()}_${idx}`,
           name: mapApiTypeToUiName(type),
           type: "technical",
-          params: params
+          params: Object.fromEntries(
+            Object.entries(params).map(([key, value]) => [key, value ?? ""]),
+          )
         }
       })
       setTechnicalIndicators(filterTechnicalIndicatorsForTier(newTechnicalIndicators, { notify: true }))

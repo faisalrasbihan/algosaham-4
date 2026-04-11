@@ -140,6 +140,10 @@ export async function POST(request: NextRequest) {
     // Parse the request body
     const rawBody = await request.json()
     const body = normalizeBacktestBody(rawBody)
+    const outboundConfig =
+      rawBody && typeof rawBody === 'object' && rawBody !== null && 'config' in rawBody && typeof (rawBody as BacktestApiBody).config === 'object'
+        ? (rawBody as BacktestApiBody).config
+        : body.config
     const isInitialReq = body.isInitial === true;
 
     log('📦 [API ROUTE] Request received for backtest:', body.config?.backtestId)
@@ -164,7 +168,7 @@ export async function POST(request: NextRequest) {
 
     log('🔄 [API ROUTE] Calling Railway endpoint...')
     const result = await runBacktestWithQuota({
-      config: validatedBody.config,
+      config: outboundConfig ?? validatedBody.config,
       userId,
       consumeQuota: Boolean(userId) && !isInitialReq,
       errors: {
