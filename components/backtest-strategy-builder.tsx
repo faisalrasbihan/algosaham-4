@@ -1084,13 +1084,10 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
       const configToRun = prepareBacktestConfigForExecution(parsedConfig, { notify: true })
 
       applyStrategyFromConfig(configToRun)
+      setShowJsonConfigModal(false)
+      setJsonConfigInput("")
 
-      const didRun = await executeBacktestConfig(configToRun, { preparedConfig: configToRun })
-
-      if (didRun) {
-        setShowJsonConfigModal(false)
-        setJsonConfigInput("")
-      }
+      await executeBacktestConfig(configToRun, { preparedConfig: configToRun })
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to run the pasted JSON config."
       setJsonConfigError(message)
@@ -1213,7 +1210,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
         </TabsContent>
 
         <TabsContent value="strategy" className="flex-1 flex flex-col m-0 overflow-hidden bg-card">
-          <SidebarContent ref={scrollContainerRef} className="gap-0">
+          <SidebarContent ref={scrollContainerRef} className="gap-0 scrollbar-hide">
             {/* Stock Filters */}
             <SidebarGroup className="p-0" data-tutorial="stock-filters">
               <button
@@ -1956,7 +1953,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                   }
                 }}
                 placeholder={`{\n  "config": {\n    "backtestId": "backtest_123",\n    "filters": {\n      "marketCap": ["large"]\n    },\n    "fundamentalIndicators": [],\n    "technicalIndicators": [],\n    "backtestConfig": {\n      "initialCapital": 100000000,\n      "startDate": "2025-01-01",\n      "endDate": "2025-12-31",\n      "tradingCosts": {\n        "brokerFee": 0.15,\n        "sellFee": 0.15,\n        "minimumFee": 1000\n      },\n      "portfolio": {\n        "positionSizePercent": 25,\n        "minPositionPercent": 5,\n        "maxPositions": 4\n      },\n      "riskManagement": {\n        "stopLoss": {\n          "method": "FIXED",\n          "percent": 7\n        },\n        "takeProfit": {\n          "method": "FIXED",\n          "percent": 15\n        },\n        "maxHoldingDays": 14\n      }\n    }\n  }\n}`}
-                className="mt-1 flex min-h-[360px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 font-mono"
+                className="mt-1 flex min-h-[360px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 font-mono"
                 disabled={isRunningJsonConfig}
               />
             </div>

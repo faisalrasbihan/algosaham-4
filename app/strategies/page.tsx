@@ -71,7 +71,7 @@ export default function Strategies() {
   const [previewStrategyId, setPreviewStrategyId] = useState<string | null>(null)
   const [previewStrategyName, setPreviewStrategyName] = useState<string | undefined>(undefined)
 
-  const { tier, limits, usage, refreshTier } = useUserTier()
+  const { tier, limits, usage, refreshTier, isLoading: isTierLoading } = useUserTier()
   const { isSignedIn, isLoaded } = useUser()
   const { openSignIn } = useClerk()
 
@@ -147,6 +147,10 @@ export default function Strategies() {
 
     if (!isSignedIn) {
       openSignIn()
+      return
+    }
+
+    if (isTierLoading) {
       return
     }
 
@@ -247,7 +251,7 @@ export default function Strategies() {
   const subscriptionsRemaining = limits.subscriptions === -1 ? '∞' : (limits.subscriptions - usage.subscriptions)
   const officialStrategies = exploreStrategies.filter(isOfficialStrategy)
   const communityStrategies = exploreStrategies.filter((strategy) => !isOfficialStrategy(strategy))
-  const officialStrategiesLocked = tier === 'ritel'
+  const officialStrategiesLocked = !isTierLoading && tier === 'ritel'
 
   // Handler for opening strategy preview
   const handleCardClick = (strategy: Strategy) => {
@@ -333,7 +337,7 @@ export default function Strategies() {
                             className="w-80 flex-shrink-0"
                             isSubscribed={subscribedIds.includes(strategy.id)}
                             isLocked={officialStrategiesLocked && !subscribedIds.includes(strategy.id)}
-                            isLoading={subscriptionLoading[strategy.id]}
+                            isLoading={Boolean(subscriptionLoading[strategy.id]) || isTierLoading}
                             onSubscribe={handleSubscribeClick}
                             onCardClick={() => handleCardClick(strategy)}
                           />
@@ -357,7 +361,7 @@ export default function Strategies() {
                             strategy={strategy}
                             className="w-80 flex-shrink-0"
                             isSubscribed={subscribedIds.includes(strategy.id)}
-                            isLoading={subscriptionLoading[strategy.id]}
+                            isLoading={Boolean(subscriptionLoading[strategy.id]) || isTierLoading}
                             onSubscribe={handleSubscribeClick}
                             onCardClick={() => handleCardClick(strategy)}
                           />

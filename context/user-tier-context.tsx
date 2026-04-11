@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { useUser } from "@clerk/nextjs";
 
 type UserTier = "ritel" | "suhu" | "bandar" | "admin";
@@ -67,9 +67,20 @@ export function UserTierProvider({ children }: { children: ReactNode }) {
     const [subscriptionPeriodEnd, setSubscriptionPeriodEnd] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const requestIdRef = useRef(0);
 
     const fetchUserTier = async () => {
+        if (!isLoaded) {
+            return;
+        }
+
+        const requestId = ++requestIdRef.current;
+
         if (!isSignedIn) {
+            if (requestId !== requestIdRef.current) {
+                return;
+            }
+
             setTier("ritel");
             setCredits({ used: 0, total: 3 });
             setLimits(defaultLimits);
@@ -87,9 +98,20 @@ export function UserTierProvider({ children }: { children: ReactNode }) {
         }
 
         try {
-            const response = await fetch("/api/user/limits");
+            const response = await fetch("/api/user/limits", {
+                cache: "no-store",
+            });
+
+            if (requestId !== requestIdRef.current) {
+                return;
+            }
+
             if (response.ok) {
                 const data = await response.json();
+
+                if (requestId !== requestIdRef.current) {
+                    return;
+                }
 
                 if (data.success) {
                     const newTier = (data.tier || "ritel") as UserTier;
@@ -113,6 +135,10 @@ export function UserTierProvider({ children }: { children: ReactNode }) {
             console.error("Failed to fetch user tier:", error);
             // Keep default/previous state on error
         } finally {
+            if (requestId !== requestIdRef.current) {
+                return;
+            }
+
             setIsLoading(false);
             setIsRefreshing(false);
         }

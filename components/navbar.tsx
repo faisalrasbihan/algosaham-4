@@ -134,7 +134,16 @@ export function Navbar() {
         </Link>
         <SignedIn>
           {!isLoading && (
-            <div className="relative" onMouseEnter={() => { setShowCredits(true); refreshTier(); }} onMouseLeave={() => setShowCredits(false)}>
+            <div
+              className="relative"
+              onMouseEnter={() => {
+                setShowCredits(true);
+                if (!isRefreshing) {
+                  refreshTier();
+                }
+              }}
+              onMouseLeave={() => setShowCredits(false)}
+            >
               <div
                 className="px-3 py-1 text-[11px] font-semibold cursor-default transition-all duration-200 select-none"
                 style={{
