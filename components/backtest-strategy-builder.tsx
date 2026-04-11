@@ -52,6 +52,11 @@ import { useUser, useClerk } from "@clerk/nextjs"
 import { toast } from "sonner"
 import type { BacktestRequest } from "@/lib/api"
 import { getFixedStopLossPercent, getFixedTakeProfitPercent, normalizeBacktestContractConfig } from "@/lib/backtest-contract"
+import {
+  createStandardBacktestConfig,
+  isStandardBacktestConfig,
+  STANDARD_BACKTEST_ID,
+} from "@/lib/default-backtest-config"
 import { useUserTier } from "@/context/user-tier-context"
 import {
   getTechnicalIndicatorRequiredTier,
@@ -86,7 +91,7 @@ const strategyBuilderIndicatorViewClass =
 const strategyBuilderIndicatorEditClass = "p-3"
 
 const strategyBuilderAddIndicatorButtonClass =
-  "w-full h-11 rounded-xl border border-slate-300 bg-white px-4 text-[11px] font-mono font-semibold text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.12)] transition-colors hover:border-[#d07225] hover:bg-[#d07225]/5"
+  "w-full h-11 rounded-xl border border-slate-300 bg-white px-4 text-[11px] font-sans font-semibold text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.12)] transition-colors hover:border-[#d07225] hover:bg-[#d07225]/5"
 
 type TierBacktestAccess = {
   maxMonths: number
@@ -126,6 +131,16 @@ const backtestPeriodOptions: Array<{ label: string; months: number }> = [
   { label: "Last 3 years", months: 36 },
   { label: "Last 4 years", months: 48 },
 ]
+
+const STANDARD_BACKTEST_TEMPLATE = createStandardBacktestConfig(STANDARD_BACKTEST_ID)
+
+function getStandardBacktestTemplate() {
+  return createStandardBacktestConfig(STANDARD_BACKTEST_ID)
+}
+
+function getStandardBacktestJson() {
+  return JSON.stringify(getStandardBacktestTemplate(), null, 2)
+}
 
 type BacktestPeriodMode = "preset" | "custom"
 
@@ -325,12 +340,12 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   const searchParams = useSearchParams()
   const strategyId = searchParams.get('strategyId')
   const [loadedStrategyId, setLoadedStrategyId] = useState<string | null>(null)
-  const [marketCaps, setMarketCaps] = useState<string[]>(["large", "mid"])
-  const [stockType, setStockType] = useState("All Stocks")
-  const [minDailyValue, setMinDailyValue] = useState<number>(1000000000)
+  const [marketCaps, setMarketCaps] = useState<string[]>(STANDARD_BACKTEST_TEMPLATE.filters?.marketCap ?? ["large"])
+  const [stockType, setStockType] = useState(STANDARD_BACKTEST_TEMPLATE.filters?.syariah ? "Syariah Only" : "All Stocks")
+  const [minDailyValue, setMinDailyValue] = useState<number>(STANDARD_BACKTEST_TEMPLATE.filters?.minDailyValue ?? 100000000)
   const [sectors, setSectors] = useState<string[]>([])
   const [sectorDropdownOpen, setSectorDropdownOpen] = useState(false)
-  const [selectedTickers, setSelectedTickers] = useState<string[]>([])
+  const [selectedTickers, setSelectedTickers] = useState<string[]>(STANDARD_BACKTEST_TEMPLATE.filters?.tickers ?? [])
   const [tickerOptions, setTickerOptions] = useState<{ value: string; label: string; sector?: string; marketCap?: number }[]>([])
   const [tickerDropdownOpen, setTickerDropdownOpen] = useState(false)
   const [tickerSearch, setTickerSearch] = useState("")
@@ -338,7 +353,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   const [tickersLoaded, setTickersLoaded] = useState(false)
   const [fundamentalIndicators, setFundamentalIndicators] = useState<Indicator[]>([])
   const [technicalIndicators, setTechnicalIndicators] = useState<Indicator[]>([
-    { id: "1", name: "RSI", type: "technical", params: { period: 14, oversold: 30, overbought: 70 } },
+    { id: "tech_default_ema_crossover", name: "EMA Crossover", type: "technical", params: { shortPeriod: 8, longPeriod: 26 } },
   ])
   const [showModal, setShowModal] = useState(false)
   const [modalType, setModalType] = useState<"fundamental" | "technical">("fundamental")
@@ -349,7 +364,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   const [savedStrategyName, setSavedStrategyName] = useState("")
   const [strategyName, setStrategyName] = useState("")
   const [strategyDescription, setStrategyDescription] = useState("")
-  const [jsonConfigInput, setJsonConfigInput] = useState("")
+  const [jsonConfigInput, setJsonConfigInput] = useState(getStandardBacktestJson())
   const [jsonConfigError, setJsonConfigError] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [isRunningJsonConfig, setIsRunningJsonConfig] = useState(false)
@@ -369,22 +384,59 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   const [hasVisited, setHasVisited] = useState<boolean | null>(null)
 
   // Backtest config states
-  const [stopLoss, setStopLoss] = useState<number | string>(7)
-  const [takeProfit, setTakeProfit] = useState<number | string>(15)
-  const [maxHoldingPeriod, setMaxHoldingPeriod] = useState<string>("14")
-  const [startDate, setStartDate] = useState<string>("2024-06-01")
-  const [endDate, setEndDate] = useState<string>("2024-08-31")
-  const [initialCapital, setInitialCapital] = useState<number>(100000000)
+  const [stopLoss, setStopLoss] = useState<number | string>(8)
+  const [takeProfit, setTakeProfit] = useState<number | string>(30)
+  const [maxHoldingPeriod, setMaxHoldingPeriod] = useState<string>("30")
+  const [startDate, setStartDate] = useState<string>(STANDARD_BACKTEST_TEMPLATE.backtestConfig?.startDate ?? "2024-04-11")
+  const [endDate, setEndDate] = useState<string>(STANDARD_BACKTEST_TEMPLATE.backtestConfig?.endDate ?? "2026-04-11")
+  const [initialCapital, setInitialCapital] = useState<number>(STANDARD_BACKTEST_TEMPLATE.backtestConfig?.initialCapital ?? 100000000)
 
   // Backtest preset state
-  const [backtestPeriod, setBacktestPeriod] = useState<string>("Last 1 year")
-  const [backtestPeriodMode, setBacktestPeriodMode] = useState<BacktestPeriodMode>("preset")
+  const [backtestPeriod, setBacktestPeriod] = useState<string>("")
+  const [backtestPeriodMode, setBacktestPeriodMode] = useState<BacktestPeriodMode>("custom")
   const normalizedUserTier = tier.toLowerCase() as keyof typeof BACKTEST_ACCESS_BY_TIER
   const technicalIndicatorTier = normalizeTechnicalIndicatorTier(tier)
   const tierBacktestAccess = BACKTEST_ACCESS_BY_TIER[normalizedUserTier] ?? BACKTEST_ACCESS_BY_TIER.ritel
   const isBandarUser = normalizedUserTier === "bandar" || normalizedUserTier === "admin"
   const backtestPeriodUpgradeTitle = tierBacktestAccess.upgradeHint === "Suhu" ? "Fitur Suhu" : "Fitur Bandar"
   const backtestPeriodLimitMessage = `Periode backtest di atas ${formatBacktestDurationLabel(tierBacktestAccess.maxMonths)} hanya tersedia untuk tier ${tierBacktestAccess.upgradeHint} ke atas.`
+
+  const isUsingStandardStrategy = useCallback(() => {
+    if (marketCaps.length !== 1 || marketCaps[0] !== "large") return false
+    if (stockType !== "All Stocks") return false
+    if (minDailyValue !== 100000000) return false
+    if (selectedTickers.length !== 0) return false
+    if (sectors.length !== 0) return false
+    if (fundamentalIndicators.length !== 0) return false
+    if (technicalIndicators.length !== 1) return false
+
+    const indicator = technicalIndicators[0]
+    if (indicator.name !== "EMA Crossover") return false
+
+    const shortPeriod = readOptionalNumberField(indicator.params.shortPeriod)
+    const longPeriod = readOptionalNumberField(indicator.params.longPeriod)
+
+    return (
+      shortPeriod === 8 &&
+      longPeriod === 26 &&
+      initialCapital === 100000000 &&
+      Number(stopLoss) === 8 &&
+      Number(takeProfit) === 30 &&
+      maxHoldingPeriod === "30"
+    )
+  }, [
+    fundamentalIndicators,
+    initialCapital,
+    marketCaps,
+    maxHoldingPeriod,
+    minDailyValue,
+    sectors,
+    selectedTickers,
+    stockType,
+    stopLoss,
+    takeProfit,
+    technicalIndicators,
+  ])
 
   const getTechnicalIndicatorGateCopy = useCallback((indicatorName: string) => {
     const requiredTier = getTechnicalIndicatorRequiredTier(indicatorName)
@@ -473,12 +525,11 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
     setStartDate(formatDateInput(start))
   }
 
-  // Initialize with default preset
   useEffect(() => {
-    applyPreset(tierBacktestAccess.maxPresetLabel)
-  }, [tierBacktestAccess.maxPresetLabel])
+    if (isUsingStandardStrategy()) {
+      return
+    }
 
-  useEffect(() => {
     const { startDate: clampedStartDate, adjusted } = clampBacktestRangeForTier(startDate, endDate)
 
     if (adjusted) {
@@ -489,7 +540,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
     if (selectedOption && selectedOption.months > tierBacktestAccess.maxMonths) {
       setBacktestPeriod(tierBacktestAccess.maxPresetLabel)
     }
-  }, [backtestPeriod, clampBacktestRangeForTier, endDate, startDate, tierBacktestAccess.maxMonths, tierBacktestAccess.maxPresetLabel])
+  }, [backtestPeriod, clampBacktestRangeForTier, endDate, isUsingStandardStrategy, startDate, tierBacktestAccess.maxMonths, tierBacktestAccess.maxPresetLabel])
 
   const marketCapOptions = ["small", "mid", "large"]
   const sectorOptions = [
@@ -525,11 +576,19 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
         return config
       }
 
+      if (isStandardBacktestConfig(config)) {
+        return createStandardBacktestConfig(config.backtestId)
+      }
+
       const allowedRange = clampBacktestRangeForTier(
         config.backtestConfig.startDate,
         config.backtestConfig.endDate,
         { notify: options?.notify },
       )
+
+      if (isUsingStandardStrategy()) {
+        return config
+      }
 
       return allowedRange.adjusted
         ? {
@@ -542,7 +601,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
         }
         : config
     },
-    [clampBacktestRangeForTier],
+    [clampBacktestRangeForTier, isUsingStandardStrategy],
   )
 
   const executeBacktestConfig = useCallback(async (
@@ -859,6 +918,13 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   }
 
   const buildBacktestConfig = (): BacktestRequest => {
+    if (isUsingStandardStrategy()) {
+      const standardConfig = createStandardBacktestConfig()
+      setStartDate(standardConfig.backtestConfig?.startDate ?? startDate)
+      setEndDate(standardConfig.backtestConfig?.endDate ?? endDate)
+      return standardConfig
+    }
+
     const allowedRange = clampBacktestRangeForTier(startDate, endDate)
     const allowedTechnicalIndicators = filterTechnicalIndicatorsForTier(technicalIndicators)
 
@@ -1056,10 +1122,15 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
     }
 
     if (config.backtestConfig) {
-      const allowedRange = clampBacktestRangeForTier(
-        config.backtestConfig.startDate,
-        config.backtestConfig.endDate,
-      )
+      const allowedRange = isStandardBacktestConfig(config)
+        ? {
+          startDate: config.backtestConfig.startDate,
+          endDate: config.backtestConfig.endDate,
+        }
+        : clampBacktestRangeForTier(
+          config.backtestConfig.startDate,
+          config.backtestConfig.endDate,
+        )
 
       setInitialCapital(config.backtestConfig.initialCapital)
       setStartDate(allowedRange.startDate)
@@ -1120,7 +1191,11 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
   }, [isLoaded, isSignedIn, openDialogFromRunMenu, openSignIn])
 
   const handleJsonConfigMenuSelect = useCallback(() => {
-    openDialogFromRunMenu(() => setShowJsonConfigModal(true))
+    openDialogFromRunMenu(() => {
+      setJsonConfigInput(getStandardBacktestJson())
+      setJsonConfigError("")
+      setShowJsonConfigModal(true)
+    })
   }, [openDialogFromRunMenu])
 
 
@@ -1142,13 +1217,13 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
       <Tabs defaultValue="strategy" className="flex-1 flex flex-col min-h-0">
         <div className="px-5 pt-4 pb-3 flex items-center justify-between bg-card">
           <TabsList className="h-9">
-            <TabsTrigger value="strategy" className="text-xs font-mono font-semibold gap-1.5 data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:shadow-sm">
+            <TabsTrigger value="strategy" className="text-xs font-sans font-semibold gap-1.5 data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:shadow-sm">
               <Settings className="h-3.5 w-3.5" />
               Builder
             </TabsTrigger>
             <TabsTrigger
               value="chat"
-              className="text-xs font-mono font-semibold gap-1.5 text-slate-500 data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:shadow-sm"
+              className="text-xs font-sans font-semibold gap-1.5 text-slate-500 data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:shadow-sm"
             >
               <Sparkles className="h-3.5 w-3.5" />
               Agent
@@ -1219,13 +1294,13 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
               >
                 <div className="flex items-center gap-2.5">
                   <Filter className="h-4 w-4 flex-shrink-0" style={{ color: "#d07225" }} />
-                  <span className="text-[13px] font-mono font-semibold text-foreground">Stock Filters</span>
+                  <span className="text-[13px] font-sans font-semibold text-foreground">Stock Filters</span>
                 </div>
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${collapsedSections.filters ? "-rotate-90" : ""}`} />
               </button>
               {!collapsedSections.filters && (
                 <SidebarGroupContent className="py-4 pl-4 pr-5 space-y-4 border-l border-[#d07225]/50 ml-[27px] my-2 w-auto">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-4">
                     <div>
                       <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Market Cap</Label>
                       <div className="flex flex-wrap gap-1">
@@ -1233,7 +1308,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                           <button
                             key={cap}
                             onClick={() => toggleMarketCap(cap)}
-                            className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium border transition-all ${marketCaps.includes(cap)
+                            className={`px-2.5 py-1 rounded-md text-xs font-sans font-medium border transition-all ${marketCaps.includes(cap)
                               ? "bg-[#d07225]/10 border-[#d07225]/40 text-[#d07225]"
                               : "bg-transparent border-slate-200 text-muted-foreground hover:border-slate-300 hover:text-foreground"
                               }`}
@@ -1250,7 +1325,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                           <button
                             key={type}
                             onClick={() => setStockType(type)}
-                            className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium border transition-all ${stockType === type
+                            className={`px-2.5 py-1 rounded-md text-xs font-sans font-medium border transition-all ${stockType === type
                               ? "bg-[#d07225]/10 border-[#d07225]/40 text-[#d07225]"
                               : "bg-transparent border-slate-200 text-muted-foreground hover:border-slate-300 hover:text-foreground"
                               }`}
@@ -1269,7 +1344,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                     <div className="relative">
                       <Button
                         variant="outline"
-                        className="w-full justify-between h-9 px-3 font-normal bg-white border-slate-300 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-400 font-mono"
+                        className="w-full justify-between h-9 px-3 font-normal bg-white border-slate-300 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-400 font-sans"
                         onClick={() => {
                           setTickerDropdownOpen(!tickerDropdownOpen)
                           if (!tickerDropdownOpen) fetchTickers()
@@ -1357,7 +1432,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                                         <div className="w-2 h-2 bg-primary-foreground rounded-sm" />
                                       )}
                                     </div>
-                                    <span className="text-sm font-mono truncate text-foreground">{ticker.label}</span>
+                                    <span className="text-sm font-sans truncate text-foreground">{ticker.label}</span>
                                   </div>
                                 ))
                             )}
@@ -1373,7 +1448,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                             <Badge
                               key={t}
                               variant="secondary"
-                              className="text-xs px-2 py-1 cursor-pointer hover:bg-destructive/20 font-mono"
+                              className="text-xs px-2 py-1 cursor-pointer hover:bg-destructive/20 font-sans"
                               onClick={() => toggleTicker(t)}
                             >
                               {label}
@@ -1390,7 +1465,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                     <div className="relative">
                       <Button
                         variant="outline"
-                        className="w-full justify-between h-9 px-3 font-normal bg-white border-slate-300 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-400 font-mono"
+                        className="w-full justify-between h-9 px-3 font-normal bg-white border-slate-300 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-400 font-sans"
                         onClick={() => setSectorDropdownOpen(!sectorDropdownOpen)}
                       >
                         <span className="text-sm text-foreground">
@@ -1433,7 +1508,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                           <Badge
                             key={sector}
                             variant="secondary"
-                            className="text-xs px-2 py-1 cursor-pointer hover:bg-destructive/20 font-mono"
+                            className="text-xs px-2 py-1 cursor-pointer hover:bg-destructive/20 font-sans"
                             onClick={() => toggleSector(sector)}
                           >
                             {sector}
@@ -1456,7 +1531,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
               >
                 <div className="flex items-center gap-2.5">
                   <TrendingUp className="h-4 w-4 flex-shrink-0" style={{ color: "#d07225" }} />
-                  <span className="text-[13px] font-mono font-semibold text-foreground">Fundamental</span>
+                  <span className="text-[13px] font-sans font-semibold text-foreground">Fundamental</span>
                   {fundamentalIndicators.length > 0 && (
                     <span className="inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-[#d07225]/10 text-[#d07225] text-[10px] font-mono font-bold">
                       {fundamentalIndicators.length}
@@ -1472,7 +1547,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                       {editingIndicators[indicator.id] ? (
                         <div className={strategyBuilderIndicatorEditClass}>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-mono font-semibold text-foreground">{indicator.name}</span>
+                            <span className="text-xs font-sans font-semibold text-foreground">{indicator.name}</span>
                             <div className="flex gap-1">
                               <Button variant="ghost" size="sm" className="h-5 w-5 p-0 hover:bg-green-100" onClick={() => toggleEditMode(indicator.id)}>
                                 <Check className="h-3 w-3 text-green-600" />
@@ -1497,7 +1572,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                         <div className={strategyBuilderIndicatorViewClass}>
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <div className="w-1.5 h-1.5 rounded-full bg-[#d07225] flex-shrink-0" />
-                            <span className="text-xs font-mono font-semibold text-foreground">{indicator.name}</span>
+                            <span className="text-xs font-sans font-semibold text-foreground">{indicator.name}</span>
                             <span className="text-[10px] text-muted-foreground font-mono truncate">({formatIndicatorParams(indicator.params)})</span>
                           </div>
                           <div className="flex gap-0.5 flex-shrink-0">
@@ -1526,7 +1601,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
               >
                 <div className="flex items-center gap-2.5">
                   <BarChart3 className="h-4 w-4 flex-shrink-0" style={{ color: "#d07225" }} />
-                  <span className="text-[13px] font-mono font-semibold text-foreground">Technical</span>
+                  <span className="text-[13px] font-sans font-semibold text-foreground">Technical</span>
                   {technicalIndicators.length > 0 && (
                     <span className="inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-[#d07225]/10 text-[#d07225] text-[10px] font-mono font-bold">
                       {technicalIndicators.length}
@@ -1542,7 +1617,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                       {editingIndicators[indicator.id] ? (
                         <div className={strategyBuilderIndicatorEditClass}>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-mono font-semibold text-foreground">{indicator.name}</span>
+                            <span className="text-xs font-sans font-semibold text-foreground">{indicator.name}</span>
                             <div className="flex gap-1">
                               <Button variant="ghost" size="sm" className="h-5 w-5 p-0 hover:bg-green-100" onClick={() => toggleEditMode(indicator.id)}>
                                 <Check className="h-3 w-3 text-green-600" />
@@ -1565,7 +1640,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                         <div className={strategyBuilderIndicatorViewClass}>
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <div className="w-1.5 h-1.5 rounded-full bg-[#d07225] flex-shrink-0" />
-                            <span className="text-xs font-mono font-semibold text-foreground">{indicator.name}</span>
+                            <span className="text-xs font-sans font-semibold text-foreground">{indicator.name}</span>
                             <span className="text-[10px] text-muted-foreground font-mono truncate">({formatIndicatorParams(indicator.params)})</span>
                           </div>
                           <div className="flex gap-0.5 flex-shrink-0">
@@ -1604,7 +1679,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
               >
                 <div className="flex items-center gap-2.5">
                   <Shield className="h-4 w-4 flex-shrink-0" style={{ color: "#d07225" }} />
-                  <span className="text-[13px] font-mono font-semibold text-foreground">Risk Management</span>
+                  <span className="text-[13px] font-sans font-semibold text-foreground">Risk Management</span>
                 </div>
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${collapsedSections.risk ? "-rotate-90" : ""}`} />
               </button>
@@ -1636,7 +1711,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                   <div>
                     <Label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1.5 block">Max Holding Period</Label>
                     <Select value={maxHoldingPeriod} onValueChange={setMaxHoldingPeriod}>
-                      <SelectTrigger className="bg-white border-slate-300 h-9 text-sm font-mono">
+                      <SelectTrigger className="bg-white border-slate-300 h-9 text-sm font-sans">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1663,7 +1738,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
               >
                 <div className="flex items-center gap-2.5">
                   <Calendar className="h-4 w-4 flex-shrink-0" style={{ color: "#d07225" }} />
-                  <span className="text-[13px] font-mono font-semibold text-foreground">Backtest Period</span>
+                  <span className="text-[13px] font-sans font-semibold text-foreground">Backtest Period</span>
                 </div>
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${collapsedSections.backtest ? "-rotate-90" : ""}`} />
               </button>
@@ -1685,13 +1760,13 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                     <TabsList className="grid h-10 w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-100 p-0.5">
                       <TabsTrigger
                         value="preset"
-                        className="h-full rounded-[10px] text-xs font-mono data-[state=active]:shadow-[0_1px_2px_rgba(15,23,42,0.08)]"
+                        className="h-full rounded-[10px] text-xs font-sans data-[state=active]:shadow-[0_1px_2px_rgba(15,23,42,0.08)]"
                       >
                         Preset
                       </TabsTrigger>
                       <TabsTrigger
                         value="custom"
-                        className="h-full rounded-[10px] text-xs font-mono data-[state=active]:shadow-[0_1px_2px_rgba(15,23,42,0.08)]"
+                        className="h-full rounded-[10px] text-xs font-sans data-[state=active]:shadow-[0_1px_2px_rgba(15,23,42,0.08)]"
                       >
                         Custom
                       </TabsTrigger>
@@ -1699,7 +1774,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
 
                     <TabsContent value="preset" className="mt-2.5">
                       <Select value={backtestPeriod} onValueChange={applyPreset}>
-                        <SelectTrigger className="w-full h-9 font-mono text-xs bg-white border-slate-300">
+                        <SelectTrigger className="w-full h-9 font-sans text-xs bg-white border-slate-300">
                           <SelectValue placeholder="Select period" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1710,7 +1785,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                             <SelectItem
                               key={option.label}
                               value={option.label}
-                              className={`font-mono text-xs ${isLocked ? "text-muted-foreground" : ""}`}
+                              className={`font-sans text-xs ${isLocked ? "text-muted-foreground" : ""}`}
                             >
                               <span className="flex items-center gap-2">
                                 <span>{option.label}</span>
@@ -1780,7 +1855,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
             <div className="flex w-full gap-2">
               <div className="flex flex-1">
                 <Button
-                  className="flex-1 bg-[#d07225] hover:bg-[#a65b1d] text-white h-10 text-sm font-mono font-semibold rounded-r-none border-r border-white/20"
+                  className="flex-1 bg-[#d07225] hover:bg-[#a65b1d] text-white h-10 text-sm font-sans font-semibold rounded-r-none border-r border-white/20"
                   onClick={() => handleRunBacktest(false)}
                   data-tutorial="run-backtest"
                 >
@@ -1799,7 +1874,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                         event.preventDefault()
                         handleSaveAndRunMenuSelect()
                       }}
-                      className="font-mono text-xs"
+                      className="font-sans text-xs"
                     >
                       <Play className="h-3.5 w-3.5 mr-2" />
                       Save & Run
@@ -1809,12 +1884,12 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
                         event.preventDefault()
                         handleJsonConfigMenuSelect()
                       }}
-                      className="font-mono text-xs"
+                      className="font-sans text-xs"
                     >
                       <Play className="h-3.5 w-3.5 mr-2" />
                       Run JSON Config
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleCopyConfig} className="font-mono text-xs">
+                    <DropdownMenuItem onClick={handleCopyConfig} className="font-sans text-xs">
                       {copied ? (<><CheckCheck className="h-3.5 w-3.5 mr-2 text-green-600" /><span className="text-green-600">Copied!</span></>) : (<><Copy className="h-3.5 w-3.5 mr-2" />Copy Config JSON</>)}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -1927,6 +2002,7 @@ export function BacktestStrategyBuilderContent({ onRunBacktest, backtestResults 
           setShowJsonConfigModal(open)
           if (!open) {
             setJsonConfigError("")
+            setJsonConfigInput(getStandardBacktestJson())
           }
         }}
       >
