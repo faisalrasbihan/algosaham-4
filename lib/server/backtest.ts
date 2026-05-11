@@ -18,7 +18,7 @@ type ErrorPayload = {
   body: Record<string, unknown>;
 };
 
-type ErrorFactories = {
+export type ErrorFactories = {
   config?: () => ErrorPayload;
   userNotFound?: () => ErrorPayload;
   quotaExceeded?: (context: { limit: number; used: number }) => ErrorPayload;

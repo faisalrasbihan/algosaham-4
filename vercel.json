@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/update-strategy-returns",
+      "schedule": "0 11 * * 1-5"
+    }
+  ]
+}

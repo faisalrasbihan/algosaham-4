@@ -15,6 +15,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/strategies/popular(.*)', // Popular strategies is public
   '/api/backtest(.*)', // Backtesting is public
   '/api/stocks(.*)', // Stock data is public
+  '/api/cron(.*)', // Cron routes use their own bearer-token protection
 ]);
 
 // Define protected routes that require authentication

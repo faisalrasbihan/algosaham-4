@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
-import { WalletCards, Zap, Heart, Search, LineChart, ArrowUpRight, Loader2, Settings, Menu } from "lucide-react";
+import { WalletCards, Zap, Heart, Search, LineChart, ArrowUpRight, Loader2, Settings, Menu, MessageSquareText } from "lucide-react";
 import { AccountManagementPage } from "@/components/account-management-page";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { useRouter } from "next/navigation";
@@ -20,7 +20,7 @@ export function Navbar() {
   const router = useRouter();
 
   useEffect(() => {
-    const routesToPrefetch = ["/", "/backtest", "/strategies", "/screener", "/analyze-v2", "/harga", "/features"];
+    const routesToPrefetch = ["/", "/backtest", "/strategies", "/screener", "/analyze-v2", "/harga", "/features", "/help"];
 
     routesToPrefetch.forEach((route) => {
       router.prefetch(route);
@@ -332,6 +332,16 @@ export function Navbar() {
       </div >
 
       <div className="flex items-center space-x-2 md:space-x-3">
+        <Link href="/help" className="hidden md:block">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-2 border-[#487b78]/25 bg-background/70 text-[#3b6663] hover:bg-[#eff4f4] hover:text-[#2f5552]"
+          >
+            <MessageSquareText className="h-4 w-4" />
+            Feedback
+          </Button>
+        </Link>
         <SignedOut>
           <div className="hidden md:flex space-x-2">
             <SignInButton mode="modal">
@@ -398,6 +408,7 @@ export function Navbar() {
                 <SheetClose asChild><Link href="/analyze-v2" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Analisis</Link></SheetClose>
                 <SheetClose asChild><Link href="/harga" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Harga</Link></SheetClose>
                 <SheetClose asChild><Link href="/features" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Pelajari</Link></SheetClose>
+                <SheetClose asChild><Link href="/help" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Feedback</Link></SheetClose>
               </div>
               <SignedOut>
                 <div className="flex flex-col gap-3 mt-2 border-t border-border/50 pt-6">

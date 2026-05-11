@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { strategies, subscriptions } from "@/db/schema";
+import { strategies } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { BacktestRequest } from "@/lib/api";
-import { BacktestExecutionError, runBacktestWithQuota, summarizeBacktestResult } from "@/lib/server/backtest";
+import { BacktestExecutionError } from "@/lib/server/backtest";
+import { refreshStrategyPerformance } from "@/lib/server/strategy-refresh";
 
 export async function POST(req: Request) {
     try {
@@ -57,22 +57,9 @@ export async function POST(req: Request) {
             );
         }
 
-        const config = structuredClone(strategy.config as BacktestRequest);
-
-        // Let's modify the end date to today for latest rerun
-        const today = new Date();
-        const endDateStr = today.toISOString().split('T')[0];
-        // Calculate the same duration or just update end date 
-        // We'll just set endDate to today to get the latest data.
-        if (config.backtestConfig) {
-            // Keep the same duration roughly or just use the start date defined in config
-            // If they want to refresh, usually the end date is moved to today.
-            config.backtestConfig.endDate = endDateStr;
-        }
-
-        const backtestResults = await runBacktestWithQuota({
-            config,
+        const { strategy: updatedStrategy } = await refreshStrategyPerformance(strategy, {
             userId,
+            consumeQuota: true,
             requireUser: true,
             errors: {
                 config: () => ({
@@ -108,39 +95,9 @@ export async function POST(req: Request) {
             },
         });
 
-        const metadata = summarizeBacktestResult(backtestResults);
-
-        // 6. Update Database
-        const updatedStrategies = await db.update(strategies)
-            .set({
-                config, // update config to include the new endDate
-                totalReturn: metadata.totalReturn?.toString(),
-                maxDrawdown: metadata.maxDrawdown?.toString(),
-                successRate: metadata.successRate?.toString(),
-                sharpeRatio: metadata.sharpeRatio?.toString(),
-                totalTrades: metadata.totalTrades,
-                totalStocks: metadata.totalStocks,
-                qualityScore: metadata.qualityScore,
-                updatedAt: new Date(),
-                topHoldings: metadata.topHoldings,
-            })
-            .where(eq(strategies.id, strategyId))
-            .returning();
-
-        // 7. Note: A background worker could update all Subscribed strategy records, 
-        //   but for now we are just returning the updated strategy to front-end.
-        //   If we need to update active subs instantly:
-        await db.update(subscriptions)
-            .set({
-                currentReturn: metadata.totalReturn?.toString(),
-                updatedAt: new Date(),
-                lastCalculatedAt: new Date()
-            })
-            .where(eq(subscriptions.strategyId, strategyId));
-
         return NextResponse.json({
             success: true,
-            strategy: updatedStrategies[0],
+            strategy: updatedStrategy,
             message: "Strategy backtest re-run successfully",
         });
 

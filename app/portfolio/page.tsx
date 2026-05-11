@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useUserTier } from "@/context/user-tier-context"
 import { toast } from "sonner"
+import { calculateReturnSinceSubscription } from "@/lib/strategy-returns"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -267,9 +268,10 @@ function mapSubscriptionToCardStrategy(subscription: SubscriptionApiRow): CardSt
     const totalReturn = toNumber(subscription.totalReturn)
     const snapshotReturn = toOptionalNumber(subscription.snapshotReturn)
     const explicitSinceSubscription = toOptionalNumber(subscription.returnSinceSubscription)
-    const returnSinceSubscription = snapshotReturn !== null
-        ? Number((totalReturn - snapshotReturn).toFixed(2))
-        : (explicitSinceSubscription ?? 0)
+    const returnSinceSubscription =
+        calculateReturnSinceSubscription(totalReturn, snapshotReturn)
+        ?? explicitSinceSubscription
+        ?? 0
 
     return {
         id: subscription.id.toString(),
@@ -304,9 +306,9 @@ function mapSubscriptionToCardStrategy(subscription: SubscriptionApiRow): CardSt
 function applyBacktestToSubscribedStrategy(strategy: CardStrategy, backtestResult: BacktestResult): CardStrategy {
     const totalReturn = toNumber(backtestResult.summary?.totalReturn, strategy.totalReturn)
     const snapshotReturn = strategy.snapshotReturn ?? null
-    const calculatedSinceSubscribed = snapshotReturn !== null
-        ? Number((totalReturn - snapshotReturn).toFixed(2))
-        : strategy.returnSinceSubscription
+    const calculatedSinceSubscribed =
+        calculateReturnSinceSubscription(totalReturn, snapshotReturn)
+        ?? strategy.returnSinceSubscription
     const currentPrices = (backtestResult.recentSignals?.signals || []).reduce<Record<string, number>>((acc, signal) => {
         const latestPrice = toOptionalNumber(signal.price) ?? toOptionalNumber(signal.close)
         if (signal.ticker && latestPrice !== null && acc[signal.ticker] === undefined) {

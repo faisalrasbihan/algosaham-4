@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { createSubscription } from "@/lib/midtrans";
 import { getPlanPrice, type PaidSubscriptionTier } from "@/lib/subscription-plans";
 import { setUserTier } from "@/lib/server/subscription-state";
+import { sendSubscriptionThankYouEmail } from "@/lib/subscription-thank-you-email";
 
 // Midtrans webhook notification handler
 // This endpoint receives payment status notifications from Midtrans
@@ -233,7 +234,7 @@ async function handleSuccessfulPayment(data: SuccessfulPaymentData) {
         // Import database utilities
         const { db } = await import("@/db");
         const { users, payments } = await import("@/db/schema");
-        const { eq, like } = await import("drizzle-orm");
+        const { like } = await import("drizzle-orm");
 
         // Calculate subscription period
         const now = new Date();
@@ -281,8 +282,9 @@ async function handleSuccessfulPayment(data: SuccessfulPaymentData) {
 
         console.log(`Updated user ${user.clerkId} to ${data.planType} tier until ${periodEnd.toISOString()}`);
 
-        // Create payment record
-        await db.insert(payments).values({
+        // Create payment record. Midtrans can retry or send multiple success events,
+        // so only a newly recorded payment should trigger the thank-you email.
+        const [createdPayment] = await db.insert(payments).values({
             userId: user.clerkId,
             orderId: data.orderId,
             transactionId: data.transactionId,
@@ -301,9 +303,27 @@ async function handleSuccessfulPayment(data: SuccessfulPaymentData) {
                 savedTokenId: data.savedTokenId,
                 initialPayment: true,
             },
-        });
+        }).onConflictDoNothing({ target: payments.orderId }).returning({ id: payments.id });
 
-        console.log(`Created payment record for order ${data.orderId}`);
+        if (createdPayment) {
+            console.log(`Created payment record for order ${data.orderId}`);
+
+            try {
+                await sendSubscriptionThankYouEmail({
+                    to: user.email,
+                    name: user.name,
+                    planType: data.planType,
+                    billingInterval: data.billingInterval,
+                    amount: data.amount,
+                    periodEnd,
+                });
+                console.log(`Sent subscription thank-you email to ${user.email}`);
+            } catch (error) {
+                console.error("Error sending subscription thank-you email:", error);
+            }
+        } else {
+            console.log(`Payment record already exists for order ${data.orderId}; skipping thank-you email`);
+        }
 
         // If we have a saved_token_id from credit card, create a recurring subscription
         if (data.savedTokenId && data.paymentType === 'credit_card') {
