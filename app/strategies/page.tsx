@@ -1,7 +1,6 @@
 "use client"
 
 import { Navbar } from "@/components/navbar"
-import { TickerTape } from "@/components/ticker-tape"
 import { Footer } from "@/components/footer"
 import { ShowcaseStrategyCard } from "@/components/cards/showcase-strategy-card"
 import { MarketplaceStrategyCard } from "@/components/cards/marketplace-strategy-card"
@@ -264,10 +263,9 @@ export default function Strategies() {
     <div className="h-screen overflow-hidden bg-background dotted-background bg-fixed">
       <div className="fixed inset-x-0 top-0 z-40">
         <Navbar />
-        <TickerTape />
       </div>
 
-      <div className="h-full overflow-y-auto pt-[104px]">
+      <div className="h-full overflow-y-auto pt-16">
         <div className="space-y-12 pt-6">
           {/* Featured / Showcase Section */}
           <section>

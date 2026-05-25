@@ -334,12 +334,12 @@ export function Navbar() {
       <div className="flex items-center space-x-2 md:space-x-3">
         <Link href="/help" className="hidden md:block">
           <Button
-            variant="outline"
-            size="sm"
-            className="h-9 gap-2 border-[#487b78]/25 bg-background/70 text-[#3b6663] hover:bg-[#eff4f4] hover:text-[#2f5552]"
+            variant="ghost"
+            size="icon"
+            aria-label="Feedback"
+            className="h-9 w-9"
           >
             <MessageSquareText className="h-4 w-4" />
-            Feedback
           </Button>
         </Link>
         <SignedOut>

@@ -1,7 +1,6 @@
 "use client"
 
 import { Navbar } from "@/components/navbar"
-import { TickerTape } from "@/components/ticker-tape"
 import { SubscribedStrategyCard } from "@/components/cards/subscribed-strategy-card"
 import { RegularStrategyCard } from "@/components/cards/regular-strategy-card"
 import { useUser, RedirectToSignIn } from "@clerk/nextjs"
@@ -805,7 +804,6 @@ export default function Portfolio() {
     return (
         <div className="min-h-screen bg-background dotted-background">
             <Navbar />
-            <TickerTape />
             <div className="flex-1 overflow-y-auto mt-8 pb-8">
 
                 <div className="space-y-12">
