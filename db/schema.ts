@@ -89,6 +89,33 @@ export const strategies = pgTable("strategies", {
 });
 
 // ============================================
+// SCREENER PRESETS - Database-backed screener recipes
+// ============================================
+export const screenerPresetCategories = pgTable("screener_preset_categories", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  label: text("label").notNull(),
+  description: text("description"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const screenerPresets = pgTable("screener_presets", {
+  id: text("preset_id").primaryKey(),
+  categoryId: text("category_id").notNull().references(() => screenerPresetCategories.id, { onDelete: "restrict" }),
+  presetName: text("preset_name").notNull(),
+  summary: text("summary"),
+  config: jsonb("config").$type<any>().notNull(),
+  tag: text("tag"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+// ============================================
 // SUBSCRIPTIONS - User follows Strategy with performance tracking
 // ============================================
 export const subscriptions = pgTable("subscriptions", {
@@ -190,6 +217,17 @@ export const strategiesRelations = relations(strategies, ({ one, many }) => ({
     references: [users.clerkId],
   }),
   subscriptions: many(subscriptions),
+}));
+
+export const screenerPresetCategoriesRelations = relations(screenerPresetCategories, ({ many }) => ({
+  presets: many(screenerPresets),
+}));
+
+export const screenerPresetsRelations = relations(screenerPresets, ({ one }) => ({
+  category: one(screenerPresetCategories, {
+    fields: [screenerPresets.categoryId],
+    references: [screenerPresetCategories.id],
+  }),
 }));
 
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({

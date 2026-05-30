@@ -15,6 +15,13 @@
       "when": 1771026223909,
       "tag": "0001_gifted_sleepwalker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779713080797,
+      "tag": "0002_charming_proemial_gods",
+      "breakpoints": true
     }
   ]
 }

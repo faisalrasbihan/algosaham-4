@@ -21,6 +21,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   Table,
   TableBody,
   TableCell,
@@ -52,6 +58,8 @@ interface DataTableProps<T> {
   className?: string
   tableClassName?: string
   rowClassName?: string | ((row: T) => string)
+  rowHoverContent?: (row: T) => React.ReactNode
+  rowHoverContentClassName?: string
   initialPageSize?: number
   pageSizeOptions?: number[]
   paginationResetKey?: string
@@ -68,6 +76,8 @@ export function DataTable<T>({
   className,
   tableClassName,
   rowClassName,
+  rowHoverContent,
+  rowHoverContentClassName,
   initialPageSize = 10,
   pageSizeOptions = [10, 20, 30, 40, 50],
   paginationResetKey,
@@ -146,6 +156,42 @@ export function DataTable<T>({
   }, [data.length])
 
   const isEmpty = table.getRowModel().rows.length === 0
+  const renderDataRow = (row: ReturnType<typeof table.getRowModel>["rows"][number]) => {
+    const originalRow = row.original
+    const rowNode = (
+      <TableRow
+        key={row.id}
+        className={cn(
+          "bg-white hover:bg-muted/20",
+          rowHoverContent ? "cursor-pointer" : undefined,
+          typeof rowClassName === "function" ? rowClassName(originalRow) : rowClassName
+        )}
+      >
+        {row.getVisibleCells().map((cell) => {
+          const meta = cell.column.columnDef.meta as DataTableColumnMeta | undefined
+
+          return (
+            <TableCell key={cell.id} className={cn("px-4 py-2.5", meta?.cellClassName)}>
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </TableCell>
+          )
+        })}
+      </TableRow>
+    )
+
+    if (!rowHoverContent) return rowNode
+
+    return (
+      <Tooltip key={row.id} delayDuration={250}>
+        <TooltipTrigger asChild>
+          {rowNode}
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start" className={cn("p-0 overflow-hidden", rowHoverContentClassName)}>
+          {rowHoverContent(originalRow)}
+        </TooltipContent>
+      </Tooltip>
+    )
+  }
 
   return (
     <div className={cn("relative overflow-hidden rounded-xl border border-border/70 bg-white shadow-sm", className)}>
@@ -156,55 +202,39 @@ export function DataTable<T>({
         </div>
       ) : null}
       <div className="overflow-x-auto bg-white">
-        <Table className={cn("min-w-full", tableClassName)}>
-          <TableHeader className="bg-white">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="bg-white">
-                {headerGroup.headers.map((header) => {
-                  const meta = header.column.columnDef.meta as DataTableColumnMeta | undefined
-
-                  return (
-                    <TableHead
-                      key={header.id}
-                      className={cn("h-12 px-4 text-sm font-medium text-muted-foreground", meta?.headClassName)}
-                    >
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isEmpty ? (
-              <TableRow className="bg-white">
-                <TableCell colSpan={columns.length} className={cn("h-24 text-center text-muted-foreground", emptyOverlay ? "text-transparent" : undefined)}>
-                  {emptyMessage}
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className={cn(
-                    "bg-white hover:bg-muted/20",
-                    typeof rowClassName === "function" ? rowClassName(row.original) : rowClassName
-                  )}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const meta = cell.column.columnDef.meta as DataTableColumnMeta | undefined
+        <TooltipProvider>
+          <Table className={cn("min-w-full", tableClassName)}>
+            <TableHeader className="bg-white">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id} className="bg-white">
+                  {headerGroup.headers.map((header) => {
+                    const meta = header.column.columnDef.meta as DataTableColumnMeta | undefined
 
                     return (
-                      <TableCell key={cell.id} className={cn("px-4 py-2.5", meta?.cellClassName)}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
+                      <TableHead
+                        key={header.id}
+                        className={cn("h-12 px-4 text-sm font-medium text-muted-foreground", meta?.headClassName)}
+                      >
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
                     )
                   })}
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {isEmpty ? (
+                <TableRow className="bg-white">
+                  <TableCell colSpan={columns.length} className={cn("h-24 text-center text-muted-foreground", emptyOverlay ? "text-transparent" : undefined)}>
+                    {emptyMessage}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                table.getRowModel().rows.map((row) => renderDataRow(row))
+              )}
+            </TableBody>
+          </Table>
+        </TooltipProvider>
       </div>
 
       <div className="flex flex-col gap-3 border-t bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">

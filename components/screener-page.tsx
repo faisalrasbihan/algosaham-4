@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Bell, BellPlus, ArrowUpDown, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Sparkles, Check, Info } from "lucide-react"
+import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Sparkles, Check, Info } from "lucide-react"
 import { toast } from "sonner"
 
 import { Navbar } from "@/components/navbar"
@@ -144,6 +144,12 @@ type ScreenerApiResponse = {
   } | null
 }
 
+type ScreenerPresetsResponse = {
+  success: boolean
+  presets?: ScreenerPreset[]
+  error?: string
+}
+
 type AlertDraft = {
   ticker: string
   type: "masuk-radar" | "technical-score" | "rsi"
@@ -186,7 +192,10 @@ type ScreenerPreset = {
   id: string
   name: string
   group: string
+  groupLabel: string
+  groupDescription: string | null
   summary: string
+  tag: string | null
   config: {
     screeningId: string
     fundamentalIndicators: PresetIndicatorConfig[]
@@ -654,339 +663,32 @@ function getPresetFilterLabels(preset: ScreenerPreset): string[] {
   return [...fundamentals, ...technicals]
 }
 
-const SCREENER_PRESETS: ScreenerPreset[] = [
-  {
-    id: "calm-volume-dry-up",
-    name: "Volume Lagi Sepi",
-    group: "Sebelum Saham Bergerak",
-    summary: "Transaksinya lagi tenang — sering jadi tanda mau ada gerakan besar.",
-    config: {
-      screeningId: "calm_before_the_move__volume_dry_up",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "VOLUME_DRY_UP", period: 20, dryUpThreshold: 0.5, consecutiveDays: 3 },
-      ],
-    },
-  },
-  {
-    id: "calm-low-vol-regime",
-    name: "Harga Lagi Adem",
-    group: "Sebelum Saham Bergerak",
-    summary: "Pergerakan harga lagi kalem, biasanya fase kompresi sebelum bergerak.",
-    config: {
-      screeningId: "calm_before_the_move__low_volatility_regime",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "VOLATILITY_REGIME", period: 20, lookback: 60, lowThreshold: -0.5, highThreshold: 1, mode: "LOW_VOL" },
-      ],
-    },
-  },
-  {
-    id: "fresh-breakout-base",
-    name: "Lepas dari Konsolidasi",
-    group: "Baru Breakout",
-    summary: "Baru tembus dari area sideways, dikonfirmasi volume yang ramai.",
-    config: {
-      screeningId: "fresh_breakout_with_volume__base_breakout",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "BASE_BREAKOUT", basePeriod: 20, breakoutPct: 1.5, maxBaseRange: 15, volumeMultiplier: 1.5 },
-      ],
-    },
-  },
-  {
-    id: "fresh-breakout-volume-spike",
-    name: "Volume Meledak",
-    group: "Baru Breakout",
-    summary: "Volume tiba-tiba ramai — sering jadi sinyal ada yang serius beli.",
-    config: {
-      screeningId: "fresh_breakout_with_volume__volume_spike",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "VOLUME_SMA", period: 20, threshold: 1.5 },
-      ],
-    },
-  },
-  {
-    id: "fresh-breakout-volume-adx",
-    name: "Volume Ramai + Tren Kuat",
-    group: "Baru Breakout",
-    summary: "Volume meledak dan arah trennya sudah jelas, bukan kebetulan.",
-    config: {
-      screeningId: "fresh_breakout_with_volume__volume_spike_adx_trend",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "VOLUME_SMA", period: 20, threshold: 1.5 },
-        { type: "ADX", period: 14, threshold: 25 },
-      ],
-    },
-  },
-  {
-    id: "undervalued-quality",
-    name: "Murah tapi Berkualitas",
-    group: "Saham Lagi Murah",
-    summary: "Harga lagi diskon, tapi bisnisnya tetap untung sehat.",
-    config: {
-      screeningId: "undervalued_picks__quality_value",
-      fundamentalIndicators: [
-        { type: "PBV", max: 1.8 },
-        { type: "ROE", min: 15 },
-      ],
-      technicalIndicators: [],
-    },
-  },
-  {
-    id: "undervalued-momentum",
-    name: "Murah dan Mulai Naik",
-    group: "Saham Lagi Murah",
-    summary: "Saham yang masih murah dan sudah mulai dilirik pasar.",
-    config: {
-      screeningId: "undervalued_picks__value_with_momentum",
-      fundamentalIndicators: [
-        { type: "PE_RATIO", max: 15 },
-      ],
-      technicalIndicators: [
-        { type: "MACD", fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
-      ],
-    },
-  },
-  {
-    id: "level-vwap",
-    name: "Balik ke Garis VWAP",
-    group: "Entry di Level Penting",
-    summary: "Harga kembali di atas garis acuan transaksi harian.",
-    config: {
-      screeningId: "level_based_entries__vwap_reclaim",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "VWAP", period: 20 },
-      ],
-    },
-  },
-  {
-    id: "level-pivot",
-    name: "Mantul dari Support",
-    group: "Entry di Level Penting",
-    summary: "Harga lagi mantul dari level support yang biasanya dijagain.",
-    config: {
-      screeningId: "level_based_entries__pivot_support_bounce",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "PIVOT_POINTS" },
-      ],
-    },
-  },
-  {
-    id: "trend-supertrend",
-    name: "Tren Masih Lanjut",
-    group: "Tren Lagi Kencang",
-    summary: "Saham yang trennya masih kuat, belum ada tanda mau balik arah.",
-    config: {
-      screeningId: "trend_with_conviction__supertrend_continuation",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "SUPERTREND", period: 10, multiplier: 3 },
-      ],
-    },
-  },
-  {
-    id: "trend-adx",
-    name: "Tren Solid, Bukan Asal Naik",
-    group: "Tren Lagi Kencang",
-    summary: "Pergerakannya terarah dan stabil, bukan zig-zag tanpa arah.",
-    config: {
-      screeningId: "trend_with_conviction__adx_trend_strength",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "ADX", period: 14, threshold: 25 },
-      ],
-    },
-  },
-  {
-    id: "trend-parabolic",
-    name: "Sinyal Lanjut Tren",
-    group: "Tren Lagi Kencang",
-    summary: "Sistem SAR konfirmasi tren masih jalan tanpa gangguan.",
-    config: {
-      screeningId: "trend_with_conviction__parabolic_sar_trend",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "PARABOLIC_SAR", afStart: 0.02, afStep: 0.02, afMax: 0.2 },
-      ],
-    },
-  },
-  {
-    id: "momentum-macd",
-    name: "Momentum Mulai Cepat",
-    group: "Ikut Momentum",
-    summary: "MACD nunjukin percepatan, biasanya tanda mulai gerak serius.",
-    config: {
-      screeningId: "ride_the_momentum__macd_momentum",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "MACD", fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
-      ],
-    },
-  },
-  {
-    id: "momentum-rsi-macd",
-    name: "Bangkit dari Tekanan",
-    group: "Ikut Momentum",
-    summary: "Saham yang habis tertekan dan mulai pulih dengan momentum kuat.",
-    config: {
-      screeningId: "ride_the_momentum__rsi_macd_momentum",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "RSI", period: 14, oversold: 35, overbought: 70 },
-        { type: "MACD", fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
-      ],
-    },
-  },
-  {
-    id: "dip-stochastic",
-    name: "Mantul dari Jenuh Jual",
-    group: "Beli Saat Turun",
-    summary: "Saham yang kelewat dijual dan mulai dibeli lagi.",
-    config: {
-      screeningId: "buy_the_dip__stochastic_oversold_bounce",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "STOCHASTIC", kPeriod: 14, dPeriod: 3, oversold: 20, overbought: 80 },
-      ],
-    },
-  },
-  {
-    id: "dip-bollinger",
-    name: "Mantul dari Batas Bawah",
-    group: "Beli Saat Turun",
-    summary: "Harga nyentuh batas bawah Bollinger dan mulai naik balik.",
-    config: {
-      screeningId: "buy_the_dip__bollinger_band_bounce",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "BOLLINGER_BANDS", period: 20, stdDev: 2 },
-      ],
-    },
-  },
-  {
-    id: "dip-rsi",
-    name: "Habis Dibanting, Mulai Naik",
-    group: "Beli Saat Turun",
-    summary: "Setelah dijual habis-habisan, harga mulai mantul.",
-    config: {
-      screeningId: "buy_the_dip__rsi_oversold_bounce",
-      fundamentalIndicators: [],
-      technicalIndicators: [
-        { type: "RSI", period: 14, oversold: 30, overbought: 70 },
-      ],
-    },
-  },
-]
-
-const PRESET_GROUP_LABELS = Array.from(new Set(SCREENER_PRESETS.map((preset) => preset.group)))
-
-const PRESET_GROUP_TONES: Record<string, {
-  label: string
-  description: string
-  card: string
-  activeCard: string
-  badge: string
-  activeBadge: string
-  chip: string
-  activeChip: string
-  rail: string
-  activeRail: string
-}> = {
-  "Sebelum Saham Bergerak": {
-    label: "SETUP",
-    description: "Kompresi harga atau volume sebelum saham mulai bergerak.",
-    card: "border-slate-200 bg-gradient-to-b from-white to-slate-50/70 hover:border-slate-300",
-    activeCard: "border-[#d8b08a] bg-gradient-to-b from-white to-[#fff7ef] shadow-[0_10px_24px_rgba(180,106,44,0.12)]",
-    badge: "border-slate-200 bg-slate-100 text-slate-600",
-    activeBadge: "border-[#d8b08a] bg-[#f3dfcb] text-[#7c4a20]",
-    chip: "border-slate-200 bg-white text-slate-600",
-    activeChip: "border-[#e3c7ad] bg-white text-[#8d5627]",
-    rail: "bg-slate-300",
-    activeRail: "bg-[#d07225]",
-  },
-  "Baru Breakout": {
-    label: "BREAKOUT",
-    description: "Saham yang baru keluar dari konsolidasi dengan dukungan volume atau trend.",
-    card: "border-slate-200 bg-gradient-to-b from-white to-slate-50/70 hover:border-slate-300",
-    activeCard: "border-[#d8b08a] bg-gradient-to-b from-white to-[#fff7ef] shadow-[0_10px_24px_rgba(180,106,44,0.12)]",
-    badge: "border-slate-200 bg-slate-100 text-slate-600",
-    activeBadge: "border-[#d8b08a] bg-[#f3dfcb] text-[#7c4a20]",
-    chip: "border-slate-200 bg-white text-slate-600",
-    activeChip: "border-[#e3c7ad] bg-white text-[#8d5627]",
-    rail: "bg-slate-300",
-    activeRail: "bg-[#d07225]",
-  },
-  "Saham Lagi Murah": {
-    label: "VALUE",
-    description: "Filter saham value dengan valuation rendah, kualitas laba, atau momentum awal.",
-    card: "border-slate-200 bg-gradient-to-b from-white to-slate-50/70 hover:border-slate-300",
-    activeCard: "border-[#d8b08a] bg-gradient-to-b from-white to-[#fff7ef] shadow-[0_10px_24px_rgba(180,106,44,0.12)]",
-    badge: "border-slate-200 bg-slate-100 text-slate-600",
-    activeBadge: "border-[#d8b08a] bg-[#f3dfcb] text-[#7c4a20]",
-    chip: "border-slate-200 bg-white text-slate-600",
-    activeChip: "border-[#e3c7ad] bg-white text-[#8d5627]",
-    rail: "bg-slate-300",
-    activeRail: "bg-[#d07225]",
-  },
-  "Entry di Level Penting": {
-    label: "LEVEL",
-    description: "Setup di area acuan seperti VWAP, pivot, atau support yang sedang direbut ulang.",
-    card: "border-slate-200 bg-gradient-to-b from-white to-slate-50/70 hover:border-slate-300",
-    activeCard: "border-[#d8b08a] bg-gradient-to-b from-white to-[#fff7ef] shadow-[0_10px_24px_rgba(180,106,44,0.12)]",
-    badge: "border-slate-200 bg-slate-100 text-slate-600",
-    activeBadge: "border-[#d8b08a] bg-[#f3dfcb] text-[#7c4a20]",
-    chip: "border-slate-200 bg-white text-slate-600",
-    activeChip: "border-[#e3c7ad] bg-white text-[#8d5627]",
-    rail: "bg-slate-300",
-    activeRail: "bg-[#d07225]",
-  },
-  "Tren Lagi Kencang": {
-    label: "TREND",
-    description: "Trend-following untuk saham yang arah naiknya sudah lebih terkonfirmasi.",
-    card: "border-slate-200 bg-gradient-to-b from-white to-slate-50/70 hover:border-slate-300",
-    activeCard: "border-[#d8b08a] bg-gradient-to-b from-white to-[#fff7ef] shadow-[0_10px_24px_rgba(180,106,44,0.12)]",
-    badge: "border-slate-200 bg-slate-100 text-slate-600",
-    activeBadge: "border-[#d8b08a] bg-[#f3dfcb] text-[#7c4a20]",
-    chip: "border-slate-200 bg-white text-slate-600",
-    activeChip: "border-[#e3c7ad] bg-white text-[#8d5627]",
-    rail: "bg-slate-300",
-    activeRail: "bg-[#d07225]",
-  },
-  "Ikut Momentum": {
-    label: "MOMENTUM",
-    description: "Saham yang mulai punya percepatan teknikal dari MACD, RSI, atau kombinasi momentum.",
-    card: "border-slate-200 bg-gradient-to-b from-white to-slate-50/70 hover:border-slate-300",
-    activeCard: "border-[#d8b08a] bg-gradient-to-b from-white to-[#fff7ef] shadow-[0_10px_24px_rgba(180,106,44,0.12)]",
-    badge: "border-slate-200 bg-slate-100 text-slate-600",
-    activeBadge: "border-[#d8b08a] bg-[#f3dfcb] text-[#7c4a20]",
-    chip: "border-slate-200 bg-white text-slate-600",
-    activeChip: "border-[#e3c7ad] bg-white text-[#8d5627]",
-    rail: "bg-slate-300",
-    activeRail: "bg-[#d07225]",
-  },
-  "Beli Saat Turun": {
-    label: "DIP BUY",
-    description: "Mean-reversion untuk saham yang oversold dan mulai menunjukkan potensi pantulan.",
-    card: "border-slate-200 bg-gradient-to-b from-white to-slate-50/70 hover:border-slate-300",
-    activeCard: "border-[#d8b08a] bg-gradient-to-b from-white to-[#fff7ef] shadow-[0_10px_24px_rgba(180,106,44,0.12)]",
-    badge: "border-slate-200 bg-slate-100 text-slate-600",
-    activeBadge: "border-[#d8b08a] bg-[#f3dfcb] text-[#7c4a20]",
-    chip: "border-slate-200 bg-white text-slate-600",
-    activeChip: "border-[#e3c7ad] bg-white text-[#8d5627]",
-    rail: "bg-slate-300",
-    activeRail: "bg-[#d07225]",
-  },
+const PRESET_TONE_CLASSES = {
+  card: "border-slate-200 bg-gradient-to-b from-white to-slate-50/70 hover:border-slate-300",
+  activeCard: "border-[#d8b08a] bg-gradient-to-b from-white to-[#fff7ef] shadow-[0_10px_24px_rgba(180,106,44,0.12)]",
+  badge: "border-slate-200 bg-slate-100 text-slate-600",
+  activeBadge: "border-[#d8b08a] bg-[#f3dfcb] text-[#7c4a20]",
+  chip: "border-slate-200 bg-white text-slate-600",
+  activeChip: "border-[#e3c7ad] bg-white text-[#8d5627]",
+  rail: "bg-slate-300",
+  activeRail: "bg-[#d07225]",
 }
 
-const DEFAULT_PRESET_TONE = PRESET_GROUP_TONES["Sebelum Saham Bergerak"]
+const DEFAULT_PRESET_CATEGORY_DESCRIPTION = "Preset screener dari database."
 
-function getPresetTone(group: string) {
-  return PRESET_GROUP_TONES[group] ?? DEFAULT_PRESET_TONE
+function getPresetTone(category?: { label?: string | null; description?: string | null }) {
+  return {
+    ...PRESET_TONE_CLASSES,
+    label: category?.label ?? "PRESET",
+    description: category?.description ?? DEFAULT_PRESET_CATEGORY_DESCRIPTION,
+  }
+}
+
+function getPresetCategoryTone(preset: ScreenerPreset) {
+  return getPresetTone({
+    label: preset.groupLabel,
+    description: preset.groupDescription,
+  })
 }
 
 const defaultAlertDraft: AlertDraft = {
@@ -1221,6 +923,65 @@ function TickerCircleIcon({ ticker }: { ticker: string }) {
   )
 }
 
+function TradingViewMiniChart({ ticker }: { ticker: string }) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    container.innerHTML = ""
+
+    const widgetSlot = document.createElement("div")
+    widgetSlot.className = "tradingview-widget-container__widget h-full w-full"
+    container.appendChild(widgetSlot)
+
+    const script = document.createElement("script")
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js"
+    script.async = true
+    script.innerHTML = JSON.stringify({
+      symbol: `IDX:${ticker}`,
+      width: "100%",
+      height: "100%",
+      locale: "en",
+      dateRange: "12M",
+      colorTheme: "light",
+      isTransparent: true,
+      autosize: true,
+    })
+    container.appendChild(script)
+
+    return () => {
+      container.innerHTML = ""
+    }
+  }, [ticker])
+
+  return (
+    <div
+      ref={containerRef}
+      className="tradingview-widget-container h-full w-full"
+      aria-label={`${ticker} mini chart`}
+    />
+  )
+}
+
+function ScreenerRowHoverCard({ row }: { row: ScreenerRow }) {
+  return (
+    <div className="w-[336px] overflow-hidden rounded-md bg-white p-3">
+      <div className="h-[178px] overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <TradingViewMiniChart ticker={row.stockCode} />
+      </div>
+
+      <Button asChild className="mt-3 h-9 w-full gap-2 bg-[#d07225] text-white hover:bg-[#a65b1d]">
+        <Link href={`/analyze-v2?ticker=${row.stockCode}`}>
+          Analyze now
+          <ArrowUpRight className="h-3.5 w-3.5" />
+        </Link>
+      </Button>
+    </div>
+  )
+}
+
 export function ScreenerPage() {
   const { isLoaded, isSignedIn } = useUser()
   const { openSignIn } = useClerk()
@@ -1245,6 +1006,9 @@ export function ScreenerPage() {
   const [indicatorSearch, setIndicatorSearch] = useState("")
   const [activePresetId, setActivePresetId] = useState<string | null>(null)
   const [activePresetGroup, setActivePresetGroup] = useState<string>("all")
+  const [screenerPresets, setScreenerPresets] = useState<ScreenerPreset[]>([])
+  const [presetsLoading, setPresetsLoading] = useState(true)
+  const [presetsError, setPresetsError] = useState<string | null>(null)
   const [screenerRows, setScreenerRows] = useState<ScreenerRow[]>([])
   const [latestSnapshotDate, setLatestSnapshotDate] = useState<string | null>(null)
   const [screeningSummary, setScreeningSummary] = useState<ScreenerApiResponse["summary"] | null>(null)
@@ -1275,6 +1039,40 @@ export function ScreenerPage() {
   }, [])
 
   useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadPresets() {
+      setPresetsLoading(true)
+      setPresetsError(null)
+
+      try {
+        const response = await fetch("/api/screener/presets", {
+          signal: controller.signal,
+        })
+        const result = await response.json() as ScreenerPresetsResponse
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || "Gagal memuat preset screener.")
+        }
+
+        setScreenerPresets(result.presets ?? [])
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return
+        const message = error instanceof Error ? error.message : "Gagal memuat preset screener."
+        setPresetsError(message)
+      } finally {
+        if (!controller.signal.aborted) {
+          setPresetsLoading(false)
+        }
+      }
+    }
+
+    void loadPresets()
+
+    return () => controller.abort()
+  }, [])
+
+  useEffect(() => {
     window.localStorage.setItem("algosaham-screener-radar", JSON.stringify(radarTickers))
   }, [radarTickers])
 
@@ -1295,6 +1093,12 @@ export function ScreenerPage() {
     return () => clearInterval(interval)
   }, [isRunning])
 
+  useEffect(() => {
+    if (activePresetGroup === "all") return
+    if (screenerPresets.some((preset) => preset.group === activePresetGroup)) return
+    setActivePresetGroup("all")
+  }, [activePresetGroup, screenerPresets])
+
   const sectors = useMemo(
     () =>
       Array.from(
@@ -1310,6 +1114,30 @@ export function ScreenerPage() {
     () => Array.from(new Set([...SCREENER_SECTOR_OPTIONS, ...sectors])).sort(),
     [sectors],
   )
+  const presetGroups = useMemo(() => {
+    const groups = new Map<string, {
+      name: string
+      label: string
+      description: string | null
+      count: number
+    }>()
+
+    screenerPresets.forEach((preset) => {
+      const existing = groups.get(preset.group)
+      if (existing) {
+        existing.count += 1
+      } else {
+        groups.set(preset.group, {
+          name: preset.group,
+          label: preset.groupLabel,
+          description: preset.groupDescription,
+          count: 1,
+        })
+      }
+    })
+
+    return Array.from(groups.values())
+  }, [screenerPresets])
   const normalizedIndicatorSearch = indicatorSearch.trim().toLowerCase()
   const filteredTechnicalFilterGroups = technicalFilterGroups
     .map(({ groupLabel, entries }) => ({
@@ -1580,6 +1408,21 @@ export function ScreenerPage() {
     }
   }
 
+  function handleSectorFilterChange(value: string) {
+    setActivePresetId(null)
+    setSectorFilter(value)
+  }
+
+  function handleMarketCapFilterChange(value: string) {
+    setActivePresetId(null)
+    setMarketCapFilter(value)
+  }
+
+  function handleSyariahFilterChange(value: string) {
+    setActivePresetId(null)
+    setSyariahFilter(value)
+  }
+
   async function handleSaveStrategy() {
     if (!strategyName.trim()) return
 
@@ -1770,7 +1613,7 @@ export function ScreenerPage() {
   ]
 
   const visibleColumns = columns.filter((column) => visibleColumnIds.includes(column.id as ColumnId))
-  const activePreset = SCREENER_PRESETS.find((preset) => preset.id === activePresetId) ?? null
+  const activePreset = screenerPresets.find((preset) => preset.id === activePresetId) ?? null
   const activePresetGroupLabel = activePresetGroup === "all" ? "Semua kategori" : activePresetGroup
   const canSaveStrategy = Boolean(activePresetId || activeRules.length > 0)
   const screenerTableClassName =
@@ -1837,26 +1680,25 @@ export function ScreenerPage() {
                       <span className="min-w-0 space-y-1">
                         <span className="block text-sm font-medium text-foreground">Semua kategori</span>
                         <span className="block text-xs leading-relaxed text-muted-foreground">
-                          Tampilkan semua preset dari setup awal, breakout, value, level, trend, momentum, sampai dip-buy.
+                          Tampilkan semua preset yang aktif dari database screener.
                         </span>
                       </span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    {PRESET_GROUP_LABELS.map((groupLabel) => {
-                      const tone = getPresetTone(groupLabel)
-                      const presetCount = SCREENER_PRESETS.filter((preset) => preset.group === groupLabel).length
+                    {presetGroups.map((group) => {
+                      const tone = getPresetTone(group)
                       return (
                         <DropdownMenuItem
-                          key={groupLabel}
-                          onClick={() => setActivePresetGroup(groupLabel)}
+                          key={group.name}
+                          onClick={() => setActivePresetGroup(group.name)}
                           className="items-start gap-3 rounded-lg px-3 py-3"
                         >
-                          <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${activePresetGroup === groupLabel ? "bg-[#d07225]" : "bg-slate-300"}`} />
+                          <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${activePresetGroup === group.name ? "bg-[#d07225]" : "bg-slate-300"}`} />
                           <span className="min-w-0 space-y-1">
                             <span className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-foreground">{groupLabel}</span>
+                              <span className="text-sm font-medium text-foreground">{group.name}</span>
                               <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-ibm-plex-mono text-[10px] text-muted-foreground">
-                                {presetCount}
+                                {group.count}
                               </span>
                             </span>
                             <span className="block text-xs leading-relaxed text-muted-foreground">
@@ -1871,11 +1713,27 @@ export function ScreenerPage() {
               </div>
 
               <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1">
-                {SCREENER_PRESETS
+                {presetsLoading ? (
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="h-[168px] w-[292px] shrink-0 animate-pulse rounded-xl border border-slate-200 bg-slate-50"
+                    />
+                  ))
+                ) : presetsError ? (
+                  <div className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    {presetsError}
+                  </div>
+                ) : screenerPresets.length === 0 ? (
+                  <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-muted-foreground">
+                    Belum ada preset screener aktif di database.
+                  </div>
+                ) : (
+                  screenerPresets
                   .filter((preset) => activePresetGroup === "all" || preset.group === activePresetGroup)
                   .map((preset) => {
                     const isActive = activePresetId === preset.id
-                    const tone = getPresetTone(preset.group)
+                    const tone = getPresetCategoryTone(preset)
                     const metricLabels = getPresetFilterLabels(preset)
                     return (
                       <button
@@ -1927,18 +1785,76 @@ export function ScreenerPage() {
                         </div>
                       </button>
                     )
-                  })}
+                  })
+                )}
               </div>
             </div>
           </section>
 
           <section className="rounded-xl border border-border/70 bg-card shadow-sm">
             <div className="p-5 sm:p-6 space-y-5">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
                   Screener Builder
                 </div>
+                {activePreset ? (
+                  <div className="w-full rounded-lg border border-[#e3c7ad] bg-[#fff7ef] px-4 py-3 shadow-sm xl:max-w-md">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8d5627]">
+                          Active Screener
+                        </div>
+                        <div className="mt-1 truncate text-sm font-semibold text-foreground">
+                          {activePreset.name}
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                          {activePreset.summary}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-[#d8b08a] bg-[#f3dfcb] px-2 py-0.5 font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7c4a20]">
+                        {getPresetCategoryTone(activePreset).label}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {getPresetFilterLabels(activePreset).map((label) => (
+                        <span
+                          key={label}
+                          className="rounded-md border border-[#e3c7ad] bg-white px-2 py-1 font-ibm-plex-mono text-[11px] font-medium leading-none text-[#8d5627]"
+                        >
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : activeRules.length > 0 ? (
+                  <div className="w-full rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-3 shadow-sm xl:max-w-md">
+                    <div className="font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      Custom Recipe
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-foreground">
+                      Screener buatan sendiri
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Preset sudah dimodifikasi, jadi pilihan kartu preset dilepas.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {activeRules.slice(0, 4).map((rule) => (
+                        <span
+                          key={rule.id}
+                          className="rounded-md border border-slate-200 bg-white px-2 py-1 font-ibm-plex-mono text-[11px] font-medium leading-none text-slate-600"
+                        >
+                          {formatRuleSummary(rule)}
+                        </span>
+                      ))}
+                      {activeRules.length > 4 ? (
+                        <span className="rounded-md border border-slate-200 bg-white px-2 py-1 font-ibm-plex-mono text-[11px] font-medium leading-none text-slate-500">
+                          +{activeRules.length - 4}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -2167,7 +2083,7 @@ export function ScreenerPage() {
                   />
                 </div>
 
-                <Select value={sectorFilter} onValueChange={setSectorFilter}>
+                <Select value={sectorFilter} onValueChange={handleSectorFilterChange}>
                   <SelectTrigger className="bg-background border-border/70">
                     <SelectValue placeholder="Semua sektor" />
                   </SelectTrigger>
@@ -2179,7 +2095,7 @@ export function ScreenerPage() {
                   </SelectContent>
                 </Select>
 
-                <Select value={marketCapFilter} onValueChange={setMarketCapFilter}>
+                <Select value={marketCapFilter} onValueChange={handleMarketCapFilterChange}>
                   <SelectTrigger className="bg-background border-border/70">
                     <SelectValue placeholder="market_cap_group" />
                   </SelectTrigger>
@@ -2191,7 +2107,7 @@ export function ScreenerPage() {
                   </SelectContent>
                 </Select>
 
-                <Select value={syariahFilter} onValueChange={setSyariahFilter}>
+                <Select value={syariahFilter} onValueChange={handleSyariahFilterChange}>
                   <SelectTrigger className="bg-background border-border/70">
                     <SelectValue placeholder="is_syariah" />
                   </SelectTrigger>
@@ -2338,6 +2254,7 @@ export function ScreenerPage() {
             </div>
           </section>
 
+          {/*
           {(screeningSummary || runError) && (
             <section className="rounded-xl border border-border/70 bg-card shadow-sm">
               <div className="grid gap-3 p-5 text-sm sm:grid-cols-2 xl:grid-cols-5">
@@ -2371,6 +2288,7 @@ export function ScreenerPage() {
               </div>
             </section>
           )}
+          */}
 
           <div id="screener-results" className="space-y-2">
             {visibleColumns.length > 10 ? (
@@ -2396,6 +2314,9 @@ export function ScreenerPage() {
               getRowId={(row) => row.stockCode}
               emptyMessage=""
               tableClassName={screenerTableClassName}
+              rowClassName="hover:bg-[#d07225]/5"
+              rowHoverContent={(row) => <ScreenerRowHoverCard row={row} />}
+              rowHoverContentClassName="min-w-[336px] max-w-[336px] border-border/70"
               initialPageSize={20}
               pageSizeOptions={[20, 40, 60, 80]}
               paginationResetKey={`${search}|${sectorFilter}|${marketCapFilter}|${syariahFilter}|${sortKey}|${sortDirection}|${activeRules.map((rule) => `${rule.key}:${JSON.stringify(rule.params)}`).join("|")}`}
