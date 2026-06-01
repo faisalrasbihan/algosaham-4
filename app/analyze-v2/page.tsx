@@ -7,9 +7,7 @@ import { useClerk, useUser } from "@clerk/nextjs"
 import {
     Activity,
     AlertTriangle,
-    ArrowDownRight,
     ArrowLeft,
-    ArrowUpRight,
     Brain,
     CircleDot,
     Clock,
@@ -17,7 +15,6 @@ import {
     Layers,
     PieChart,
     ShieldCheck,
-    Sparkles,
     Minus,
     TrendingDown,
     TrendingUp,
@@ -25,6 +22,7 @@ import {
 import { Navbar } from "@/components/navbar"
 import { StockSearch } from "@/components/stock-search"
 import { AdvancedMultiChart } from "@/components/advanced-multi-chart"
+import { TradingViewSingleTickerCard } from "@/components/tradingview-single-ticker-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -121,18 +119,6 @@ type AnalyzeResponse = {
         summary?: string
         notes: string[]
     }
-}
-
-function AiBadge() {
-    return (
-        <span
-            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider"
-            style={{ backgroundColor: "rgba(208,114,37,0.1)", color: "#d07225", border: "1px solid rgba(208,114,37,0.2)" }}
-        >
-            <Sparkles className="w-2.5 h-2.5" />
-            AI
-        </span>
-    )
 }
 
 function getScoreBarColor(score: number) {
@@ -377,7 +363,6 @@ function AnalyzeV2Content() {
     }
 
     const d = data
-    const isPositive = d.changePct >= 0
     const potentialLoss = ((d.riskPlan.entryPrice - d.riskPlan.stopLoss) / d.riskPlan.entryPrice) * 100
     const potentialGain = ((d.riskPlan.takeProfit - d.riskPlan.entryPrice) / d.riskPlan.entryPrice) * 100
     const bias = biasMeta(d.marketBias)
@@ -400,15 +385,15 @@ function AnalyzeV2Content() {
                     <Card className="p-6 sm:p-8 border-border/70 bg-card shadow-sm overflow-hidden">
                         <div className="-mx-6 sm:-mx-8 -mt-6 sm:-mt-8 mb-6 h-1 bg-gradient-to-r from-[#487b78] via-[#d07225] to-transparent" />
 
-                        <div className="flex flex-col lg:flex-row lg:items-start gap-6 mb-7">
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center border border-border flex-shrink-0 relative overflow-hidden">
+                        <div className="mb-7 space-y-5">
+                            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <div className="w-11 h-11 rounded-lg bg-secondary flex items-center justify-center border border-border flex-shrink-0 relative overflow-hidden">
                                         <Image
                                             src={`/stock_icons/${d.ticker}.png`}
                                             alt={d.ticker}
                                             fill
-                                            sizes="40px"
+                                            sizes="44px"
                                             className="object-contain p-1.5"
                                             onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                                                 (e.target as HTMLImageElement).style.display = "none"
@@ -419,59 +404,63 @@ function AnalyzeV2Content() {
                                             }}
                                         />
                                     </div>
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <h1 className="text-2xl font-bold font-ibm-plex-mono tracking-tight">{d.ticker}</h1>
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h1 className="text-2xl font-bold font-ibm-plex-mono tracking-tight leading-none">{d.ticker}</h1>
                                             {d.syariah ? <Badge variant="outline" className="text-[10px]">Syariah</Badge> : null}
                                             <Badge variant="outline" className="text-[10px]">{d.dataMode}</Badge>
                                         </div>
-                                        <p className="text-sm text-muted-foreground">{d.companyName}</p>
+                                        <p className="mt-1 truncate text-sm text-muted-foreground">{d.companyName}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap mt-1">
+
+                                <div className="flex items-center gap-x-3 gap-y-1 text-xs text-muted-foreground flex-wrap lg:justify-end">
                                     <span className="flex items-center gap-1"><Layers className="w-3 h-3" />{d.sector}</span>
-                                    <span>·</span>
+                                    <span className="text-border">·</span>
                                     <span className="capitalize">{d.marketCapGroup} Cap</span>
-                                    <span>·</span>
+                                    <span className="text-border">·</span>
                                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" />Per {d.asOf}</span>
                                 </div>
                             </div>
 
-                            <div className="flex-shrink-0 w-full lg:w-auto grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
-                                <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 h-full flex flex-col lg:text-right">
-                                    <div className="text-3xl sm:text-4xl font-bold font-ibm-plex-mono">Rp {d.price.toLocaleString("id-ID")}</div>
-                                    <div className={`text-sm font-semibold flex items-center lg:justify-end gap-1 mt-1 ${isPositive ? "text-green-600" : "text-red-600"}`}>
-                                        {isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                                        {isPositive ? "+" : ""}{d.changePct.toFixed(2)}%
+                            <div className="w-full grid grid-cols-1 lg:grid-cols-[minmax(320px,1.25fr)_minmax(220px,1fr)_minmax(220px,1fr)] gap-3 items-stretch min-w-0">
+                                <TradingViewSingleTickerCard
+                                    ticker={d.ticker}
+                                    price={d.price}
+                                    changePct={d.changePct}
+                                    volumeLabel={formatCompactVolume(d.volume)}
+                                    high52w={d.high52w}
+                                    low52w={d.low52w}
+                                />
+
+                                <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 min-h-[136px] h-full flex flex-col justify-between">
+                                    <div>
+                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Technical Score</div>
+                                        <div className="mt-3 flex items-end justify-between gap-4">
+                                            <div className="text-4xl font-bold font-ibm-plex-mono text-foreground leading-none">{d.technical.score}</div>
+                                            <div className="w-28 pb-1"><ScoreBar score={d.technical.score} color={getScoreBarColor(d.technical.score)} /></div>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-4 mt-auto pt-2 text-[11px] text-muted-foreground lg:justify-end font-ibm-plex-mono">
-                                        <span>Vol {formatCompactVolume(d.volume)}</span>
-                                        <span>52w H {d.high52w.toLocaleString("id-ID")}</span>
-                                        <span>52w L {d.low52w.toLocaleString("id-ID")}</span>
+                                    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground capitalize">
+                                        <span>{d.technical.trend}</span>
+                                        <span className="text-border">·</span>
+                                        <span>{d.technical.momentum}</span>
+                                        <span className="text-border">·</span>
+                                        <span>{d.technical.volatility}</span>
                                     </div>
                                 </div>
 
-                                <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 h-full flex flex-col justify-between">
+                                <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 min-h-[136px] h-full flex flex-col justify-between">
                                     <div>
-                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Technical Score</div>
-                                        <div className="flex items-end justify-between gap-3">
-                                            <div className="text-3xl font-bold font-ibm-plex-mono text-foreground">{d.technical.score}</div>
-                                            <div className="w-24"><ScoreBar score={d.technical.score} color={getScoreBarColor(d.technical.score)} /></div>
+                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Fundamental Score</div>
+                                        <div className="mt-3 flex items-end justify-between gap-4">
+                                            <div className="text-4xl font-bold font-ibm-plex-mono text-foreground leading-none">{d.fundamental.score}</div>
+                                            <div className="w-28 pb-1"><ScoreBar score={d.fundamental.score} color={getScoreBarColor(d.fundamental.score)} /></div>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 h-full flex flex-col justify-between">
-                                    <div>
-                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Fundamental Score</div>
-                                        <div className="flex items-end justify-between gap-3">
-                                            <div className="text-3xl font-bold font-ibm-plex-mono text-foreground">{d.fundamental.score}</div>
-                                            <div className="w-24"><ScoreBar score={d.fundamental.score} color={getScoreBarColor(d.fundamental.score)} /></div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 justify-end mt-3">
+                                    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                                        <span className="capitalize">Valuasi: {d.fundamental.valuation}</span>
                                         <Badge variant="outline" className="text-[10px] capitalize">{d.confidence}</Badge>
-                                        <AiBadge />
                                     </div>
                                 </div>
                             </div>
@@ -488,9 +477,8 @@ function AnalyzeV2Content() {
 
                         <div className="mb-7 rounded-xl border border-border/70 bg-background/60 p-4 sm:p-5">
                             <div className="flex items-center gap-2 mb-2">
-                                <Brain className="w-4 h-4 text-primary" />
+                                <Brain className="w-4 h-4 text-muted-foreground" />
                                 <span className="text-sm font-semibold">Ringkasan AI</span>
-                                <AiBadge />
                             </div>
                             <p className="text-sm leading-relaxed text-muted-foreground">{d.llmSummary}</p>
                             <div className="flex flex-wrap gap-2 mt-3">
@@ -510,46 +498,44 @@ function AnalyzeV2Content() {
 
                         <div>
                             <div className="flex items-center gap-2 mb-4">
-                                <ShieldCheck className="w-4 h-4 text-primary" />
+                                <ShieldCheck className="w-4 h-4 text-muted-foreground" />
                                 <span className="text-sm font-semibold">Rencana Risk Management</span>
-                                <AiBadge />
                             </div>
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-                                <div className="p-3 rounded-lg border border-border/70 bg-white">
+                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Entry</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono">{d.riskPlan.entryPrice.toLocaleString("id-ID")}</div>
                                     <div className="text-[10px] text-muted-foreground capitalize mt-0.5">{d.riskPlan.entryReference}</div>
                                 </div>
-                                <div className="p-3 rounded-lg border border-red-200/70 bg-white">
+                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Stop Loss</div>
-                                    <div className="text-lg font-bold font-ibm-plex-mono text-red-600">{d.riskPlan.stopLoss.toLocaleString("id-ID")}</div>
-                                    <div className="text-[10px] text-red-600 mt-0.5 font-ibm-plex-mono">-{potentialLoss.toFixed(2)}%</div>
+                                    <div className="text-lg font-bold font-ibm-plex-mono">{d.riskPlan.stopLoss.toLocaleString("id-ID")}</div>
+                                    <div className="text-[10px] text-red-800 mt-0.5 font-ibm-plex-mono">-{potentialLoss.toFixed(2)}%</div>
                                 </div>
-                                <div className="p-3 rounded-lg border border-emerald-200/70 bg-white">
+                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Take Profit</div>
-                                    <div className="text-lg font-bold font-ibm-plex-mono text-green-600">{d.riskPlan.takeProfit.toLocaleString("id-ID")}</div>
-                                    <div className="text-[10px] text-green-600 mt-0.5 font-ibm-plex-mono">+{potentialGain.toFixed(2)}%</div>
+                                    <div className="text-lg font-bold font-ibm-plex-mono">{d.riskPlan.takeProfit.toLocaleString("id-ID")}</div>
+                                    <div className="text-[10px] text-green-800 mt-0.5 font-ibm-plex-mono">+{potentialGain.toFixed(2)}%</div>
                                 </div>
-                                <div className="p-3 rounded-lg border border-border/70 bg-white">
+                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">R/R Ratio</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono">1:{d.riskPlan.riskReward.toFixed(2)}</div>
                                 </div>
-                                <div className="p-3 rounded-lg border border-border/70 bg-white">
+                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Holding</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono capitalize">{d.riskPlan.holdingTerm}</div>
                                 </div>
-                                <div className="p-3 rounded-lg border border-border/70 bg-white">
+                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
                                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Confidence</div>
                                     <div className="text-lg font-bold font-ibm-plex-mono capitalize">{d.riskPlan.confidence}</div>
                                 </div>
                             </div>
 
-                            <div className="p-3 rounded-lg bg-white border border-border/70">
+                            <div className="p-3 rounded-lg bg-background/70 border border-border/70">
                                 <div className="flex items-center gap-1.5 mb-2">
                                     <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />
                                     <span className="text-xs font-semibold text-muted-foreground">Catatan Penting</span>
-                                    <AiBadge />
                                 </div>
                                 {d.riskPlan.summary ? <p className="text-xs text-muted-foreground mb-2">{d.riskPlan.summary}</p> : null}
                                 <ul className="space-y-0.5">
@@ -566,13 +552,12 @@ function AnalyzeV2Content() {
 
                     <div className="grid lg:grid-cols-2 gap-5">
                         <Card className="p-6 border-border/70 bg-card shadow-sm overflow-hidden">
-                            <div className="-mx-6 -mt-6 mb-5 h-1 bg-gradient-to-r from-[#487b78] to-transparent" />
+                            <div className="-mx-6 -mt-6 mb-5 h-px bg-border" />
                             <div className="flex items-start justify-between mb-5">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
                                         <Activity className="w-4 h-4 text-muted-foreground" />
                                         <h3 className="text-sm font-semibold">Analisis Teknikal</h3>
-                                        <AiBadge />
                                     </div>
                                     <p className="text-xs text-muted-foreground capitalize">{d.technical.trend} · {d.technical.momentum} · {d.technical.volatility}</p>
                                     {d.technical.summary ? <p className="text-xs text-muted-foreground mt-2">{d.technical.summary}</p> : null}
@@ -630,13 +615,12 @@ function AnalyzeV2Content() {
                         </Card>
 
                         <Card className="p-6 border-border/70 bg-card shadow-sm overflow-hidden">
-                            <div className="-mx-6 -mt-6 mb-5 h-1 bg-gradient-to-r from-[#d07225] to-transparent" />
+                            <div className="-mx-6 -mt-6 mb-5 h-px bg-border" />
                             <div className="flex items-start justify-between mb-5">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
                                         <PieChart className="w-4 h-4 text-muted-foreground" />
                                         <h3 className="text-sm font-semibold">Analisis Fundamental</h3>
-                                        <AiBadge />
                                     </div>
                                     <p className="text-xs text-muted-foreground capitalize">Valuasi: {d.fundamental.valuation} · MCap {formatTrillionValue(d.fundamental.metrics.market_cap_t)}</p>
                                     {d.fundamental.summary ? <p className="text-xs text-muted-foreground mt-2">{d.fundamental.summary}</p> : null}

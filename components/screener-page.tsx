@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Sparkles, Check, Info } from "lucide-react"
+import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Check, Info } from "lucide-react"
 import { toast } from "sonner"
 
 import { Navbar } from "@/components/navbar"
@@ -674,21 +674,8 @@ const PRESET_TONE_CLASSES = {
   activeRail: "bg-[#d07225]",
 }
 
-const DEFAULT_PRESET_CATEGORY_DESCRIPTION = "Preset screener dari database."
-
-function getPresetTone(category?: { label?: string | null; description?: string | null }) {
-  return {
-    ...PRESET_TONE_CLASSES,
-    label: category?.label ?? "PRESET",
-    description: category?.description ?? DEFAULT_PRESET_CATEGORY_DESCRIPTION,
-  }
-}
-
-function getPresetCategoryTone(preset: ScreenerPreset) {
-  return getPresetTone({
-    label: preset.groupLabel,
-    description: preset.groupDescription,
-  })
+function getPresetCategoryLabel(preset: ScreenerPreset) {
+  return preset.groupLabel || "PRESET"
 }
 
 const defaultAlertDraft: AlertDraft = {
@@ -1005,7 +992,6 @@ export function ScreenerPage() {
   const [savingStrategy, setSavingStrategy] = useState(false)
   const [indicatorSearch, setIndicatorSearch] = useState("")
   const [activePresetId, setActivePresetId] = useState<string | null>(null)
-  const [activePresetGroup, setActivePresetGroup] = useState<string>("all")
   const [screenerPresets, setScreenerPresets] = useState<ScreenerPreset[]>([])
   const [presetsLoading, setPresetsLoading] = useState(true)
   const [presetsError, setPresetsError] = useState<string | null>(null)
@@ -1093,12 +1079,6 @@ export function ScreenerPage() {
     return () => clearInterval(interval)
   }, [isRunning])
 
-  useEffect(() => {
-    if (activePresetGroup === "all") return
-    if (screenerPresets.some((preset) => preset.group === activePresetGroup)) return
-    setActivePresetGroup("all")
-  }, [activePresetGroup, screenerPresets])
-
   const sectors = useMemo(
     () =>
       Array.from(
@@ -1114,30 +1094,6 @@ export function ScreenerPage() {
     () => Array.from(new Set([...SCREENER_SECTOR_OPTIONS, ...sectors])).sort(),
     [sectors],
   )
-  const presetGroups = useMemo(() => {
-    const groups = new Map<string, {
-      name: string
-      label: string
-      description: string | null
-      count: number
-    }>()
-
-    screenerPresets.forEach((preset) => {
-      const existing = groups.get(preset.group)
-      if (existing) {
-        existing.count += 1
-      } else {
-        groups.set(preset.group, {
-          name: preset.group,
-          label: preset.groupLabel,
-          description: preset.groupDescription,
-          count: 1,
-        })
-      }
-    })
-
-    return Array.from(groups.values())
-  }, [screenerPresets])
   const normalizedIndicatorSearch = indicatorSearch.trim().toLowerCase()
   const filteredTechnicalFilterGroups = technicalFilterGroups
     .map(({ groupLabel, entries }) => ({
@@ -1379,6 +1335,18 @@ export function ScreenerPage() {
     setEditingRuleId((current) => (current === ruleId ? null : current))
   }
 
+  function resetScreenerBuilder() {
+    setActivePresetId(null)
+    setEditingRuleId(null)
+    setActiveRules([])
+    setSearch("")
+    setSectorFilter("all")
+    setMarketCapFilter("all")
+    setSyariahFilter("all")
+    setSortKey("close")
+    setSortDirection("desc")
+  }
+
   function applyPreset(preset: ScreenerPreset) {
     const nextRules = [
       ...preset.config.fundamentalIndicators
@@ -1553,7 +1521,7 @@ export function ScreenerPage() {
       cell: (row) => (
         <div className="flex items-center gap-2">
           <TickerCircleIcon ticker={row.stockCode} />
-          <Link href={`/analyze-v2?ticker=${row.stockCode}`} className="font-ibm-plex-mono text-sm font-semibold tracking-[0.1em] text-foreground hover:text-[#d07225]">
+          <Link href={`/analyze-v2?ticker=${row.stockCode}`} className="font-ibm-plex-mono text-sm font-semibold tracking-[0.1em] text-foreground hover:text-[#487b78]">
             {row.stockCode}
           </Link>
         </div>
@@ -1614,7 +1582,6 @@ export function ScreenerPage() {
 
   const visibleColumns = columns.filter((column) => visibleColumnIds.includes(column.id as ColumnId))
   const activePreset = screenerPresets.find((preset) => preset.id === activePresetId) ?? null
-  const activePresetGroupLabel = activePresetGroup === "all" ? "Semua kategori" : activePresetGroup
   const canSaveStrategy = Boolean(activePresetId || activeRules.length > 0)
   const screenerTableClassName =
     visibleColumns.length <= 8
@@ -1632,10 +1599,10 @@ export function ScreenerPage() {
       <main className="h-full overflow-y-auto pt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
           <section className="rounded-2xl border border-border/70 bg-card shadow-sm overflow-hidden">
-            <div className="h-1 bg-gradient-to-r from-[#487b78] via-[#d07225] to-transparent" />
+            <div className="h-1 bg-gradient-to-r from-[#487b78] via-slate-300 to-transparent" />
             <div className="p-6 sm:p-8">
               <div className="max-w-3xl space-y-3">
-                <Badge variant="outline" className="font-mono text-[11px] tracking-[0.14em] uppercase text-[#d07225] border-[#d07225]/25 bg-[#d07225]/10">
+                <Badge variant="outline" className="border-slate-200 bg-slate-50 font-mono text-[11px] uppercase tracking-[0.14em] text-slate-600">
                   Screener
                 </Badge>
                 <div>
@@ -1649,220 +1616,110 @@ export function ScreenerPage() {
           </section>
 
           <section className="rounded-xl border border-border/70 bg-card shadow-sm">
-            <div className="p-5 sm:p-6 space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <Sparkles className="h-4 w-4 text-muted-foreground" />
-                  Preset Screener
-                  <span className="text-xs font-normal text-muted-foreground">
-                    Pilihan cepat buat mulai cari saham
-                  </span>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="h-9 gap-2 border-border/70 bg-white px-3 text-xs font-normal text-muted-foreground shadow-sm hover:border-[#d07225]/35 hover:bg-[#d07225]/5 hover:text-foreground"
-                    >
-                      <span className="max-w-[160px] truncate">{activePresetGroupLabel}</span>
-                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-80 border-border/70 p-1.5">
-                    <DropdownMenuLabel className="px-2 pb-1 pt-2 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                      Kategori preset
-                    </DropdownMenuLabel>
-                    <DropdownMenuItem
-                      onClick={() => setActivePresetGroup("all")}
-                      className="items-start gap-3 rounded-lg px-3 py-3"
-                    >
-                      <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${activePresetGroup === "all" ? "bg-[#d07225]" : "bg-slate-300"}`} />
-                      <span className="min-w-0 space-y-1">
-                        <span className="block text-sm font-medium text-foreground">Semua kategori</span>
-                        <span className="block text-xs leading-relaxed text-muted-foreground">
-                          Tampilkan semua preset yang aktif dari database screener.
-                        </span>
+            <div className="p-5 sm:p-6 space-y-5">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+                    <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+                    Screener Builder
+                    {!activePreset && activeRules.length > 0 ? (
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                        Custom
                       </span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {presetGroups.map((group) => {
-                      const tone = getPresetTone(group)
-                      return (
-                        <DropdownMenuItem
-                          key={group.name}
-                          onClick={() => setActivePresetGroup(group.name)}
-                          className="items-start gap-3 rounded-lg px-3 py-3"
-                        >
-                          <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${activePresetGroup === group.name ? "bg-[#d07225]" : "bg-slate-300"}`} />
-                          <span className="min-w-0 space-y-1">
-                            <span className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-foreground">{group.name}</span>
-                              <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-ibm-plex-mono text-[10px] text-muted-foreground">
-                                {group.count}
-                              </span>
-                            </span>
-                            <span className="block text-xs leading-relaxed text-muted-foreground">
-                              {tone.description}
-                            </span>
-                          </span>
-                        </DropdownMenuItem>
-                      )
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    ) : null}
+                  </div>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Mulai dari preset, ubah rule sebagai chip, lalu sempitkan universe saham.
+                  </p>
+                </div>
+                <div className="font-ibm-plex-mono text-sm text-muted-foreground">
+                  <span className="text-[#487b78]">{filteredRows.length} saham cocok</span>
+                  {screeningSummary?.stocksScanned ? <span> dari {screeningSummary.stocksScanned}</span> : null}
+                  {latestSnapshotDate ? <span> · latest: {latestSnapshotDate}</span> : null}
+                </div>
               </div>
 
-              <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1">
-                {presetsLoading ? (
-                  Array.from({ length: 3 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="h-[168px] w-[292px] shrink-0 animate-pulse rounded-xl border border-slate-200 bg-slate-50"
-                    />
-                  ))
-                ) : presetsError ? (
-                  <div className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                    {presetsError}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Preset cepat
                   </div>
-                ) : screenerPresets.length === 0 ? (
-                  <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-muted-foreground">
-                    Belum ada preset screener aktif di database.
-                  </div>
-                ) : (
-                  screenerPresets
-                  .filter((preset) => activePresetGroup === "all" || preset.group === activePresetGroup)
-                  .map((preset) => {
-                    const isActive = activePresetId === preset.id
-                    const tone = getPresetCategoryTone(preset)
-                    const metricLabels = getPresetFilterLabels(preset)
-                    return (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => {
-                          if (isActive) {
-                            setActivePresetId(null)
-                            setEditingRuleId(null)
-                            setActiveRules([])
-                          } else {
-                            applyPreset(preset)
-                          }
-                        }}
-                        className={`group relative flex h-[168px] w-[292px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d07225]/35 ${
-                          isActive
-                            ? tone.activeCard
-                            : tone.card
-                        }`}
-                      >
-                        <span className={`pointer-events-none absolute inset-x-0 top-0 h-1 ${isActive ? tone.activeRail : tone.rail}`} />
-                        <div className="flex items-start justify-between gap-3">
-                          <span className={`rounded-full border px-2 py-0.5 font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.16em] ${isActive ? tone.activeBadge : tone.badge}`}>
-                            {tone.label}
-                          </span>
-                          {isActive ? (
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#d07225]/30 bg-white text-[#d07225] shadow-sm">
-                              <Check className="h-3.5 w-3.5" />
+                  {presetsError ? (
+                    <span className="text-xs text-rose-600">{presetsError}</span>
+                  ) : null}
+                </div>
+                <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
+                  {presetsLoading ? (
+                    Array.from({ length: 3 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="h-[188px] w-[320px] shrink-0 animate-pulse rounded-xl border border-slate-200 bg-slate-50"
+                      />
+                    ))
+                  ) : screenerPresets.length === 0 ? (
+                    <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-muted-foreground">
+                      Belum ada preset screener aktif di database.
+                    </div>
+                  ) : (
+                    screenerPresets.map((preset) => {
+                      const isActive = activePresetId === preset.id
+                      const metricLabels = getPresetFilterLabels(preset).slice(0, 3)
+
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => {
+                            if (isActive) {
+                              resetScreenerBuilder()
+                            } else {
+                              applyPreset(preset)
+                            }
+                          }}
+                          className={`group relative flex h-[188px] w-[320px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#487b78]/30 ${
+                            isActive ? PRESET_TONE_CLASSES.activeCard : PRESET_TONE_CLASSES.card
+                          }`}
+                        >
+                          <span className={`pointer-events-none absolute inset-x-0 top-0 h-1 ${isActive ? PRESET_TONE_CLASSES.activeRail : PRESET_TONE_CLASSES.rail}`} />
+                          <div className="flex items-start justify-between gap-3">
+                            <span className={`rounded-full border px-2 py-0.5 font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.16em] ${isActive ? PRESET_TONE_CLASSES.activeBadge : PRESET_TONE_CLASSES.badge}`}>
+                              {getPresetCategoryLabel(preset)}
                             </span>
-                          ) : null}
-                        </div>
-                        <div className="mt-3 min-w-0">
-                          <h3 className="truncate text-base font-semibold tracking-tight text-foreground">
+                            {isActive ? (
+                              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#d07225]/30 bg-white text-[#d07225] shadow-sm">
+                                <Check className="h-3.5 w-3.5" />
+                              </span>
+                            ) : null}
+                          </div>
+                          <h3 className="mt-3 truncate text-base font-semibold tracking-tight text-foreground">
                             {preset.name}
                           </h3>
-                        </div>
-                        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground line-clamp-2">
-                          {preset.summary}
-                        </p>
-                        <div className="mt-auto flex flex-wrap gap-1.5 pt-3">
-                          {metricLabels.map((label) => (
-                            <span
-                              key={label}
-                              className={`rounded-md border px-2 py-1 font-ibm-plex-mono text-[11px] font-medium leading-none shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] ${isActive ? tone.activeChip : tone.chip}`}
-                            >
-                              {label}
-                            </span>
-                          ))}
-                        </div>
-                      </button>
-                    )
-                  })
-                )}
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-xl border border-border/70 bg-card shadow-sm">
-            <div className="p-5 sm:p-6 space-y-5">
-              <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-                  Screener Builder
+                          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground line-clamp-3">
+                            {preset.summary}
+                          </p>
+                          <div className="mt-auto flex flex-wrap gap-1.5 pt-3">
+                            {metricLabels.map((label) => (
+                              <span
+                                key={label}
+                                className={`rounded-md border px-2 py-1 font-ibm-plex-mono text-[11px] font-medium leading-none shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] ${isActive ? PRESET_TONE_CLASSES.activeChip : PRESET_TONE_CLASSES.chip}`}
+                              >
+                                {label}
+                              </span>
+                            ))}
+                          </div>
+                        </button>
+                      )
+                    })
+                  )}
                 </div>
-                {activePreset ? (
-                  <div className="w-full rounded-lg border border-[#e3c7ad] bg-[#fff7ef] px-4 py-3 shadow-sm xl:max-w-md">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8d5627]">
-                          Active Screener
-                        </div>
-                        <div className="mt-1 truncate text-sm font-semibold text-foreground">
-                          {activePreset.name}
-                        </div>
-                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                          {activePreset.summary}
-                        </p>
-                      </div>
-                      <span className="shrink-0 rounded-full border border-[#d8b08a] bg-[#f3dfcb] px-2 py-0.5 font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7c4a20]">
-                        {getPresetCategoryTone(activePreset).label}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {getPresetFilterLabels(activePreset).map((label) => (
-                        <span
-                          key={label}
-                          className="rounded-md border border-[#e3c7ad] bg-white px-2 py-1 font-ibm-plex-mono text-[11px] font-medium leading-none text-[#8d5627]"
-                        >
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ) : activeRules.length > 0 ? (
-                  <div className="w-full rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-3 shadow-sm xl:max-w-md">
-                    <div className="font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      Custom Recipe
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-foreground">
-                      Screener buatan sendiri
-                    </div>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Preset sudah dimodifikasi, jadi pilihan kartu preset dilepas.
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {activeRules.slice(0, 4).map((rule) => (
-                        <span
-                          key={rule.id}
-                          className="rounded-md border border-slate-200 bg-white px-2 py-1 font-ibm-plex-mono text-[11px] font-medium leading-none text-slate-600"
-                        >
-                          {formatRuleSummary(rule)}
-                        </span>
-                      ))}
-                      {activeRules.length > 4 ? (
-                        <span className="rounded-md border border-slate-200 bg-white px-2 py-1 font-ibm-plex-mono text-[11px] font-medium leading-none text-slate-500">
-                          +{activeRules.length - 4}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="grid gap-3 lg:grid-cols-[max-content_max-content_max-content] lg:items-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-10 gap-2 border-border/70 bg-transparent px-3 text-foreground hover:border-[#d07225]/35 hover:bg-[#d07225]/5 hover:text-foreground"
+                      className="h-10 gap-2 border-border/70 bg-background px-3 text-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50"
                     >
                       <Plus className="h-4 w-4" />
                       Indicator
@@ -1894,7 +1751,7 @@ export function ScreenerPage() {
                               key={key}
                               disabled={alreadyActive}
                               onClick={() => addRule(key)}
-                              className="flex cursor-pointer items-start justify-between gap-3 py-2 text-foreground focus:bg-[#d07225]/15 focus:text-foreground data-[highlighted]:bg-[#d07225]/15 data-[highlighted]:text-foreground"
+                              className="flex cursor-pointer items-start justify-between gap-3 py-2 text-foreground focus:bg-slate-100 focus:text-foreground data-[highlighted]:bg-slate-100 data-[highlighted]:text-foreground"
                             >
                               <div>
                                 <div className="text-sm font-medium text-foreground">{definition.label}</div>
@@ -1921,7 +1778,7 @@ export function ScreenerPage() {
                             key={key}
                             disabled={alreadyActive}
                             onClick={() => addRule(key)}
-                            className="flex cursor-pointer items-start justify-between gap-3 py-2 text-foreground focus:bg-[#d07225]/15 focus:text-foreground data-[highlighted]:bg-[#d07225]/15 data-[highlighted]:text-foreground"
+                            className="flex cursor-pointer items-start justify-between gap-3 py-2 text-foreground focus:bg-slate-100 focus:text-foreground data-[highlighted]:bg-slate-100 data-[highlighted]:text-foreground"
                           >
                             <div>
                               <div className="text-sm font-medium text-foreground">{definition.label}</div>
@@ -1939,10 +1796,29 @@ export function ScreenerPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  className="h-10 gap-2 border-border/70 bg-background px-3 text-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50"
+                  onClick={resetScreenerBuilder}
+                  disabled={!activePreset && activeRules.length === 0 && search === "" && sectorFilter === "all" && marketCapFilter === "all" && syariahFilter === "all" && sortKey === "close" && sortDirection === "desc"}
+                >
+                  Reset
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="h-10 gap-2 border-border/70 bg-background px-3 text-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50"
+                  onClick={handleOpenSaveStrategy}
+                  disabled={!canSaveStrategy}
+                >
+                  <Save className="h-4 w-4" />
+                  Save
+                </Button>
+
+                <div className="flex flex-wrap gap-2 lg:col-span-3">
                   {activeRules.length === 0 ? (
                     <span className="text-sm text-muted-foreground">
-                      Belum ada indicator.
+                      Pilih preset atau tambah indicator.
                     </span>
                   ) : (
                     activeRules.map((rule) => {
@@ -1961,7 +1837,7 @@ export function ScreenerPage() {
                             <PopoverTrigger asChild>
                               <button
                                 type="button"
-                                className="inline-flex h-9 items-center gap-2 rounded-l-md border border-r-0 border-border/70 bg-muted/25 px-2.5 font-ibm-plex-mono text-[11px] text-foreground transition-colors hover:border-[#d07225]/40 hover:bg-[#d07225]/5"
+                                className="inline-flex h-9 items-center gap-2 rounded-l-md border border-r-0 border-slate-400 bg-slate-100 px-2.5 font-ibm-plex-mono text-[11px] font-medium text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition-colors hover:border-slate-500 hover:bg-slate-200 hover:text-slate-900"
                                 title={`Edit ${definition.label}`}
                               >
                                 <span>{formatRuleSummary(rule)}</span>
@@ -1970,7 +1846,7 @@ export function ScreenerPage() {
                             <button
                               type="button"
                               onClick={() => removeRule(rule.id)}
-                              className="inline-flex h-9 items-center justify-center rounded-r-md border border-border/70 bg-muted/25 px-2 text-muted-foreground transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                              className="inline-flex h-9 items-center justify-center rounded-r-md border border-slate-400 bg-slate-100 px-2 text-slate-500 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
                               aria-label={`Hapus ${definition.label}`}
                               title={`Hapus ${definition.label}`}
                             >
@@ -2079,7 +1955,7 @@ export function ScreenerPage() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Cari ticker atau sector"
-                    className="pl-9 bg-background border-border/70 text-sm focus-visible:ring-[#d07225]"
+                    className="border-border/70 bg-background pl-9 text-sm focus-visible:ring-[#487b78]"
                   />
                 </div>
 
@@ -2146,7 +2022,7 @@ export function ScreenerPage() {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        className="h-11 gap-2 rounded-md border-border/70 bg-transparent px-4 text-foreground shadow-sm hover:border-[#d07225]/35 hover:bg-[#d07225]/5 hover:text-foreground"
+                        className="h-11 gap-2 rounded-md border-border/70 bg-background px-4 text-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50"
                       >
                         <Columns3 className="h-4 w-4 text-muted-foreground" />
                         Pilih kolom
@@ -2176,16 +2052,13 @@ export function ScreenerPage() {
 
                   <div className="flex flex-wrap items-center gap-2 font-ibm-plex-mono text-sm text-muted-foreground">
                     <span>{activeRules.length} filter aktif</span>
-                    <span>→</span>
-                    <span className="text-[#487b78]">{filteredRows.length} saham ditemukan</span>
-                    {latestSnapshotDate ? <span>latest: {latestSnapshotDate}</span> : null}
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 rounded-full text-muted-foreground hover:bg-[#d07225]/10 hover:text-[#d07225]"
+                          className="h-7 w-7 rounded-full text-muted-foreground hover:bg-slate-100 hover:text-foreground"
                           aria-label="Definisi metrik screener"
                         >
                           <Info className="h-3.5 w-3.5" />
@@ -2237,17 +2110,6 @@ export function ScreenerPage() {
                     )}
                   </Button>
 
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-11 w-11 rounded-md border-border/70 bg-background font-ibm-plex-mono text-foreground hover:border-[#d07225]/35 hover:bg-[#d07225]/5 hover:text-[#d07225]"
-                    onClick={handleOpenSaveStrategy}
-                    disabled={!canSaveStrategy}
-                    aria-label="Create New Strategy"
-                    title="Create New Strategy"
-                  >
-                    <Save className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
 
@@ -2314,7 +2176,7 @@ export function ScreenerPage() {
               getRowId={(row) => row.stockCode}
               emptyMessage=""
               tableClassName={screenerTableClassName}
-              rowClassName="hover:bg-[#d07225]/5"
+              rowClassName="hover:bg-slate-50"
               rowHoverContent={(row) => <ScreenerRowHoverCard row={row} />}
               rowHoverContentClassName="min-w-[336px] max-w-[336px] border-border/70"
               initialPageSize={20}
@@ -2354,7 +2216,7 @@ export function ScreenerPage() {
                 value={strategyDescription}
                 onChange={(event) => setStrategyDescription(event.target.value)}
                 placeholder="Jelaskan preset screener ini."
-                className="min-h-[96px] w-full rounded-md border border-border/70 bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-[#d07225]"
+                className="min-h-[96px] w-full rounded-md border border-border/70 bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-[#487b78]"
               />
             </div>
           </div>

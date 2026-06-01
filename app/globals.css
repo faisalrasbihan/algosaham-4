@@ -25,9 +25,9 @@
   /* french_gray.800 */
   --muted-foreground: #46505d;
   /* french_gray.200 */
-  --accent: #8cbcb9;
-  /* cambridge_blue.DEFAULT */
-  --accent-foreground: #ffffff;
+  --accent: #d1e4e3;
+  /* cambridge_blue.800 - visible hover/highlight surface */
+  --accent-foreground: #305250;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --border: #d0d5dc;
@@ -52,9 +52,9 @@
   --sidebar-primary: #d07225;
   /* ochre.DEFAULT */
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #8cbcb9;
-  /* cambridge_blue.DEFAULT */
-  --sidebar-accent-foreground: #ffffff;
+  --sidebar-accent: #d1e4e3;
+  /* cambridge_blue.800 */
+  --sidebar-accent-foreground: #305250;
   --sidebar-border: #d0d5dc;
   /* french_gray.600 */
   --sidebar-ring: #d07225;
