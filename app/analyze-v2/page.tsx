@@ -11,8 +11,10 @@ import {
     Brain,
     CircleDot,
     Clock,
+    ExternalLink,
     Info,
     Layers,
+    Newspaper,
     PieChart,
     ShieldCheck,
     Minus,
@@ -121,6 +123,16 @@ type AnalyzeResponse = {
     }
 }
 
+type NewsStory = {
+    title: string
+    url: string
+    source: string
+    publishedAt?: string
+    snippet?: string
+    imageUrl?: string
+    faviconUrl?: string
+}
+
 function getScoreBarColor(score: number) {
     const clamped = Math.min(Math.max(score, 0), 100)
 
@@ -179,6 +191,83 @@ function formatCompactVolume(value: number | null | undefined) {
 function formatTrillionValue(value: number | null | undefined) {
     if (value === null || value === undefined || Number.isNaN(value)) return "N/A"
     return `${value.toLocaleString("id-ID", { maximumFractionDigits: 2 })}T`
+}
+
+function formatRupiah(value: number | null | undefined) {
+    if (value === null || value === undefined || Number.isNaN(value)) return "N/A"
+    return `Rp ${value.toLocaleString("id-ID")}`
+}
+
+function formatPercentValue(value: number | null | undefined, direction: "gain" | "loss") {
+    if (value === null || value === undefined || Number.isNaN(value)) return "N/A"
+    const prefix = direction === "gain" ? "+" : "-"
+    return `${prefix}${Math.abs(value).toFixed(2)}%`
+}
+
+function formatEntryReference(value: string | null | undefined) {
+    if (!value) return "Referensi entry"
+
+    const normalized = value.toLowerCase().replace(/[\s-]+/g, "_")
+    const labels: Record<string, string> = {
+        close: "Harga terakhir",
+        last_close: "Harga terakhir",
+        support: "Area support",
+        support_level: "Area support",
+        swing_low: "Swing low",
+        fibonacci: "Fibonacci",
+        atr: "ATR",
+        ma20: "MA20",
+        ma50: "MA50",
+        ma200: "MA200",
+    }
+
+    return labels[normalized] || value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function formatConfidence(value: Confidence | string | null | undefined) {
+    if (!value) return "N/A"
+
+    const labels: Record<string, string> = {
+        low: "Rendah",
+        medium: "Sedang",
+        high: "Tinggi",
+    }
+
+    return labels[value.toLowerCase()] || value
+}
+
+function formatHoldingTerm(value: string | null | undefined) {
+    if (!value) return "N/A"
+
+    const labels: Record<string, string> = {
+        short: "Pendek",
+        short_term: "Pendek",
+        medium: "Menengah",
+        medium_term: "Menengah",
+        long: "Panjang",
+        long_term: "Panjang",
+    }
+
+    const normalized = value.toLowerCase().replace(/[\s-]+/g, "_")
+    return labels[normalized] || value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function formatNewsTime(value: string | null | undefined) {
+    if (!value) return null
+
+    const timestamp = new Date(value).getTime()
+    if (Number.isNaN(timestamp)) return null
+
+    const diffMs = Date.now() - timestamp
+    const minute = 60 * 1000
+    const hour = 60 * minute
+    const day = 24 * hour
+
+    if (diffMs < hour) return "Baru saja"
+    if (diffMs < day) return `${Math.max(1, Math.floor(diffMs / hour))} jam lalu`
+    if (diffMs < 30 * day) return `${Math.max(1, Math.floor(diffMs / day))} hari lalu`
+
+    return new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short" }).format(new Date(timestamp))
 }
 
 type FinancialScale = "rupiah" | "trillions"
@@ -244,6 +333,9 @@ function AnalyzeV2Content() {
     const [loading, setLoading] = useState(false)
     const [data, setData] = useState<AnalyzeResponse | null>(null)
     const [error, setError] = useState<string | null>(null)
+    const [newsLoading, setNewsLoading] = useState(false)
+    const [newsStories, setNewsStories] = useState<NewsStory[]>([])
+    const [newsError, setNewsError] = useState<string | null>(null)
     const signInOpenedRef = useRef(false)
 
     const handleSearch = async (ticker: string) => {
@@ -265,6 +357,9 @@ function AnalyzeV2Content() {
             setData(null)
             setLoading(false)
             setError(null)
+            setNewsStories([])
+            setNewsError(null)
+            setNewsLoading(false)
             signInOpenedRef.current = false
             return
         }
@@ -277,6 +372,9 @@ function AnalyzeV2Content() {
             setData(null)
             setError(null)
             setLoading(false)
+            setNewsStories([])
+            setNewsError(null)
+            setNewsLoading(false)
             return
         }
 
@@ -324,6 +422,63 @@ function AnalyzeV2Content() {
         }
     }, [urlTicker, isLoaded, isSignedIn, openSignIn])
 
+    useEffect(() => {
+        if (!data || !isSignedIn) {
+            setNewsStories([])
+            setNewsError(null)
+            setNewsLoading(false)
+            return
+        }
+
+        const analysis = data
+        const controller = new AbortController()
+        let cancelled = false
+
+        async function loadNews() {
+            try {
+                setNewsLoading(true)
+                setNewsError(null)
+
+                const response = await fetch("/api/analyze/news", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        ticker: analysis.ticker,
+                        companyName: analysis.companyName,
+                        sector: analysis.sector,
+                    }),
+                    signal: controller.signal,
+                })
+
+                const result = await response.json()
+
+                if (!response.ok || !result?.success) {
+                    throw new Error(result?.error || "Gagal memuat berita terkait.")
+                }
+
+                if (!cancelled) {
+                    setNewsStories(Array.isArray(result.stories) ? result.stories : [])
+                }
+            } catch (err) {
+                if (!cancelled && !(err instanceof DOMException && err.name === "AbortError")) {
+                    setNewsStories([])
+                    setNewsError(err instanceof Error ? err.message : "Gagal memuat berita terkait.")
+                }
+            } finally {
+                if (!cancelled) {
+                    setNewsLoading(false)
+                }
+            }
+        }
+
+        loadNews()
+
+        return () => {
+            cancelled = true
+            controller.abort()
+        }
+    }, [data, isSignedIn])
+
     if (!urlTicker || (loading && !data)) {
         return (
             <div className="min-h-screen bg-background dotted-background flex flex-col">
@@ -363,11 +518,45 @@ function AnalyzeV2Content() {
     }
 
     const d = data
-    const potentialLoss = ((d.riskPlan.entryPrice - d.riskPlan.stopLoss) / d.riskPlan.entryPrice) * 100
-    const potentialGain = ((d.riskPlan.takeProfit - d.riskPlan.entryPrice) / d.riskPlan.entryPrice) * 100
+    const potentialLoss = d.riskPlan.entryPrice ? ((d.riskPlan.entryPrice - d.riskPlan.stopLoss) / d.riskPlan.entryPrice) * 100 : null
+    const potentialGain = d.riskPlan.entryPrice ? ((d.riskPlan.takeProfit - d.riskPlan.entryPrice) / d.riskPlan.entryPrice) * 100 : null
     const bias = biasMeta(d.marketBias)
     const BiasIcon = bias.icon
     const quarterlyFinancialScale = inferQuarterlyFinancialScale(d.fundamental.quarterly)
+    const riskMetrics = [
+        {
+            label: "Entry",
+            value: formatRupiah(d.riskPlan.entryPrice),
+            sub: formatEntryReference(d.riskPlan.entryReference),
+        },
+        {
+            label: "Stop loss",
+            value: formatRupiah(d.riskPlan.stopLoss),
+            sub: formatPercentValue(potentialLoss, "loss"),
+            subClassName: "text-red-700",
+        },
+        {
+            label: "Take profit",
+            value: formatRupiah(d.riskPlan.takeProfit),
+            sub: formatPercentValue(potentialGain, "gain"),
+            subClassName: "text-green-700",
+        },
+        {
+            label: "R/R ratio",
+            value: `1:${d.riskPlan.riskReward.toFixed(2)}`,
+            sub: "Reward terhadap risiko",
+        },
+        {
+            label: "Holding",
+            value: formatHoldingTerm(d.riskPlan.holdingTerm),
+            sub: "Horizon posisi",
+        },
+        {
+            label: "Confidence",
+            value: formatConfidence(d.riskPlan.confidence),
+            sub: "Kualitas setup",
+        },
+    ]
 
     return (
         <div className="min-h-screen bg-background dotted-background flex flex-col">
@@ -475,19 +664,23 @@ function AnalyzeV2Content() {
                             />
                         </div>
 
-                        <div className="mb-7 rounded-xl border border-border/70 bg-background/60 p-4 sm:p-5">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Brain className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm font-semibold">Ringkasan AI</span>
-                            </div>
-                            <p className="text-sm leading-relaxed text-muted-foreground">{d.llmSummary}</p>
-                            <div className="flex flex-wrap gap-2 mt-3">
-                                <Badge variant="secondary" className="capitalize text-xs gap-1">
+                        <div className="mb-7 rounded-xl border border-border/70 bg-background/70 p-4 sm:p-5">
+                            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Brain className="w-4 h-4 text-muted-foreground" />
+                                        <span className="text-sm font-semibold">Ringkasan AI</span>
+                                    </div>
+                                    <p className="max-w-5xl text-sm leading-relaxed text-muted-foreground">{d.llmSummary}</p>
+                                </div>
+                                <Badge variant="secondary" className="w-fit shrink-0 capitalize text-xs gap-1">
                                     <BiasIcon className="w-3 h-3" />
                                     {bias.label}
                                 </Badge>
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-3">
                                 {d.drivers.map((driver, i) => (
-                                    <span key={i} className="text-xs px-2.5 py-1 rounded-md bg-card text-muted-foreground border border-border/70">
+                                    <span key={i} className="text-xs leading-relaxed px-2.5 py-1 rounded-md bg-card text-muted-foreground border border-border/70">
                                         {driver}
                                     </span>
                                 ))}
@@ -502,52 +695,124 @@ function AnalyzeV2Content() {
                                 <span className="text-sm font-semibold">Rencana Risk Management</span>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
-                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Entry</div>
-                                    <div className="text-lg font-bold font-ibm-plex-mono">{d.riskPlan.entryPrice.toLocaleString("id-ID")}</div>
-                                    <div className="text-[10px] text-muted-foreground capitalize mt-0.5">{d.riskPlan.entryReference}</div>
-                                </div>
-                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
-                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Stop Loss</div>
-                                    <div className="text-lg font-bold font-ibm-plex-mono">{d.riskPlan.stopLoss.toLocaleString("id-ID")}</div>
-                                    <div className="text-[10px] text-red-800 mt-0.5 font-ibm-plex-mono">-{potentialLoss.toFixed(2)}%</div>
-                                </div>
-                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
-                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Take Profit</div>
-                                    <div className="text-lg font-bold font-ibm-plex-mono">{d.riskPlan.takeProfit.toLocaleString("id-ID")}</div>
-                                    <div className="text-[10px] text-green-800 mt-0.5 font-ibm-plex-mono">+{potentialGain.toFixed(2)}%</div>
-                                </div>
-                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
-                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">R/R Ratio</div>
-                                    <div className="text-lg font-bold font-ibm-plex-mono">1:{d.riskPlan.riskReward.toFixed(2)}</div>
-                                </div>
-                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
-                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Holding</div>
-                                    <div className="text-lg font-bold font-ibm-plex-mono capitalize">{d.riskPlan.holdingTerm}</div>
-                                </div>
-                                <div className="p-3 rounded-lg border border-border/70 bg-background/70">
-                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Confidence</div>
-                                    <div className="text-lg font-bold font-ibm-plex-mono capitalize">{d.riskPlan.confidence}</div>
-                                </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3 mb-4">
+                                {riskMetrics.map((metric) => (
+                                    <div key={metric.label} className="min-h-[104px] rounded-lg border border-border/70 bg-background/70 p-3.5">
+                                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">{metric.label}</div>
+                                        <div className="text-base font-bold font-ibm-plex-mono leading-tight text-foreground break-words">{metric.value}</div>
+                                        <div className={`mt-1 text-[11px] leading-snug ${metric.subClassName || "text-muted-foreground"}`}>{metric.sub}</div>
+                                    </div>
+                                ))}
                             </div>
 
-                            <div className="p-3 rounded-lg bg-background/70 border border-border/70">
+                            <div className="p-4 rounded-lg bg-background/70 border border-border/70">
                                 <div className="flex items-center gap-1.5 mb-2">
                                     <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />
                                     <span className="text-xs font-semibold text-muted-foreground">Catatan Penting</span>
                                 </div>
-                                {d.riskPlan.summary ? <p className="text-xs text-muted-foreground mb-2">{d.riskPlan.summary}</p> : null}
-                                <ul className="space-y-0.5">
+                                {d.riskPlan.summary ? <p className="text-sm leading-relaxed text-muted-foreground mb-2">{d.riskPlan.summary}</p> : null}
+                                <ul className="space-y-1">
                                     {d.riskPlan.notes.map((note, i) => (
-                                        <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
-                                            <span className="mt-0.5">•</span>
+                                        <li key={i} className="text-sm leading-relaxed text-muted-foreground flex items-start gap-2">
+                                            <span className="mt-1 text-muted-foreground/70">•</span>
                                             <span>{note}</span>
                                         </li>
                                     ))}
                                 </ul>
                             </div>
                         </div>
+
+                    </Card>
+
+                    <Card className="p-6 sm:p-7 border-border/70 bg-card shadow-sm overflow-hidden">
+                        <div className="-mx-6 sm:-mx-7 -mt-6 sm:-mt-7 mb-5 h-px bg-border" />
+                        <div className="flex items-center gap-2 mb-4">
+                            <Newspaper className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm font-semibold">Berita Terkait</span>
+                        </div>
+
+                        {newsLoading ? (
+                            <div className="grid gap-x-8 md:grid-cols-2">
+                                {Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 border-t border-border/70 py-4 sm:grid-cols-[112px_minmax(0,1fr)]">
+                                        <div className="h-16 w-[88px] bg-muted animate-pulse sm:h-20 sm:w-28" />
+                                        <div className="min-w-0 pt-0.5">
+                                            <div className="mb-3 h-3 w-32 bg-muted animate-pulse" />
+                                            <div className="mb-2 h-4 w-full bg-muted animate-pulse" />
+                                            <div className="h-4 w-3/4 bg-muted animate-pulse" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : newsStories.length > 0 ? (
+                            <div className="grid gap-x-8 md:grid-cols-2">
+                                {newsStories.map((story) => {
+                                    const publishedLabel = formatNewsTime(story.publishedAt)
+
+                                    return (
+                                        <a
+                                            key={story.url}
+                                            href={story.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="group grid grid-cols-[88px_minmax(0,1fr)] gap-3 border-t border-border/70 py-4 transition-colors hover:bg-muted/20 sm:grid-cols-[112px_minmax(0,1fr)]"
+                                        >
+                                            <div className="relative h-16 w-[88px] overflow-hidden bg-muted sm:h-20 sm:w-28">
+                                                {story.imageUrl ? (
+                                                    <img
+                                                        src={story.imageUrl}
+                                                        alt=""
+                                                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                        loading="lazy"
+                                                        onError={(event) => {
+                                                            event.currentTarget.style.display = "none"
+                                                        }}
+                                                    />
+                                                ) : story.faviconUrl ? (
+                                                    <div className="flex h-full w-full items-center justify-center bg-muted">
+                                                        <img
+                                                            src={story.faviconUrl}
+                                                            alt=""
+                                                            className="h-7 w-7 opacity-70"
+                                                            loading="lazy"
+                                                            onError={(event) => {
+                                                                event.currentTarget.style.display = "none"
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex h-full w-full items-center justify-center bg-muted">
+                                                        <Newspaper className="h-5 w-5 text-muted-foreground/60" />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="min-w-0 pt-0.5">
+                                                <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+                                                    <div className="min-w-0 truncate">
+                                                        <span className="font-medium text-foreground/75">{story.source}</span>
+                                                        {publishedLabel ? <span> · {publishedLabel}</span> : null}
+                                                    </div>
+                                                    <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-40 transition-opacity group-hover:opacity-80" />
+                                                </div>
+                                                <div className="text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-[#d07225]">
+                                                    {story.title}
+                                                </div>
+                                                {story.snippet ? (
+                                                    <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                                                        {story.snippet}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                        </a>
+                                    )
+                                })}
+                            </div>
+                        ) : (
+                            <div className="border-t border-border/70 py-4 text-sm text-muted-foreground">
+                                {newsError ? "Berita belum tersedia saat ini." : "Belum ada berita relevan."}
+                            </div>
+                        )}
                     </Card>
 
                     <div className="grid lg:grid-cols-2 gap-5">

@@ -208,6 +208,8 @@ type ScreenerPreset = {
   }
 }
 
+const DEFAULT_SCREENER_PRESET_ID = "calm-volume-dry-up"
+
 type ColumnKind = "currency" | "number" | "percent" | "text" | "boolean" | "date"
 
 type ColumnConfig = {
@@ -973,6 +975,8 @@ export function ScreenerPage() {
   const { isLoaded, isSignedIn } = useUser()
   const { openSignIn } = useClerk()
   const signInOpenedRef = useRef(false)
+  const userConfiguredScreenerRef = useRef(false)
+  const defaultPresetAppliedRef = useRef(false)
   const [search, setSearch] = useState("")
   const [sectorFilter, setSectorFilter] = useState("all")
   const [marketCapFilter, setMarketCapFilter] = useState("all")
@@ -1041,7 +1045,17 @@ export function ScreenerPage() {
           throw new Error(result.error || "Gagal memuat preset screener.")
         }
 
-        setScreenerPresets(result.presets ?? [])
+        const presets = result.presets ?? []
+        setScreenerPresets(presets)
+
+        if (!defaultPresetAppliedRef.current && !userConfiguredScreenerRef.current) {
+          const defaultPreset = presets.find((preset) => preset.id === DEFAULT_SCREENER_PRESET_ID) ?? presets[0]
+
+          if (defaultPreset) {
+            applyPreset(defaultPreset, "default")
+            defaultPresetAppliedRef.current = true
+          }
+        }
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return
         const message = error instanceof Error ? error.message : "Gagal memuat preset screener."
@@ -1262,6 +1276,8 @@ export function ScreenerPage() {
   }
 
   function handleSort(nextKey: SortKey) {
+    userConfiguredScreenerRef.current = true
+
     if (sortKey === nextKey) {
       setSortDirection((current) => current === "asc" ? "desc" : "asc")
       return
@@ -1314,6 +1330,7 @@ export function ScreenerPage() {
   }
 
   function addRule(key: FilterKey) {
+    userConfiguredScreenerRef.current = true
     setActivePresetId(null)
     ensureColumnsVisible(getRelatedColumnsForRule(key))
     setActiveRules((current) => {
@@ -1323,6 +1340,7 @@ export function ScreenerPage() {
   }
 
   function updateRuleParam(ruleId: string, paramKey: string, value: string) {
+    userConfiguredScreenerRef.current = true
     setActivePresetId(null)
     setActiveRules((current) =>
       current.map((rule) => (rule.id === ruleId ? { ...rule, params: { ...rule.params, [paramKey]: value } } : rule)),
@@ -1330,12 +1348,14 @@ export function ScreenerPage() {
   }
 
   function removeRule(ruleId: string) {
+    userConfiguredScreenerRef.current = true
     setActivePresetId(null)
     setActiveRules((current) => current.filter((rule) => rule.id !== ruleId))
     setEditingRuleId((current) => (current === ruleId ? null : current))
   }
 
   function resetScreenerBuilder() {
+    userConfiguredScreenerRef.current = true
     setActivePresetId(null)
     setEditingRuleId(null)
     setActiveRules([])
@@ -1347,7 +1367,11 @@ export function ScreenerPage() {
     setSortDirection("desc")
   }
 
-  function applyPreset(preset: ScreenerPreset) {
+  function applyPreset(preset: ScreenerPreset, source: "default" | "user" = "user") {
+    if (source === "user") {
+      userConfiguredScreenerRef.current = true
+    }
+
     const nextRules = [
       ...preset.config.fundamentalIndicators
         .map((indicator) => createRuleFromPresetIndicator(indicator, "fundamental"))
@@ -1377,16 +1401,19 @@ export function ScreenerPage() {
   }
 
   function handleSectorFilterChange(value: string) {
+    userConfiguredScreenerRef.current = true
     setActivePresetId(null)
     setSectorFilter(value)
   }
 
   function handleMarketCapFilterChange(value: string) {
+    userConfiguredScreenerRef.current = true
     setActivePresetId(null)
     setMarketCapFilter(value)
   }
 
   function handleSyariahFilterChange(value: string) {
+    userConfiguredScreenerRef.current = true
     setActivePresetId(null)
     setSyariahFilter(value)
   }
@@ -1953,7 +1980,10 @@ export function ScreenerPage() {
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(event) => {
+                      userConfiguredScreenerRef.current = true
+                      setSearch(event.target.value)
+                    }}
                     placeholder="Cari ticker atau sector"
                     className="border-border/70 bg-background pl-9 text-sm focus-visible:ring-[#487b78]"
                   />
@@ -1995,6 +2025,7 @@ export function ScreenerPage() {
                 </Select>
 
                 <Select value={`${sortKey}:${sortDirection}`} onValueChange={(value) => {
+                  userConfiguredScreenerRef.current = true
                   const [key, direction] = value.split(":") as [SortKey, "asc" | "desc"]
                   setSortKey(key)
                   setSortDirection(direction)
