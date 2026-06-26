@@ -472,6 +472,47 @@ export async function POST(request: NextRequest) {
 
     const rows = dbRows.map(normalizeScreenerRow)
 
+    // Alignment lives on the backend `signals` (the ranked output of /screen_stocks),
+    // while `rows` is the DB snapshot we render. Merge the score/breakdown onto each row
+    // by ticker so the table can show and sort by conviction. In universe mode the locally
+    // built signals carry no alignment, so these fields stay null and degrade to "—".
+    const signalByTicker = new Map<string, Record<string, unknown>>()
+    for (const signal of signals) {
+      const ticker = typeof signal.ticker === "string" ? signal.ticker : null
+      if (ticker && !signalByTicker.has(ticker)) {
+        signalByTicker.set(ticker, signal)
+      }
+    }
+
+    const rowsWithAlignment = rows.map((row) => {
+      const signal = signalByTicker.get(row.stockCode)
+      const rawBreakdown =
+        signal && Array.isArray(signal.alignmentBreakdown) ? signal.alignmentBreakdown : []
+      const alignmentBreakdown = rawBreakdown
+        .map((item) => {
+          if (!item || typeof item !== "object") return null
+          const indicator =
+            typeof (item as { indicator?: unknown }).indicator === "string"
+              ? (item as { indicator: string }).indicator
+              : null
+          if (!indicator) return null
+          return { indicator, score: toOptionalNumber((item as { score?: unknown }).score) }
+        })
+        .filter((item): item is { indicator: string; score: number | null } => item !== null)
+
+      return {
+        ...row,
+        alignmentScore: signal ? toOptionalNumber(signal.alignmentScore) : null,
+        alignmentBreakdown,
+        signalDate: signal && typeof signal.date === "string" ? signal.date : null,
+      }
+    })
+
+    // Open the table ranked by conviction (nulls last); the frontend can still re-sort.
+    rowsWithAlignment.sort(
+      (a, b) => (b.alignmentScore ?? -Infinity) - (a.alignmentScore ?? -Infinity),
+    )
+
     if (userId) {
       await incrementDailyQuotaUsage(userId, "screening")
     }
@@ -481,7 +522,7 @@ export async function POST(request: NextRequest) {
       scannedDays,
       signals,
       latestDate,
-      rows,
+      rows: rowsWithAlignment,
       summary,
       dateRange,
     })

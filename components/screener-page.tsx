@@ -105,6 +105,14 @@ type ScreenerRow = {
   change5DPct: number | null
   change1MPct: number | null
   change1YPct: number | null
+  alignmentScore: number | null
+  alignmentBreakdown: AlignmentBreakdownItem[]
+  signalDate: string | null
+}
+
+type AlignmentBreakdownItem = {
+  indicator: string
+  score: number | null
 }
 
 type ScreenerApiResponse = {
@@ -123,6 +131,8 @@ type ScreenerApiResponse = {
     marketCap: string | null
     stopLoss: number | null
     takeProfit: number | null
+    alignmentScore?: number | null
+    alignmentBreakdown?: AlignmentBreakdownItem[]
     method?: {
       stopLoss: string | null
       takeProfit: string | null
@@ -137,6 +147,8 @@ type ScreenerApiResponse = {
     stocksScanned: number
     passedFilters: number
     passedFundamentals: number
+    avgAlignment?: number
+    maxAlignment?: number
   }
   dateRange: {
     from?: string
@@ -225,6 +237,7 @@ type SortKey = keyof ScreenerRow
 
 const COLUMN_LABELS = {
   stockCode: "Saham",
+  alignmentScore: "Alignment",
   open: "Open",
   high: "High",
   low: "Low",
@@ -273,6 +286,7 @@ type ColumnId = keyof typeof COLUMN_LABELS
 
 const COLUMN_TOOLTIPS: Record<ColumnId, string> = {
   stockCode: "Kode saham emiten yang muncul di hasil screener.",
+  alignmentScore: "Skor keselarasan 0-100 dari backend: seberapa kuat sinyal teknikal saham ini sejajar dalam window scan. Arahkan kursor ke skor untuk rincian per indikator. Kosong (—) saat screener berjalan tanpa indikator teknikal.",
   open: "Harga pembukaan pada sesi perdagangan terakhir.",
   high: "Harga tertinggi pada sesi perdagangan terakhir.",
   low: "Harga terendah pada sesi perdagangan terakhir.",
@@ -318,6 +332,7 @@ const COLUMN_TOOLTIPS: Record<ColumnId, string> = {
 }
 
 const COLUMN_CONFIGS: ColumnConfig[] = [
+  { id: "alignmentScore", label: "Alignment", kind: "number", sortable: true, headClassName: "w-[112px] text-right", cellClassName: "text-right" },
   { id: "changeD1Pct", label: "1D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "change5DPct", label: "5D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "change1MPct", label: "1M Chg", kind: "percent", sortable: true, headClassName: "w-[120px] text-right", cellClassName: "w-[120px] text-right font-ibm-plex-mono" },
@@ -362,7 +377,7 @@ const COLUMN_CONFIGS: ColumnConfig[] = [
 ]
 
 const COLUMN_TEMPLATES = {
-  recommended: ["stockCode", "changeD1Pct", "change5DPct", "change1MPct", "change1YPct", "close", "valuasi", "peRatio", "pbv", "roe", "marketCap", "sma20", "sma50", "nbsaRatio5d", "action"],
+  recommended: ["stockCode", "alignmentScore", "changeD1Pct", "change5DPct", "change1MPct", "change1YPct", "close", "valuasi", "peRatio", "pbv", "roe", "marketCap", "sma20", "sma50", "nbsaRatio5d", "action"],
   technical: ["stockCode", "changeD1Pct", "change5DPct", "change1MPct", "change1YPct", "close", "gapPct", "prevDailyValue", "sma20", "sma50", "volumeSma20", "valueSma20", "nbsa5d", "nbsaRatio5d", "action"],
   fundamental: ["stockCode", "change1MPct", "change1YPct", "close", "marketCap", "assets", "liabilities", "equity", "sales", "profit", "eps", "peRatio", "pbv", "der", "roa", "roe", "npm", "action"],
   all: ["stockCode", ...COLUMN_CONFIGS.map((column) => column.id), "action"],
@@ -955,11 +970,40 @@ function TradingViewMiniChart({ ticker }: { ticker: string }) {
 }
 
 function ScreenerRowHoverCard({ row }: { row: ScreenerRow }) {
+  const hasAlignment = row.alignmentScore !== null
+  const alignmentScore = hasAlignment ? Math.round(row.alignmentScore as number) : null
+
   return (
     <div className="w-[336px] overflow-hidden rounded-md bg-white p-3">
       <div className="h-[178px] overflow-hidden rounded-lg border border-slate-200 bg-white">
         <TradingViewMiniChart ticker={row.stockCode} />
       </div>
+
+      {hasAlignment ? (
+        <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Alignment</span>
+            <span className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 font-ibm-plex-mono text-xs font-semibold ${alignmentToneClasses(alignmentScore as number)}`}>
+              {alignmentScore}/100
+            </span>
+          </div>
+          {row.alignmentBreakdown.length > 0 ? (
+            <ul className="mt-2 space-y-1">
+              {row.alignmentBreakdown.map((item, index) => (
+                <li key={`${item.indicator}-${index}`} className="flex items-center justify-between gap-3 text-xs">
+                  <span className="text-slate-600">{formatAlignmentIndicator(item.indicator)}</span>
+                  <span className="font-ibm-plex-mono font-medium text-slate-700">{item.score ?? "—"}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {row.signalDate ? (
+            <p className="mt-2 border-t border-slate-200 pt-2 text-[11px] text-slate-500">
+              Sinyal terbaru: {row.signalDate}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <Button asChild className="mt-3 h-9 w-full gap-2 bg-[#d07225] text-white hover:bg-[#a65b1d]">
         <Link href={`/analyze-v2?ticker=${row.stockCode}`}>
@@ -967,6 +1011,34 @@ function ScreenerRowHoverCard({ row }: { row: ScreenerRow }) {
           <ArrowUpRight className="h-3.5 w-3.5" />
         </Link>
       </Button>
+    </div>
+  )
+}
+
+function formatAlignmentIndicator(indicator: string) {
+  return indicator.replace(/_/g, " ").trim()
+}
+
+function alignmentToneClasses(score: number) {
+  if (score >= 67) return "border-emerald-200 bg-emerald-50 text-emerald-700"
+  if (score >= 34) return "border-amber-200 bg-amber-50 text-amber-700"
+  return "border-slate-200 bg-slate-50 text-slate-600"
+}
+
+// At-a-glance score in the table cell. The "why" (breakdown + signal date) lives in the
+// row hover card instead of a nested tooltip, because the whole row is already a Radix
+// Tooltip trigger in DataTable — nesting a second trigger here would double-pop.
+function AlignmentScoreCell({ row }: { row: ScreenerRow }) {
+  if (row.alignmentScore === null) {
+    return <span className="text-muted-foreground">—</span>
+  }
+
+  const score = Math.round(row.alignmentScore)
+  return (
+    <div className="flex justify-end">
+      <span className={`inline-flex min-w-[2.25rem] items-center justify-center rounded-md border px-2 py-0.5 font-ibm-plex-mono text-xs font-semibold ${alignmentToneClasses(score)}`}>
+        {score}
+      </span>
     </div>
   )
 }
@@ -1222,6 +1294,12 @@ export function ScreenerPage() {
       setLatestSnapshotDate(result.latestDate)
       setScreeningSummary(result.summary)
       setScreeningDateRange(result.dateRange)
+      // When the backend ranks by alignment, open the table on that ranking.
+      if (result.rows.some((row) => row.alignmentScore !== null)) {
+        ensureColumnsVisible(["alignmentScore"])
+        setSortKey("alignmentScore")
+        setSortDirection("desc")
+      }
       toast.success("Screener selesai dijalankan.", {
         description: `${result.rows.length} saham ditemukan.`,
       })
@@ -1560,6 +1638,9 @@ export function ScreenerPage() {
       cellClassName: column.cellClassName,
       header: renderColumnHeader(column.id, column.label, column.sortable),
       cell: (row: ScreenerRow) => {
+        if (column.id === "alignmentScore") {
+          return <AlignmentScoreCell row={row} />
+        }
         const value = row[column.id]
         const isPositivePercent = column.kind === "percent" && typeof value === "number" && value > 0
         const isNegativePercent = column.kind === "percent" && typeof value === "number" && value < 0
@@ -2034,6 +2115,7 @@ export function ScreenerPage() {
                     <SelectValue placeholder="Urutkan" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="alignmentScore:desc">Alignment tertinggi</SelectItem>
                     <SelectItem value="close:desc">Close tertinggi</SelectItem>
                     <SelectItem value="changeD1Pct:desc">D-1 change tertinggi</SelectItem>
                     <SelectItem value="change5DPct:desc">5D change tertinggi</SelectItem>

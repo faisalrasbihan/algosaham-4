@@ -16,8 +16,6 @@ import {
     Layers,
     Newspaper,
     PieChart,
-    ShieldCheck,
-    Minus,
     TrendingDown,
     TrendingUp,
 } from "lucide-react"
@@ -25,10 +23,13 @@ import { Navbar } from "@/components/navbar"
 import { StockSearch } from "@/components/stock-search"
 import { AdvancedMultiChart } from "@/components/advanced-multi-chart"
 import { TradingViewSingleTickerCard } from "@/components/tradingview-single-ticker-card"
+import { TradePlanCard } from "@/components/trade-plan-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 
 type Confidence = "low" | "medium" | "high"
 type MarketBias = "bullish" | "bearish" | "neutral"
@@ -51,6 +52,13 @@ type AnalyzeResponse = {
     marketBias: MarketBias
     llmSummary: string
     drivers: string[]
+    aiView?: {
+        coreThesis?: string
+        bullCase?: string
+        bearCase?: string
+        whatChanged?: string
+    }
+    watchItems?: string[]
     technical: {
         score: number
         trend: string
@@ -175,6 +183,115 @@ function StatRow({ label, value, sub }: { label: string; value: string; sub?: st
     )
 }
 
+function QuarterlyMetricRow({
+    label,
+    periods,
+    values,
+    format,
+}: {
+    label: string
+    periods: string[]
+    values: Array<number | null>
+    format: (value: number | null) => string
+}) {
+    const points = values
+        .map((value, i) => ({ value, i }))
+        .filter((p): p is { value: number; i: number } => p.value !== null && Number.isFinite(p.value))
+
+    const numeric = points.map((p) => p.value)
+    const min = numeric.length ? Math.min(...numeric) : 0
+    const max = numeric.length ? Math.max(...numeric) : 0
+    const span = max - min
+    const lastIndex = values.length - 1
+
+    const latest = [...values].reverse().find((value) => value !== null && Number.isFinite(value)) ?? null
+    const first = numeric.length ? numeric[0] : null
+    const lastNumeric = numeric.length ? numeric[numeric.length - 1] : null
+    const trendUp = first !== null && lastNumeric !== null ? lastNumeric >= first : true
+    const lineColor = trendUp ? "#16a34a" : "#dc2626"
+
+    // Coordinates in a 0..100 / 0..100 viewBox, y inverted (higher value = top)
+    const coords = points.map((p) => ({
+        ...p,
+        x: lastIndex > 0 ? (p.i / lastIndex) * 100 : 50,
+        y: span > 0 ? (1 - (p.value - min) / span) * 80 + 10 : 50,
+    }))
+    const linePath = coords.map((c, idx) => `${idx === 0 ? "M" : "L"}${c.x.toFixed(2)},${c.y.toFixed(2)}`).join(" ")
+    const gradientId = `spark-${label.replace(/[^a-z0-9]/gi, "")}`
+
+    return (
+        <div className="flex items-center gap-3 sm:gap-4 py-3.5 border-b border-border/50 last:border-0">
+            <span className="w-20 sm:w-24 shrink-0 text-sm text-muted-foreground">{label}</span>
+
+            <div className="relative h-10 flex-1">
+                {coords.length > 1 ? (
+                    <svg
+                        className="absolute inset-0 h-full w-full overflow-visible"
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="none"
+                    >
+                        <defs>
+                            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={lineColor} stopOpacity="0.18" />
+                                <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+                            </linearGradient>
+                        </defs>
+                        <path
+                            d={`${linePath} L${coords[coords.length - 1].x.toFixed(2)},100 L${coords[0].x.toFixed(2)},100 Z`}
+                            fill={`url(#${gradientId})`}
+                        />
+                        <path
+                            d={linePath}
+                            fill="none"
+                            stroke={lineColor}
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            vectorEffect="non-scaling-stroke"
+                        />
+                    </svg>
+                ) : (
+                    <div className="absolute inset-x-0 top-1/2 h-px bg-border" />
+                )}
+
+                {coords.map((c) => (
+                    <Tooltip key={c.i} delayDuration={50}>
+                        <TooltipTrigger asChild>
+                            <button
+                                type="button"
+                                className="group absolute -translate-x-1/2 -translate-y-1/2 p-1.5"
+                                style={{ left: `${c.x}%`, top: `${c.y}%` }}
+                                aria-label={`${periods[c.i]}: ${format(c.value)}`}
+                            >
+                                <span
+                                    className={cn(
+                                        "block h-1.5 w-1.5 rounded-full ring-2 ring-background transition-all",
+                                        c.i === lastIndex
+                                            ? "scale-100 opacity-100"
+                                            : "scale-0 opacity-0 group-hover:scale-100 group-hover:opacity-100"
+                                    )}
+                                    style={{ backgroundColor: lineColor }}
+                                />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <div className="text-xs">
+                                <div className="font-medium">{periods[c.i]}</div>
+                                <div className="text-muted-foreground">{label}</div>
+                                <div className="mt-0.5 font-ibm-plex-mono font-semibold">{format(c.value)}</div>
+                            </div>
+                        </TooltipContent>
+                    </Tooltip>
+                ))}
+            </div>
+
+            <span className="w-20 sm:w-24 shrink-0 text-right text-sm font-semibold font-ibm-plex-mono">
+                {format(latest)}
+            </span>
+        </div>
+    )
+}
+
 function formatNumber(value: number | null | undefined, digits = 1) {
     if (value === null || value === undefined || Number.isNaN(value)) return "N/A"
     return value.toLocaleString("id-ID", { maximumFractionDigits: digits, minimumFractionDigits: digits })
@@ -198,12 +315,6 @@ function formatRupiah(value: number | null | undefined) {
     return `Rp ${value.toLocaleString("id-ID")}`
 }
 
-function formatPercentValue(value: number | null | undefined, direction: "gain" | "loss") {
-    if (value === null || value === undefined || Number.isNaN(value)) return "N/A"
-    const prefix = direction === "gain" ? "+" : "-"
-    return `${prefix}${Math.abs(value).toFixed(2)}%`
-}
-
 function formatEntryReference(value: string | null | undefined) {
     if (!value) return "Referensi entry"
 
@@ -221,34 +332,6 @@ function formatEntryReference(value: string | null | undefined) {
         ma200: "MA200",
     }
 
-    return labels[normalized] || value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
-}
-
-function formatConfidence(value: Confidence | string | null | undefined) {
-    if (!value) return "N/A"
-
-    const labels: Record<string, string> = {
-        low: "Rendah",
-        medium: "Sedang",
-        high: "Tinggi",
-    }
-
-    return labels[value.toLowerCase()] || value
-}
-
-function formatHoldingTerm(value: string | null | undefined) {
-    if (!value) return "N/A"
-
-    const labels: Record<string, string> = {
-        short: "Pendek",
-        short_term: "Pendek",
-        medium: "Menengah",
-        medium_term: "Menengah",
-        long: "Panjang",
-        long_term: "Panjang",
-    }
-
-    const normalized = value.toLowerCase().replace(/[\s-]+/g, "_")
     return labels[normalized] || value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
@@ -315,12 +398,6 @@ function formatFinancialMagnitude(value: number | null | undefined, scale: Finan
     if (Math.abs(value) >= 1e6) return `Rp ${formatNumber(value / 1e6, 2)}M`
 
     return `Rp ${value.toLocaleString("id-ID", { maximumFractionDigits: 0 })}`
-}
-
-function biasMeta(bias: MarketBias) {
-    if (bias === "bullish") return { icon: TrendingUp, label: "bullish" }
-    if (bias === "bearish") return { icon: TrendingDown, label: "bearish" }
-    return { icon: Minus, label: "neutral" }
 }
 
 function AnalyzeV2Content() {
@@ -518,45 +595,18 @@ function AnalyzeV2Content() {
     }
 
     const d = data
-    const potentialLoss = d.riskPlan.entryPrice ? ((d.riskPlan.entryPrice - d.riskPlan.stopLoss) / d.riskPlan.entryPrice) * 100 : null
-    const potentialGain = d.riskPlan.entryPrice ? ((d.riskPlan.takeProfit - d.riskPlan.entryPrice) / d.riskPlan.entryPrice) * 100 : null
-    const bias = biasMeta(d.marketBias)
-    const BiasIcon = bias.icon
     const quarterlyFinancialScale = inferQuarterlyFinancialScale(d.fundamental.quarterly)
-    const riskMetrics = [
-        {
-            label: "Entry",
-            value: formatRupiah(d.riskPlan.entryPrice),
-            sub: formatEntryReference(d.riskPlan.entryReference),
-        },
-        {
-            label: "Stop loss",
-            value: formatRupiah(d.riskPlan.stopLoss),
-            sub: formatPercentValue(potentialLoss, "loss"),
-            subClassName: "text-red-700",
-        },
-        {
-            label: "Take profit",
-            value: formatRupiah(d.riskPlan.takeProfit),
-            sub: formatPercentValue(potentialGain, "gain"),
-            subClassName: "text-green-700",
-        },
-        {
-            label: "R/R ratio",
-            value: `1:${d.riskPlan.riskReward.toFixed(2)}`,
-            sub: "Reward terhadap risiko",
-        },
-        {
-            label: "Holding",
-            value: formatHoldingTerm(d.riskPlan.holdingTerm),
-            sub: "Horizon posisi",
-        },
-        {
-            label: "Confidence",
-            value: formatConfidence(d.riskPlan.confidence),
-            sub: "Kualitas setup",
-        },
-    ]
+    const bullCase = d.aiView?.bullCase || d.fundamental.summary || `${d.ticker} menjadi lebih menarik jika valuasi murah mulai diikuti pemulihan momentum dan tekanan jual mereda.`
+    const bearCase = d.aiView?.bearCase || d.riskPlan.summary || `Risiko utama ada pada pelemahan lanjutan jika harga gagal bertahan di area stop dan sinyal teknikal belum berbalik.`
+    const summaryDrivers = (d.drivers.length ? d.drivers : [
+        d.aiView?.whatChanged || `Perhatikan konfirmasi harga, volume, dan flow pasar sebelum menaikkan conviction.`,
+    ]).slice(0, 4)
+    const watchItems = (d.watchItems?.length ? d.watchItems : [
+        `Stop ${formatRupiah(d.riskPlan.stopLoss)}`,
+        `Target ${formatRupiah(d.riskPlan.takeProfit)}`,
+        `Entry ${formatEntryReference(d.riskPlan.entryReference)}`,
+        ...d.riskPlan.notes,
+    ]).slice(0, 7)
 
     return (
         <div className="min-h-screen bg-background dotted-background flex flex-col">
@@ -572,8 +622,6 @@ function AnalyzeV2Content() {
                     </button>
 
                     <Card className="p-6 sm:p-8 border-border/70 bg-card shadow-sm overflow-hidden">
-                        <div className="-mx-6 sm:-mx-8 -mt-6 sm:-mt-8 mb-6 h-1 bg-gradient-to-r from-[#487b78] via-[#d07225] to-transparent" />
-
                         <div className="mb-7 space-y-5">
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                 <div className="flex min-w-0 items-center gap-3">
@@ -622,36 +670,24 @@ function AnalyzeV2Content() {
                                     low52w={d.low52w}
                                 />
 
-                                <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 min-h-[136px] h-full flex flex-col justify-between">
+                                <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 min-h-[136px] h-full flex flex-col justify-center gap-5">
                                     <div>
                                         <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Technical Score</div>
-                                        <div className="mt-3 flex items-end justify-between gap-4">
-                                            <div className="text-4xl font-bold font-ibm-plex-mono text-foreground leading-none">{d.technical.score}</div>
-                                            <div className="w-28 pb-1"><ScoreBar score={d.technical.score} color={getScoreBarColor(d.technical.score)} /></div>
+                                        <div className="mt-2 flex items-end justify-between gap-4">
+                                            <div className="text-3xl font-bold font-ibm-plex-mono text-foreground leading-none">{d.technical.score}</div>
+                                            <div className="w-24 pb-1"><ScoreBar score={d.technical.score} color={getScoreBarColor(d.technical.score)} /></div>
                                         </div>
                                     </div>
-                                    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground capitalize">
-                                        <span>{d.technical.trend}</span>
-                                        <span className="text-border">·</span>
-                                        <span>{d.technical.momentum}</span>
-                                        <span className="text-border">·</span>
-                                        <span>{d.technical.volatility}</span>
+                                    <div>
+                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Fundamental Score</div>
+                                        <div className="mt-2 flex items-end justify-between gap-4">
+                                            <div className="text-3xl font-bold font-ibm-plex-mono text-foreground leading-none">{d.fundamental.score}</div>
+                                            <div className="w-24 pb-1"><ScoreBar score={d.fundamental.score} color={getScoreBarColor(d.fundamental.score)} /></div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 min-h-[136px] h-full flex flex-col justify-between">
-                                    <div>
-                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Fundamental Score</div>
-                                        <div className="mt-3 flex items-end justify-between gap-4">
-                                            <div className="text-4xl font-bold font-ibm-plex-mono text-foreground leading-none">{d.fundamental.score}</div>
-                                            <div className="w-28 pb-1"><ScoreBar score={d.fundamental.score} color={getScoreBarColor(d.fundamental.score)} /></div>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                                        <span className="capitalize">Valuasi: {d.fundamental.valuation}</span>
-                                        <Badge variant="outline" className="text-[10px] capitalize">{d.confidence}</Badge>
-                                    </div>
-                                </div>
+                                <TradePlanCard riskPlan={d.riskPlan} watchItems={watchItems} currentPrice={d.price} />
                             </div>
                         </div>
 
@@ -663,65 +699,58 @@ function AnalyzeV2Content() {
                                 symbol={d.ticker}
                             />
                         </div>
+                    </Card>
 
-                        <div className="mb-7 rounded-xl border border-border/70 bg-background/70 p-4 sm:p-5">
-                            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-2 mb-2">
+                    <Card className="overflow-hidden border-border/70 bg-card shadow-sm">
+                        <section>
+                            <div className="p-6 sm:p-7">
+                                <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex items-center gap-2">
                                         <Brain className="w-4 h-4 text-muted-foreground" />
-                                        <span className="text-sm font-semibold">Ringkasan AI</span>
+                                        <span className="text-base font-semibold">AI View</span>
                                     </div>
-                                    <p className="max-w-5xl text-sm leading-relaxed text-muted-foreground">{d.llmSummary}</p>
                                 </div>
-                                <Badge variant="secondary" className="w-fit shrink-0 capitalize text-xs gap-1">
-                                    <BiasIcon className="w-3 h-3" />
-                                    {bias.label}
-                                </Badge>
-                            </div>
-                            <div className="flex flex-wrap gap-2 mt-3">
-                                {d.drivers.map((driver, i) => (
-                                    <span key={i} className="text-xs leading-relaxed px-2.5 py-1 rounded-md bg-card text-muted-foreground border border-border/70">
-                                        {driver}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
 
-                        <div className="h-px bg-border mb-6" />
+                                <div className="space-y-5">
+                                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-0 md:divide-x md:divide-border/70">
+                                        <div className="md:pr-6">
+                                            <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Ringkasan Singkat</div>
+                                            <p className="text-sm leading-relaxed text-muted-foreground">{d.llmSummary}</p>
+                                        </div>
 
-                        <div>
-                            <div className="flex items-center gap-2 mb-4">
-                                <ShieldCheck className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm font-semibold">Rencana Risk Management</span>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3 mb-4">
-                                {riskMetrics.map((metric) => (
-                                    <div key={metric.label} className="min-h-[104px] rounded-lg border border-border/70 bg-background/70 p-3.5">
-                                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">{metric.label}</div>
-                                        <div className="text-base font-bold font-ibm-plex-mono leading-tight text-foreground break-words">{metric.value}</div>
-                                        <div className={`mt-1 text-[11px] leading-snug ${metric.subClassName || "text-muted-foreground"}`}>{metric.sub}</div>
+                                        <div className="md:pl-6">
+                                            <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Driver Utama</div>
+                                            <ul className="grid grid-cols-1 gap-y-2">
+                                                {summaryDrivers.map((driver, i) => (
+                                                    <li key={`${driver}-${i}`} className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
+                                                        <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#d07225]" />
+                                                        <span>{driver}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
 
-                            <div className="p-4 rounded-lg bg-background/70 border border-border/70">
-                                <div className="flex items-center gap-1.5 mb-2">
-                                    <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />
-                                    <span className="text-xs font-semibold text-muted-foreground">Catatan Penting</span>
+                                    <div className="grid grid-cols-1 gap-5 border-t border-border/70 pt-5 md:grid-cols-2 md:gap-0 md:divide-x md:divide-border/70">
+                                        <div className="md:pr-6">
+                                            <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-xl border border-red-600/20 bg-red-600/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-red-700">
+                                                <TrendingDown className="h-3.5 w-3.5" />
+                                                Bearish View
+                                            </div>
+                                            <p className="text-sm leading-relaxed text-muted-foreground">{bearCase}</p>
+                                        </div>
+
+                                        <div className="md:pl-6">
+                                            <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-xl border border-green-600/20 bg-green-600/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-green-700">
+                                                <TrendingUp className="h-3.5 w-3.5" />
+                                                Bullish View
+                                            </div>
+                                            <p className="text-sm leading-relaxed text-muted-foreground">{bullCase}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                {d.riskPlan.summary ? <p className="text-sm leading-relaxed text-muted-foreground mb-2">{d.riskPlan.summary}</p> : null}
-                                <ul className="space-y-1">
-                                    {d.riskPlan.notes.map((note, i) => (
-                                        <li key={i} className="text-sm leading-relaxed text-muted-foreground flex items-start gap-2">
-                                            <span className="mt-1 text-muted-foreground/70">•</span>
-                                            <span>{note}</span>
-                                        </li>
-                                    ))}
-                                </ul>
                             </div>
-                        </div>
-
+                        </section>
                     </Card>
 
                     <Card className="p-6 sm:p-7 border-border/70 bg-card shadow-sm overflow-hidden">
@@ -915,32 +944,39 @@ function AnalyzeV2Content() {
                                 </TabsContent>
 
                                 <TabsContent value="quarterly" className="mt-3">
-                                    <div className="overflow-x-auto rounded-xl border border-border/70 bg-background/60">
-                                        <table className="min-w-full text-[11px] sm:text-xs">
-                                            <thead>
-                                                <tr className="border-b border-border bg-muted/30">
-                                                    <th className="px-4 py-3 text-left text-muted-foreground font-medium first:pl-5">Periode</th>
-                                                    <th className="px-4 py-3 text-right text-muted-foreground font-medium">Revenue</th>
-                                                    <th className="px-4 py-3 text-right text-muted-foreground font-medium">Laba Bersih</th>
-                                                    <th className="px-4 py-3 text-right text-muted-foreground font-medium">NPM</th>
-                                                    <th className="px-4 py-3 text-right text-muted-foreground font-medium">ROE</th>
-                                                    <th className="px-4 py-3 text-right text-muted-foreground font-medium last:pr-5">EPS</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {d.fundamental.quarterly.map((q, i) => (
-                                                    <tr key={i} className="border-b border-border/40 transition-colors hover:bg-muted/30 last:border-0">
-                                                        <td className="px-4 py-3 font-medium font-ibm-plex-mono first:pl-5">{q.period}</td>
-                                                        <td className="px-4 py-3 text-right font-ibm-plex-mono whitespace-nowrap">{formatFinancialMagnitude(q.revenue, quarterlyFinancialScale)}</td>
-                                                        <td className="px-4 py-3 text-right font-ibm-plex-mono whitespace-nowrap">{formatFinancialMagnitude(q.netIncome, quarterlyFinancialScale)}</td>
-                                                        <td className="px-4 py-3 text-right font-ibm-plex-mono whitespace-nowrap">{q.npm !== null ? `${formatNumber(q.npm, 2)}%` : "N/A"}</td>
-                                                        <td className="px-4 py-3 text-right font-ibm-plex-mono whitespace-nowrap">{q.roe !== null ? `${formatNumber(q.roe, 2)}%` : "N/A"}</td>
-                                                        <td className="px-4 py-3 text-right font-ibm-plex-mono whitespace-nowrap last:pr-5">{q.eps !== null ? formatNumber(q.eps, 2) : "N/A"}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                    {(() => {
+                                        const periods = d.fundamental.quarterly.map((q) => q.period)
+                                        const percentFormat = (value: number | null) =>
+                                            value !== null && Number.isFinite(value) ? `${formatNumber(value, 2)}%` : "N/A"
+                                        const epsFormat = (value: number | null) =>
+                                            value !== null && Number.isFinite(value) ? formatNumber(value, 2) : "N/A"
+                                        const magnitudeFormat = (value: number | null) =>
+                                            formatFinancialMagnitude(value, quarterlyFinancialScale)
+
+                                        const rows: Array<{ label: string; values: Array<number | null>; format: (value: number | null) => string }> = [
+                                            { label: "Revenue", values: d.fundamental.quarterly.map((q) => q.revenue), format: magnitudeFormat },
+                                            { label: "Laba Bersih", values: d.fundamental.quarterly.map((q) => q.netIncome), format: magnitudeFormat },
+                                            { label: "NPM", values: d.fundamental.quarterly.map((q) => q.npm), format: percentFormat },
+                                            { label: "ROE", values: d.fundamental.quarterly.map((q) => q.roe), format: percentFormat },
+                                            { label: "EPS", values: d.fundamental.quarterly.map((q) => q.eps), format: epsFormat },
+                                        ]
+
+                                        return (
+                                            <TooltipProvider>
+                                                <div>
+                                                    {rows.map((row) => (
+                                                        <QuarterlyMetricRow
+                                                            key={row.label}
+                                                            label={row.label}
+                                                            periods={periods}
+                                                            values={row.values}
+                                                            format={row.format}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </TooltipProvider>
+                                        )
+                                    })()}
                                 </TabsContent>
                             </Tabs>
 
