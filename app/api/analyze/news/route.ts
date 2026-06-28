@@ -87,15 +87,8 @@ export async function POST(request: Request) {
       )
     }
 
-    const { ticker, companyName, sector } = parsed.data
-    const queryParts = [
-      ticker.toUpperCase(),
-      companyName,
-      "saham",
-      "berita terbaru",
-      sector,
-      "Indonesia",
-    ].filter(Boolean)
+    const { ticker, companyName } = parsed.data
+    const query = `${companyName?.trim() || ticker.toUpperCase()} Indonesia`
 
     const tavilyResponse = await fetch(TAVILY_SEARCH_URL, {
       method: "POST",
@@ -104,7 +97,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        query: queryParts.join(" "),
+        query,
         topic: "news",
         search_depth: "basic",
         max_results: 6,

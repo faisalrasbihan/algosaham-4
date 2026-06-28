@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import Image from "next/image"
 import { useClerk, useUser } from "@clerk/nextjs"
 import {
     Activity,
@@ -624,31 +623,13 @@ function AnalyzeV2Content() {
                     <Card className="p-6 sm:p-8 border-border/70 bg-card shadow-sm overflow-hidden">
                         <div className="mb-7 space-y-5">
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                                <div className="flex min-w-0 items-center gap-3">
-                                    <div className="w-11 h-11 rounded-lg bg-secondary flex items-center justify-center border border-border flex-shrink-0 relative overflow-hidden">
-                                        <Image
-                                            src={`/stock_icons/${d.ticker}.png`}
-                                            alt={d.ticker}
-                                            fill
-                                            sizes="44px"
-                                            className="object-contain p-1.5"
-                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                (e.target as HTMLImageElement).style.display = "none"
-                                                const span = document.createElement("span")
-                                                span.className = "font-bold text-base font-ibm-plex-mono text-muted-foreground absolute inset-0 flex items-center justify-center"
-                                                span.textContent = d.ticker.charAt(0)
-                                                    ; (e.target as HTMLImageElement).parentElement?.appendChild(span)
-                                            }}
-                                        />
+                                <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <h1 className="text-2xl font-bold font-ibm-plex-mono tracking-tight leading-none">{d.ticker}</h1>
+                                        {d.syariah ? <Badge variant="outline" className="text-[10px]">Syariah</Badge> : null}
+                                        <Badge variant="outline" className="text-[10px]">{d.dataMode}</Badge>
                                     </div>
-                                    <div className="min-w-0">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <h1 className="text-2xl font-bold font-ibm-plex-mono tracking-tight leading-none">{d.ticker}</h1>
-                                            {d.syariah ? <Badge variant="outline" className="text-[10px]">Syariah</Badge> : null}
-                                            <Badge variant="outline" className="text-[10px]">{d.dataMode}</Badge>
-                                        </div>
-                                        <p className="mt-1 truncate text-sm text-muted-foreground">{d.companyName}</p>
-                                    </div>
+                                    <p className="mt-1 truncate text-sm text-muted-foreground">{d.companyName}</p>
                                 </div>
 
                                 <div className="flex items-center gap-x-3 gap-y-1 text-xs text-muted-foreground flex-wrap lg:justify-end">
@@ -674,14 +655,20 @@ function AnalyzeV2Content() {
                                     <div>
                                         <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Technical Score</div>
                                         <div className="mt-2 flex items-end justify-between gap-4">
-                                            <div className="text-3xl font-bold font-ibm-plex-mono text-foreground leading-none">{d.technical.score}</div>
+                                            <div className="flex items-baseline gap-0.5 leading-none">
+                                                <span className="text-3xl font-bold font-ibm-plex-mono text-foreground">{d.technical.score}</span>
+                                                <span className="text-xs font-ibm-plex-mono text-muted-foreground/60">/100</span>
+                                            </div>
                                             <div className="w-24 pb-1"><ScoreBar score={d.technical.score} color={getScoreBarColor(d.technical.score)} /></div>
                                         </div>
                                     </div>
                                     <div>
                                         <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Fundamental Score</div>
                                         <div className="mt-2 flex items-end justify-between gap-4">
-                                            <div className="text-3xl font-bold font-ibm-plex-mono text-foreground leading-none">{d.fundamental.score}</div>
+                                            <div className="flex items-baseline gap-0.5 leading-none">
+                                                <span className="text-3xl font-bold font-ibm-plex-mono text-foreground">{d.fundamental.score}</span>
+                                                <span className="text-xs font-ibm-plex-mono text-muted-foreground/60">/100</span>
+                                            </div>
                                             <div className="w-24 pb-1"><ScoreBar score={d.fundamental.score} color={getScoreBarColor(d.fundamental.score)} /></div>
                                         </div>
                                     </div>
@@ -690,8 +677,6 @@ function AnalyzeV2Content() {
                                 <TradePlanCard riskPlan={d.riskPlan} watchItems={watchItems} currentPrice={d.price} />
                             </div>
                         </div>
-
-                        <div className="h-px bg-border mb-6" />
 
                         <div className="mb-8 pt-2">
                             <AdvancedMultiChart

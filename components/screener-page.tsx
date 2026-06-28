@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Check, Info } from "lucide-react"
+import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, ChevronLeft, ChevronRight, Save, Check, Info, Moon, Rocket, TrendingUp, Zap, Gauge, Gem, Layers } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Navbar } from "@/components/navbar"
@@ -680,20 +681,45 @@ function getPresetFilterLabels(preset: ScreenerPreset): string[] {
   return [...fundamentals, ...technicals]
 }
 
-const PRESET_TONE_CLASSES = {
-  card: "border-slate-200 bg-gradient-to-b from-white to-slate-50/70 hover:border-slate-300",
-  activeCard: "border-[#d8b08a] bg-gradient-to-b from-white to-[#fff7ef] shadow-[0_10px_24px_rgba(180,106,44,0.12)]",
-  badge: "border-slate-200 bg-slate-100 text-slate-600",
-  activeBadge: "border-[#d8b08a] bg-[#f3dfcb] text-[#7c4a20]",
-  chip: "border-slate-200 bg-white text-slate-600",
-  activeChip: "border-[#e3c7ad] bg-white text-[#8d5627]",
-  rail: "bg-slate-300",
-  activeRail: "bg-[#d07225]",
-}
-
 function getPresetCategoryLabel(preset: ScreenerPreset) {
   return preset.groupLabel || "PRESET"
 }
+
+// Category labels are stored uppercase in the DB; tabs read better Title Cased.
+function formatCategoryLabel(label: string) {
+  return label
+    .toLowerCase()
+    .split(" ")
+    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+    .join(" ")
+}
+
+// One icon + tint per strategy category. Cards in the same category share an icon
+// (icons are not stored per-preset), with a neutral fallback for unknown categories.
+type CategoryVisual = { icon: LucideIcon; iconWrap: string }
+
+const PRESET_CATEGORY_VISUALS: Record<string, CategoryVisual> = {
+  setup: { icon: Moon, iconWrap: "bg-blue-50 text-blue-600" },
+  breakout: { icon: Rocket, iconWrap: "bg-orange-50 text-orange-600" },
+  trend: { icon: TrendingUp, iconWrap: "bg-teal-50 text-teal-600" },
+  momentum: { icon: Zap, iconWrap: "bg-violet-50 text-violet-600" },
+  "dip buy": { icon: Gauge, iconWrap: "bg-sky-50 text-sky-600" },
+  value: { icon: Gem, iconWrap: "bg-emerald-50 text-emerald-600" },
+  level: { icon: Layers, iconWrap: "bg-indigo-50 text-indigo-600" },
+}
+
+const DEFAULT_CATEGORY_VISUAL: CategoryVisual = {
+  icon: SlidersHorizontal,
+  iconWrap: "bg-slate-100 text-slate-600",
+}
+
+function getPresetCategoryVisual(preset: ScreenerPreset): CategoryVisual {
+  const key = (preset.groupLabel || preset.group || "").toLowerCase().trim()
+  return PRESET_CATEGORY_VISUALS[key] ?? DEFAULT_CATEGORY_VISUAL
+}
+
+const ALL_CATEGORIES_LABEL = "Semua"
+const PRESETS_PER_PAGE = 8
 
 const defaultAlertDraft: AlertDraft = {
   ticker: "",
@@ -1068,6 +1094,8 @@ export function ScreenerPage() {
   const [savingStrategy, setSavingStrategy] = useState(false)
   const [indicatorSearch, setIndicatorSearch] = useState("")
   const [activePresetId, setActivePresetId] = useState<string | null>(null)
+  const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORIES_LABEL)
+  const [presetPage, setPresetPage] = useState(1)
   const [screenerPresets, setScreenerPresets] = useState<ScreenerPreset[]>([])
   const [presetsLoading, setPresetsLoading] = useState(true)
   const [presetsError, setPresetsError] = useState<string | null>(null)
@@ -1164,6 +1192,27 @@ export function ScreenerPage() {
     }
     return () => clearInterval(interval)
   }, [isRunning])
+
+  const presetCategories = useMemo(() => {
+    const labels: string[] = []
+    for (const preset of screenerPresets) {
+      const label = preset.groupLabel || preset.group
+      if (label && !labels.includes(label)) labels.push(label)
+    }
+    return [ALL_CATEGORIES_LABEL, ...labels]
+  }, [screenerPresets])
+
+  const visiblePresets = useMemo(() => {
+    if (activeCategory === ALL_CATEGORIES_LABEL) return screenerPresets
+    return screenerPresets.filter((preset) => (preset.groupLabel || preset.group) === activeCategory)
+  }, [screenerPresets, activeCategory])
+
+  const totalPresetPages = Math.max(1, Math.ceil(visiblePresets.length / PRESETS_PER_PAGE))
+  const safePresetPage = Math.min(presetPage, totalPresetPages)
+  const paginatedPresets = visiblePresets.slice(
+    (safePresetPage - 1) * PRESETS_PER_PAGE,
+    safePresetPage * PRESETS_PER_PAGE,
+  )
 
   const sectors = useMemo(
     () =>
@@ -1725,104 +1774,173 @@ export function ScreenerPage() {
 
           <section className="rounded-xl border border-border/70 bg-card shadow-sm">
             <div className="p-5 sm:p-6 space-y-5">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              {/* Strategi Populer — header */}
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
-                    <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-                    Screener Builder
-                    {!activePreset && activeRules.length > 0 ? (
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                        Custom
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    Mulai dari preset, ubah rule sebagai chip, lalu sempitkan universe saham.
+                  <h2 className="text-xl font-bold tracking-tight text-foreground">Strategi Populer</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Pilih pola pasar yang ingin kamu cari. Tinggal pilih, atur, lalu jalankan.
                   </p>
                 </div>
-                <div className="font-ibm-plex-mono text-sm text-muted-foreground">
+                <div className="whitespace-nowrap font-ibm-plex-mono text-sm text-muted-foreground">
                   <span className="text-[#487b78]">{filteredRows.length} saham cocok</span>
                   {screeningSummary?.stocksScanned ? <span> dari {screeningSummary.stocksScanned}</span> : null}
-                  {latestSnapshotDate ? <span> · latest: {latestSnapshotDate}</span> : null}
+                  {latestSnapshotDate ? <span> · update terakhir {latestSnapshotDate}</span> : null}
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    Preset cepat
-                  </div>
-                  {presetsError ? (
-                    <span className="text-xs text-rose-600">{presetsError}</span>
-                  ) : null}
-                </div>
-                <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
-                  {presetsLoading ? (
-                    Array.from({ length: 3 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="h-[188px] w-[320px] shrink-0 animate-pulse rounded-xl border border-slate-200 bg-slate-50"
-                      />
-                    ))
-                  ) : screenerPresets.length === 0 ? (
-                    <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-muted-foreground">
-                      Belum ada preset screener aktif di database.
-                    </div>
-                  ) : (
-                    screenerPresets.map((preset) => {
-                      const isActive = activePresetId === preset.id
-                      const metricLabels = getPresetFilterLabels(preset).slice(0, 3)
-
-                      return (
+              {/* Category tabs */}
+              {!presetsLoading && screenerPresets.length > 0 ? (
+                <div className="-mx-1 flex flex-wrap items-center gap-1.5 px-1">
+                  {presetCategories.map((category, index) => {
+                    const isActive = activeCategory === category
+                    return (
+                      <Fragment key={category}>
+                        {index === 1 ? (
+                          <span aria-hidden className="mx-1 h-5 w-px self-center bg-border/70" />
+                        ) : null}
                         <button
-                          key={preset.id}
                           type="button"
                           onClick={() => {
-                            if (isActive) {
-                              resetScreenerBuilder()
-                            } else {
-                              applyPreset(preset)
-                            }
+                            setActiveCategory(category)
+                            setPresetPage(1)
                           }}
-                          className={`group relative flex h-[188px] w-[320px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#487b78]/30 ${
-                            isActive ? PRESET_TONE_CLASSES.activeCard : PRESET_TONE_CLASSES.card
+                          className={`rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#487b78]/30 ${
+                            isActive
+                              ? "border-border bg-background text-foreground shadow-sm"
+                              : "border-transparent text-muted-foreground hover:bg-slate-100 hover:text-foreground"
                           }`}
                         >
-                          <span className={`pointer-events-none absolute inset-x-0 top-0 h-1 ${isActive ? PRESET_TONE_CLASSES.activeRail : PRESET_TONE_CLASSES.rail}`} />
-                          <div className="flex items-start justify-between gap-3">
-                            <span className={`rounded-full border px-2 py-0.5 font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.16em] ${isActive ? PRESET_TONE_CLASSES.activeBadge : PRESET_TONE_CLASSES.badge}`}>
+                          {formatCategoryLabel(category)}
+                        </button>
+                      </Fragment>
+                    )
+                  })}
+                </div>
+              ) : null}
+              {presetsError ? <p className="text-xs text-rose-600">{presetsError}</p> : null}
+
+              {/* Strategy grid */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {presetsLoading ? (
+                  Array.from({ length: PRESETS_PER_PAGE }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="h-[184px] animate-pulse rounded-2xl border border-slate-200 bg-slate-50"
+                    />
+                  ))
+                ) : visiblePresets.length === 0 ? (
+                  <div className="col-span-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-muted-foreground">
+                    {screenerPresets.length === 0
+                      ? "Belum ada preset screener aktif di database."
+                      : "Tidak ada strategi pada kategori ini."}
+                  </div>
+                ) : (
+                  paginatedPresets.map((preset) => {
+                    const isActive = activePresetId === preset.id
+                    const visual = getPresetCategoryVisual(preset)
+                    const Icon = visual.icon
+                    const primaryLabel = getPresetFilterLabels(preset)[0]
+
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          if (isActive) {
+                            resetScreenerBuilder()
+                          } else {
+                            applyPreset(preset)
+                          }
+                        }}
+                        className={`group relative flex flex-col rounded-2xl border bg-card p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#487b78]/30 ${
+                          isActive
+                            ? "border-[#d8b08a] shadow-[0_10px_24px_rgba(180,106,44,0.12)]"
+                            : "border-border/70 hover:border-slate-300"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${visual.iconWrap}`}>
+                            <Icon className="h-3.5 w-3.5" />
+                            <span className="font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.14em]">
                               {getPresetCategoryLabel(preset)}
                             </span>
-                            {isActive ? (
-                              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#d07225]/30 bg-white text-[#d07225] shadow-sm">
-                                <Check className="h-3.5 w-3.5" />
-                              </span>
-                            ) : null}
+                          </span>
+                          {isActive ? (
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
+                              <Check className="h-3 w-3" />
+                            </span>
+                          ) : null}
+                        </div>
+                        <h3 className="mt-3 text-sm font-semibold leading-snug tracking-tight text-foreground line-clamp-2">
+                          {preset.name}
+                        </h3>
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                          {preset.summary}
+                        </p>
+                        {primaryLabel ? (
+                          <div className="mt-3">
+                            <span className="inline-flex rounded-md border border-border/70 bg-background px-2 py-0.5 font-ibm-plex-mono text-[10px] font-medium leading-none text-muted-foreground">
+                              {primaryLabel}
+                            </span>
                           </div>
-                          <h3 className="mt-3 truncate text-base font-semibold tracking-tight text-foreground">
-                            {preset.name}
-                          </h3>
-                          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground line-clamp-3">
-                            {preset.summary}
-                          </p>
-                          <div className="mt-auto flex flex-wrap gap-1.5 pt-3">
-                            {metricLabels.map((label) => (
-                              <span
-                                key={label}
-                                className={`rounded-md border px-2 py-1 font-ibm-plex-mono text-[11px] font-medium leading-none shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] ${isActive ? PRESET_TONE_CLASSES.activeChip : PRESET_TONE_CLASSES.chip}`}
-                              >
-                                {label}
-                              </span>
-                            ))}
-                          </div>
-                        </button>
-                      )
-                    })
-                  )}
-                </div>
+                        ) : null}
+                      </button>
+                    )
+                  })
+                )}
               </div>
 
-              <div className="grid gap-3 lg:grid-cols-[max-content_max-content_max-content] lg:items-center">
+              {/* Pagination */}
+              {!presetsLoading && totalPresetPages > 1 ? (
+                <div className="flex items-center justify-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-border/70 bg-background text-muted-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50 disabled:opacity-40"
+                    onClick={() => setPresetPage((page) => Math.max(1, page - 1))}
+                    disabled={safePresetPage === 1}
+                    aria-label="Halaman sebelumnya"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  {Array.from({ length: totalPresetPages }).map((_, index) => {
+                    const page = index + 1
+                    const isCurrent = page === safePresetPage
+                    return (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => setPresetPage(page)}
+                        className={`h-8 min-w-8 rounded-md border px-2 font-ibm-plex-mono text-xs font-medium transition-colors ${
+                          isCurrent
+                            ? "border-[#d07225]/40 bg-[#fff7ef] text-[#8d5627] shadow-sm"
+                            : "border-border/70 bg-background text-muted-foreground hover:border-slate-300 hover:bg-slate-50"
+                        }`}
+                        aria-current={isCurrent ? "page" : undefined}
+                      >
+                        {page}
+                      </button>
+                    )
+                  })}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-border/70 bg-background text-muted-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50 disabled:opacity-40"
+                    onClick={() => setPresetPage((page) => Math.min(totalPresetPages, page + 1))}
+                    disabled={safePresetPage === totalPresetPages}
+                    aria-label="Halaman berikutnya"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : null}
+
+              <div className="space-y-4 border-t border-border/70 pt-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -1920,10 +2038,33 @@ export function ScreenerPage() {
                   disabled={!canSaveStrategy}
                 >
                   <Save className="h-4 w-4" />
-                  Save
+                  Simpan Preset
                 </Button>
+                  </div>
 
-                <div className="flex flex-wrap gap-2 lg:col-span-3">
+                  <Button
+                    className={`h-11 gap-2 rounded-md border px-5 shadow-sm transition-all duration-500 disabled:cursor-not-allowed disabled:opacity-100 ${isRunning
+                      ? "border-border bg-secondary text-muted-foreground"
+                      : "border-transparent bg-[#d07225] text-white hover:bg-[#b8641f]"
+                      }`}
+                    onClick={handleRunScreener}
+                    disabled={isRunning || !isLoaded}
+                  >
+                    {isRunning ? (
+                      <>
+                        <span>Running... ({runElapsedTime}s)</span>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4" />
+                        Jalankan Screener
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
                   {activeRules.length === 0 ? (
                     <span className="text-sm text-muted-foreground">
                       Pilih preset atau tambah indicator.
@@ -2199,30 +2340,6 @@ export function ScreenerPage() {
                       </PopoverContent>
                     </Popover>
                   </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 self-end">
-                  <Button
-                    className={`h-11 gap-2 rounded-md border px-4 shadow-sm transition-all duration-500 disabled:cursor-not-allowed disabled:opacity-100 ${isRunning
-                      ? "border-border bg-secondary text-muted-foreground"
-                      : "border-transparent bg-[#d07225] text-white hover:bg-[#b8641f]"
-                      }`}
-                    onClick={handleRunScreener}
-                    disabled={isRunning || !isLoaded}
-                  >
-                    {isRunning ? (
-                      <>
-                        <span>Running... ({runElapsedTime}s)</span>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-                      </>
-                    ) : (
-                      <>
-                        <Search className="h-4 w-4" />
-                        Run Screening
-                      </>
-                    )}
-                  </Button>
-
                 </div>
               </div>
 
