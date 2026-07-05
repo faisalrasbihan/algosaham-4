@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/tooltip"
 import type { ScreenerRequest } from "@/lib/api"
 import { normalizeScreeningContractConfig } from "@/lib/backtest-contract"
+import { SCREENER_PRESETS, type PresetIndicatorConfig, type ScreenerPreset } from "@/lib/screener-presets"
 import {
   technicalIndicatorCategories,
   technicalIndicatorNameToApiType,
@@ -107,6 +108,7 @@ type ScreenerRow = {
   change1MPct: number | null
   change1YPct: number | null
   alignmentScore: number | null
+  fundamentalScore: number | null
   alignmentBreakdown: AlignmentBreakdownItem[]
   signalDate: string | null
 }
@@ -157,12 +159,6 @@ type ScreenerApiResponse = {
   } | null
 }
 
-type ScreenerPresetsResponse = {
-  success: boolean
-  presets?: ScreenerPreset[]
-  error?: string
-}
-
 type AlertDraft = {
   ticker: string
   type: "masuk-radar" | "technical-score" | "rsi"
@@ -196,31 +192,6 @@ type FilterDefinition = {
   apiType?: string
 }
 
-type PresetIndicatorConfig = {
-  type: string
-  [key: string]: string | number | boolean | undefined
-}
-
-type ScreenerPreset = {
-  id: string
-  name: string
-  group: string
-  groupLabel: string
-  groupDescription: string | null
-  summary: string
-  tag: string | null
-  config: {
-    screeningId: string
-    fundamentalIndicators: PresetIndicatorConfig[]
-    technicalIndicators: PresetIndicatorConfig[]
-    filters?: {
-      marketCap?: string[]
-      sectors?: string[]
-      syariah?: boolean
-    }
-  }
-}
-
 const DEFAULT_SCREENER_PRESET_ID = "calm-volume-dry-up"
 
 type ColumnKind = "currency" | "number" | "percent" | "text" | "boolean" | "date"
@@ -238,7 +209,8 @@ type SortKey = keyof ScreenerRow
 
 const COLUMN_LABELS = {
   stockCode: "Saham",
-  alignmentScore: "Alignment",
+  alignmentScore: "Score",
+  fundamentalScore: "Fund. Score",
   open: "Open",
   high: "High",
   low: "Low",
@@ -287,7 +259,8 @@ type ColumnId = keyof typeof COLUMN_LABELS
 
 const COLUMN_TOOLTIPS: Record<ColumnId, string> = {
   stockCode: "Kode saham emiten yang muncul di hasil screener.",
-  alignmentScore: "Skor keselarasan 0-100 dari backend: seberapa kuat sinyal teknikal saham ini sejajar dalam window scan. Arahkan kursor ke skor untuk rincian per indikator. Kosong (—) saat screener berjalan tanpa indikator teknikal.",
+  alignmentScore: "Score 0-100 dari backend yang merangkum kekuatan sinyal screener untuk saham ini. Jika strategi memakai indikator teknikal dan fundamental, score ini menggabungkan keduanya; rincian per indikator muncul saat baris diarahkan kursor.",
+  fundamentalScore: "Skor fundamental 0-100 dari breakdown backend `fundamentals`. Kosong (—) jika screener dijalankan tanpa penilaian fundamental.",
   open: "Harga pembukaan pada sesi perdagangan terakhir.",
   high: "Harga tertinggi pada sesi perdagangan terakhir.",
   low: "Harga terendah pada sesi perdagangan terakhir.",
@@ -333,7 +306,8 @@ const COLUMN_TOOLTIPS: Record<ColumnId, string> = {
 }
 
 const COLUMN_CONFIGS: ColumnConfig[] = [
-  { id: "alignmentScore", label: "Alignment", kind: "number", sortable: true, headClassName: "w-[112px] text-right", cellClassName: "text-right" },
+  { id: "alignmentScore", label: "Score", kind: "number", sortable: true, headClassName: "w-[112px] text-right", cellClassName: "text-right" },
+  { id: "fundamentalScore", label: "Fund. Score", kind: "number", sortable: true, headClassName: "w-[124px] text-right", cellClassName: "text-right" },
   { id: "changeD1Pct", label: "1D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "change5DPct", label: "5D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "change1MPct", label: "1M Chg", kind: "percent", sortable: true, headClassName: "w-[120px] text-right", cellClassName: "w-[120px] text-right font-ibm-plex-mono" },
@@ -378,14 +352,31 @@ const COLUMN_CONFIGS: ColumnConfig[] = [
 ]
 
 const COLUMN_TEMPLATES = {
-  recommended: ["stockCode", "alignmentScore", "changeD1Pct", "change5DPct", "change1MPct", "change1YPct", "close", "valuasi", "peRatio", "pbv", "roe", "marketCap", "sma20", "sma50", "nbsaRatio5d", "action"],
+  recommended: ["stockCode", "alignmentScore", "fundamentalScore", "changeD1Pct", "change5DPct", "change1MPct", "change1YPct", "close", "valuasi", "peRatio", "pbv", "roe", "marketCap", "sma20", "sma50", "nbsaRatio5d", "action"],
   technical: ["stockCode", "changeD1Pct", "change5DPct", "change1MPct", "change1YPct", "close", "gapPct", "prevDailyValue", "sma20", "sma50", "volumeSma20", "valueSma20", "nbsa5d", "nbsaRatio5d", "action"],
-  fundamental: ["stockCode", "change1MPct", "change1YPct", "close", "marketCap", "assets", "liabilities", "equity", "sales", "profit", "eps", "peRatio", "pbv", "der", "roa", "roe", "npm", "action"],
+  fundamental: ["stockCode", "fundamentalScore", "change1MPct", "change1YPct", "close", "marketCap", "assets", "liabilities", "equity", "sales", "profit", "eps", "peRatio", "pbv", "der", "roa", "roe", "npm", "action"],
   all: ["stockCode", ...COLUMN_CONFIGS.map((column) => column.id), "action"],
 } as const
 
 type ColumnTemplateKey = keyof typeof COLUMN_TEMPLATES
 const FIXED_COLUMN_IDS: ColumnId[] = ["stockCode", "action"]
+
+const PRESET_FIELD_COLUMN_IDS: Partial<Record<string, ColumnId[]>> = {
+  avg_value_20d: ["valueSma20"],
+  close_vs_sma_20_pct: ["close", "sma20"],
+  close_vs_sma_50_pct: ["close", "sma50"],
+  der: ["der"],
+  market_cap: ["marketCap"],
+  pbv: ["pbv"],
+  pe_ratio: ["peRatio"],
+  return_1d: ["changeD1Pct"],
+  return_5d: ["change5DPct"],
+  return_20d: ["change1MPct"],
+  return_60d: ["change1YPct"],
+  roe: ["roe"],
+  value_ratio_20d: ["valueSma20"],
+  volume_ratio_20d: ["volumeSma20"],
+}
 
 const SCREENER_SECTOR_OPTIONS = [
   "Energy",
@@ -408,9 +399,9 @@ const QUICK_FILTER_RELATED_COLUMNS: Partial<Record<string, ColumnId[]>> = {
   ma20GapPct: ["close", "sma20"],
   ma5GapPct: ["close", "sma50"],
   trend: ["close", "sma20", "sma50"],
-  pe: ["peRatio"],
-  pbv: ["pbv"],
-  roe: ["roe"],
+  pe: ["fundamentalScore", "peRatio"],
+  pbv: ["fundamentalScore", "pbv"],
+  roe: ["fundamentalScore", "roe"],
 }
 
 const METRIC_GUIDE_ITEMS = [
@@ -736,6 +727,13 @@ function getDefaultColumnTemplate(): ColumnId[] {
   return getColumnTemplate("recommended")
 }
 
+function getPresetColumnTemplate(preset: ScreenerPreset): ColumnId[] {
+  const mappedColumnIds = preset.defaultFields.flatMap((field) => PRESET_FIELD_COLUMN_IDS[field] ?? [])
+  if (mappedColumnIds.length === 0) return getDefaultColumnTemplate()
+
+  return Array.from(new Set([...FIXED_COLUMN_IDS, ...mappedColumnIds, "action"])) as ColumnId[]
+}
+
 function formatPercent(value: number | null, digits = 1) {
   if (value === null) return "—"
   const sign = value > 0 ? "+" : ""
@@ -1008,7 +1006,7 @@ function ScreenerRowHoverCard({ row }: { row: ScreenerRow }) {
       {hasAlignment ? (
         <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Alignment</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Score</span>
             <span className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 font-ibm-plex-mono text-xs font-semibold ${alignmentToneClasses(alignmentScore as number)}`}>
               {alignmentScore}/100
             </span>
@@ -1042,7 +1040,9 @@ function ScreenerRowHoverCard({ row }: { row: ScreenerRow }) {
 }
 
 function formatAlignmentIndicator(indicator: string) {
-  return indicator.replace(/_/g, " ").trim()
+  const normalized = indicator.replace(/_/g, " ").trim()
+  if (normalized.toLowerCase() === "fundamentals") return "Fundamentals"
+  return normalized
 }
 
 function alignmentToneClasses(score: number) {
@@ -1054,16 +1054,16 @@ function alignmentToneClasses(score: number) {
 // At-a-glance score in the table cell. The "why" (breakdown + signal date) lives in the
 // row hover card instead of a nested tooltip, because the whole row is already a Radix
 // Tooltip trigger in DataTable — nesting a second trigger here would double-pop.
-function AlignmentScoreCell({ row }: { row: ScreenerRow }) {
-  if (row.alignmentScore === null) {
+function ScoreBadgeCell({ score }: { score: number | null }) {
+  if (score === null) {
     return <span className="text-muted-foreground">—</span>
   }
 
-  const score = Math.round(row.alignmentScore)
+  const roundedScore = Math.round(score)
   return (
     <div className="flex justify-end">
-      <span className={`inline-flex min-w-[2.25rem] items-center justify-center rounded-md border px-2 py-0.5 font-ibm-plex-mono text-xs font-semibold ${alignmentToneClasses(score)}`}>
-        {score}
+      <span className={`inline-flex min-w-[2.25rem] items-center justify-center rounded-md border px-2 py-0.5 font-ibm-plex-mono text-xs font-semibold ${alignmentToneClasses(roundedScore)}`}>
+        {roundedScore}
       </span>
     </div>
   )
@@ -1096,9 +1096,7 @@ export function ScreenerPage() {
   const [activePresetId, setActivePresetId] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORIES_LABEL)
   const [presetPage, setPresetPage] = useState(1)
-  const [screenerPresets, setScreenerPresets] = useState<ScreenerPreset[]>([])
-  const [presetsLoading, setPresetsLoading] = useState(true)
-  const [presetsError, setPresetsError] = useState<string | null>(null)
+  const screenerPresets = SCREENER_PRESETS
   const [screenerRows, setScreenerRows] = useState<ScreenerRow[]>([])
   const [latestSnapshotDate, setLatestSnapshotDate] = useState<string | null>(null)
   const [screeningSummary, setScreeningSummary] = useState<ScreenerApiResponse["summary"] | null>(null)
@@ -1106,6 +1104,10 @@ export function ScreenerPage() {
   const [isRunning, setIsRunning] = useState(false)
   const [runElapsedTime, setRunElapsedTime] = useState("0.0")
   const [runError, setRunError] = useState<string | null>(null)
+  const marketCapSelectionLabel =
+    marketCapFilter === "large" ? "Large cap" : marketCapFilter === "mid" ? "Mid cap" : marketCapFilter === "small" ? "Small cap" : "Semua"
+  const sectorSelectionLabel = sectorFilter === "all" ? "Semua" : sectorFilter
+  const syariahSelectionLabel = syariahFilter === "all" ? "Semua" : syariahFilter === "yes" ? "Syariah" : "Non-syariah"
 
   useEffect(() => {
     const storedRadar = window.localStorage.getItem("algosaham-screener-radar")
@@ -1129,47 +1131,13 @@ export function ScreenerPage() {
   }, [])
 
   useEffect(() => {
-    const controller = new AbortController()
+    if (defaultPresetAppliedRef.current || userConfiguredScreenerRef.current) return
 
-    async function loadPresets() {
-      setPresetsLoading(true)
-      setPresetsError(null)
+    const defaultPreset = screenerPresets.find((preset) => preset.id === DEFAULT_SCREENER_PRESET_ID) ?? screenerPresets[0]
+    if (!defaultPreset) return
 
-      try {
-        const response = await fetch("/api/screener/presets", {
-          signal: controller.signal,
-        })
-        const result = await response.json() as ScreenerPresetsResponse
-
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || "Gagal memuat preset screener.")
-        }
-
-        const presets = result.presets ?? []
-        setScreenerPresets(presets)
-
-        if (!defaultPresetAppliedRef.current && !userConfiguredScreenerRef.current) {
-          const defaultPreset = presets.find((preset) => preset.id === DEFAULT_SCREENER_PRESET_ID) ?? presets[0]
-
-          if (defaultPreset) {
-            applyPreset(defaultPreset, "default")
-            defaultPresetAppliedRef.current = true
-          }
-        }
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return
-        const message = error instanceof Error ? error.message : "Gagal memuat preset screener."
-        setPresetsError(message)
-      } finally {
-        if (!controller.signal.aborted) {
-          setPresetsLoading(false)
-        }
-      }
-    }
-
-    void loadPresets()
-
-    return () => controller.abort()
+    applyPreset(defaultPreset, "default")
+    defaultPresetAppliedRef.current = true
   }, [])
 
   useEffect(() => {
@@ -1345,7 +1313,11 @@ export function ScreenerPage() {
       setScreeningDateRange(result.dateRange)
       // When the backend ranks by alignment, open the table on that ranking.
       if (result.rows.some((row) => row.alignmentScore !== null)) {
-        ensureColumnsVisible(["alignmentScore"])
+        const scoreColumns: ColumnId[] = ["alignmentScore"]
+        if (result.rows.some((row) => row.fundamentalScore !== null)) {
+          scoreColumns.push("fundamentalScore")
+        }
+        ensureColumnsVisible(scoreColumns)
         setSortKey("alignmentScore")
         setSortDirection("desc")
       }
@@ -1511,7 +1483,14 @@ export function ScreenerPage() {
     setEditingRuleId(null)
     setActiveRules(nextRules)
     setActivePresetId(preset.id)
-    ensureColumnsVisible(nextRules.flatMap((rule) => getRelatedColumnsForRule(rule.key)))
+    setVisibleColumnIds((current) =>
+      Array.from(new Set([
+        ...getDefaultColumnTemplate(),
+        ...current,
+        ...getPresetColumnTemplate(preset),
+        ...nextRules.flatMap((rule) => getRelatedColumnsForRule(rule.key)),
+      ])) as ColumnId[],
+    )
 
     if (preset.config.filters?.marketCap?.length === 1) {
       const [marketCap] = preset.config.filters.marketCap
@@ -1688,7 +1667,10 @@ export function ScreenerPage() {
       header: renderColumnHeader(column.id, column.label, column.sortable),
       cell: (row: ScreenerRow) => {
         if (column.id === "alignmentScore") {
-          return <AlignmentScoreCell row={row} />
+          return <ScoreBadgeCell score={row.alignmentScore} />
+        }
+        if (column.id === "fundamentalScore") {
+          return <ScoreBadgeCell score={row.fundamentalScore} />
         }
         const value = row[column.id]
         const isPositivePercent = column.kind === "percent" && typeof value === "number" && value > 0
@@ -1790,7 +1772,7 @@ export function ScreenerPage() {
               </div>
 
               {/* Category tabs */}
-              {!presetsLoading && screenerPresets.length > 0 ? (
+              {screenerPresets.length > 0 ? (
                 <div className="-mx-1 flex flex-wrap items-center gap-1.5 px-1">
                   {presetCategories.map((category, index) => {
                     const isActive = activeCategory === category
@@ -1818,21 +1800,13 @@ export function ScreenerPage() {
                   })}
                 </div>
               ) : null}
-              {presetsError ? <p className="text-xs text-rose-600">{presetsError}</p> : null}
 
               {/* Strategy grid */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {presetsLoading ? (
-                  Array.from({ length: PRESETS_PER_PAGE }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="h-[184px] animate-pulse rounded-2xl border border-slate-200 bg-slate-50"
-                    />
-                  ))
-                ) : visiblePresets.length === 0 ? (
+                {visiblePresets.length === 0 ? (
                   <div className="col-span-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-muted-foreground">
                     {screenerPresets.length === 0
-                      ? "Belum ada preset screener aktif di database."
+                      ? "Belum ada preset screener aktif."
                       : "Tidak ada strategi pada kategori ini."}
                   </div>
                 ) : (
@@ -1892,7 +1866,7 @@ export function ScreenerPage() {
               </div>
 
               {/* Pagination */}
-              {!presetsLoading && totalPresetPages > 1 ? (
+              {totalPresetPages > 1 ? (
                 <div className="flex items-center justify-center gap-1.5">
                   <Button
                     type="button"
@@ -2213,10 +2187,15 @@ export function ScreenerPage() {
 
                 <Select value={sectorFilter} onValueChange={handleSectorFilterChange}>
                   <SelectTrigger className="bg-background border-border/70">
-                    <SelectValue placeholder="Semua sektor" />
+                    <span className="truncate text-left">{sectorSelectionLabel}</span>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Semua sektor</SelectItem>
+                    <SelectItem value="all">
+                      <span className="flex w-full items-center justify-between gap-3">
+                        <span>Semua</span>
+                        <span className="text-xs text-muted-foreground">Sektor</span>
+                      </span>
+                    </SelectItem>
                     {sectorOptions.map((sector) => (
                       <SelectItem key={sector} value={sector}>{sector}</SelectItem>
                     ))}
@@ -2225,10 +2204,15 @@ export function ScreenerPage() {
 
                 <Select value={marketCapFilter} onValueChange={handleMarketCapFilterChange}>
                   <SelectTrigger className="bg-background border-border/70">
-                    <SelectValue placeholder="market_cap_group" />
+                    <span className="truncate text-left">{marketCapSelectionLabel}</span>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Semua market cap</SelectItem>
+                    <SelectItem value="all">
+                      <span className="flex w-full items-center justify-between gap-3">
+                        <span>Semua</span>
+                        <span className="text-xs text-muted-foreground">Market cap</span>
+                      </span>
+                    </SelectItem>
                     <SelectItem value="large">Large cap</SelectItem>
                     <SelectItem value="mid">Mid cap</SelectItem>
                     <SelectItem value="small">Small cap</SelectItem>
@@ -2237,10 +2221,15 @@ export function ScreenerPage() {
 
                 <Select value={syariahFilter} onValueChange={handleSyariahFilterChange}>
                   <SelectTrigger className="bg-background border-border/70">
-                    <SelectValue placeholder="is_syariah" />
+                    <span className="truncate text-left">{syariahSelectionLabel}</span>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Semua syariah</SelectItem>
+                    <SelectItem value="all">
+                      <span className="flex w-full items-center justify-between gap-3">
+                        <span>Semua</span>
+                        <span className="text-xs text-muted-foreground">Status</span>
+                      </span>
+                    </SelectItem>
                     <SelectItem value="yes">Syariah</SelectItem>
                     <SelectItem value="no">Non-syariah</SelectItem>
                   </SelectContent>
@@ -2256,7 +2245,8 @@ export function ScreenerPage() {
                     <SelectValue placeholder="Urutkan" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="alignmentScore:desc">Alignment tertinggi</SelectItem>
+                    <SelectItem value="alignmentScore:desc">Score tertinggi</SelectItem>
+                    <SelectItem value="fundamentalScore:desc">Fund. score tertinggi</SelectItem>
                     <SelectItem value="close:desc">Close tertinggi</SelectItem>
                     <SelectItem value="changeD1Pct:desc">D-1 change tertinggi</SelectItem>
                     <SelectItem value="change5DPct:desc">5D change tertinggi</SelectItem>

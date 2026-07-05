@@ -380,7 +380,8 @@ export async function POST(request: NextRequest) {
     const latestDate = latestDateResult[0]?.latest_date ?? null
     const scannedDays = parsed.data.scan_days ?? 5
     const technicalIndicators = parsed.data.config.technicalIndicators ?? []
-    const runsInUniverseMode = technicalIndicators.length === 0
+    const fundamentalIndicators = parsed.data.config.fundamentalIndicators ?? []
+    const runsInUniverseMode = technicalIndicators.length === 0 && fundamentalIndicators.length === 0
 
     let screeningId = parsed.data.config.screeningId
     let summary: Record<string, unknown> = {}
@@ -474,8 +475,10 @@ export async function POST(request: NextRequest) {
 
     // Alignment lives on the backend `signals` (the ranked output of /screen_stocks),
     // while `rows` is the DB snapshot we render. Merge the score/breakdown onto each row
-    // by ticker so the table can show and sort by conviction. In universe mode the locally
-    // built signals carry no alignment, so these fields stay null and degrade to "—".
+    // by ticker so the table can show and sort by conviction. Fundamental-only screeners
+    // also go through the backend, so their `fundamentals` breakdown becomes visible here.
+    // In pure universe mode the locally built signals carry no alignment, so these fields
+    // stay null and degrade to "—".
     const signalByTicker = new Map<string, Record<string, unknown>>()
     for (const signal of signals) {
       const ticker = typeof signal.ticker === "string" ? signal.ticker : null
@@ -500,10 +503,14 @@ export async function POST(request: NextRequest) {
         })
         .filter((item): item is { indicator: string; score: number | null } => item !== null)
 
+      const fundamentalScore =
+        alignmentBreakdown.find((item) => item.indicator.toLowerCase() === "fundamentals")?.score ?? null
+
       return {
         ...row,
         alignmentScore: signal ? toOptionalNumber(signal.alignmentScore) : null,
         alignmentBreakdown,
+        fundamentalScore,
         signalDate: signal && typeof signal.date === "string" ? signal.date : null,
       }
     })

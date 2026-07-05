@@ -20,7 +20,16 @@ export function Navbar() {
   const router = useRouter();
 
   useEffect(() => {
-    const routesToPrefetch = ["/", "/backtest", "/strategies", "/screener", "/analyze-v2", "/harga", "/features", "/help"];
+    const routesToPrefetch = [
+      "/",
+      "/screener",
+      "/analyze-v2",
+      "/backtest",
+      // "/strategies",
+      "/harga",
+      "/features",
+      "/help",
+    ];
 
     routesToPrefetch.forEach((route) => {
       router.prefetch(route);
@@ -106,21 +115,18 @@ export function Navbar() {
       </Link>
 
       <div className="hidden md:flex items-center space-x-2 text-sm text-muted-foreground">
-        <Link href="/" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
-          Home
-        </Link>
-        <Link href="/backtest" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
-          Simulasi
-        </Link>
-        <Link href="/strategies" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
-          Strategi
-        </Link>
         <Link href="/screener" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Screener
         </Link>
         <Link href="/analyze-v2" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Analisis
         </Link>
+        <Link href="/backtest" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
+          Simulasi
+        </Link>
+        {/* <Link href="/strategies" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
+          Strategi
+        </Link> */}
         {/* <SignedIn>
           <Link href="/portfolio" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
             Portfolio
@@ -401,11 +407,10 @@ export function Navbar() {
                 </SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-1.5">
-                <SheetClose asChild><Link href="/" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Home</Link></SheetClose>
-                <SheetClose asChild><Link href="/backtest" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Simulasi</Link></SheetClose>
-                <SheetClose asChild><Link href="/strategies" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Strategi</Link></SheetClose>
                 <SheetClose asChild><Link href="/screener" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Screener</Link></SheetClose>
                 <SheetClose asChild><Link href="/analyze-v2" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Analisis</Link></SheetClose>
+                <SheetClose asChild><Link href="/backtest" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Simulasi</Link></SheetClose>
+                {/* <SheetClose asChild><Link href="/strategies" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Strategi</Link></SheetClose> */}
                 <SheetClose asChild><Link href="/harga" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Harga</Link></SheetClose>
                 <SheetClose asChild><Link href="/features" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Pelajari</Link></SheetClose>
                 <SheetClose asChild><Link href="/help" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Feedback</Link></SheetClose>

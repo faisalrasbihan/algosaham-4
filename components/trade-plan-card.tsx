@@ -14,6 +14,11 @@ export type TradePlan = {
     confidence: string
     summary?: string
     notes: string[]
+    currentPrice?: number
+    levels?: {
+        supports?: ApiPriceLevel[]
+        resistances?: ApiPriceLevel[]
+    }
 }
 
 type TradePlanCardProps = {
@@ -26,12 +31,26 @@ type PriceLevel = {
     kind: "support" | "resistance"
     label: string
     price: number
-    /** 0 = nearest to price (strongest), higher = further away (weaker) */
+    basis?: string
+    distancePct?: number
+    /** 0 = nearest to price, higher = further away */
     rank: number
+}
+
+type ApiPriceLevel = {
+    rank?: number
+    label?: string
+    price?: number
+    basis?: string
+    distancePct?: number
 }
 
 function clamp(value: number, min: number, max: number) {
     return Math.min(Math.max(value, min), max)
+}
+
+function isFinitePositive(value: number | null | undefined): value is number {
+    return typeof value === "number" && Number.isFinite(value) && value > 0
 }
 
 function formatRupiah(value: number | null | undefined) {
@@ -86,8 +105,54 @@ function formatHoldingTerm(value: string | null | undefined) {
     return labels[normalized] || value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
-// Opacity per rank (nearest level is the most saturated / "strongest").
-const RANK_OPACITY = [1, 0.62, 0.34]
+function buildFallbackLevels(current: number, riskPlan: TradePlan) {
+    const lossGap = isFinitePositive(riskPlan.stopLoss) && riskPlan.stopLoss < current
+        ? current - riskPlan.stopLoss
+        : current * 0.035
+    const gainGap = isFinitePositive(riskPlan.takeProfit) && riskPlan.takeProfit > current
+        ? riskPlan.takeProfit - current
+        : current * 0.045
+
+    const supports: PriceLevel[] = [1, 1.65, 2.35].map((multiplier, index) => ({
+        kind: "support",
+        label: `Support ${index + 1}`,
+        price: Math.max(1, Math.round(current - lossGap * multiplier)),
+        rank: index,
+    }))
+
+    const resistances: PriceLevel[] = [1, 1.65, 2.35].map((multiplier, index) => ({
+        kind: "resistance",
+        label: `Resistance ${index + 1}`,
+        price: Math.max(1, Math.round(current + gainGap * multiplier)),
+        rank: index,
+    }))
+
+    return { supports, resistances }
+}
+
+function resolveCurrentPrice(currentPrice: number, riskPlan: TradePlan) {
+    if (isFinitePositive(riskPlan.currentPrice)) return riskPlan.currentPrice
+    if (isFinitePositive(currentPrice)) return currentPrice
+    if (isFinitePositive(riskPlan.entryPrice)) return riskPlan.entryPrice
+    return 1
+}
+
+function normalizeLevels(kind: PriceLevel["kind"], levels: ApiPriceLevel[] | undefined) {
+    return (levels ?? [])
+        .map((level, index) => ({
+            kind,
+            label: level.label || `${kind === "support" ? "Support" : "Resistance"} ${index + 1}`,
+            price: level.price ?? Number.NaN,
+            basis: level.basis,
+            distancePct: level.distancePct,
+            rank: clamp((level.rank ?? index + 1) - 1, 0, 2),
+        }))
+        .filter((level) => Number.isFinite(level.price) && level.price > 0)
+        .slice(0, 3)
+}
+
+// Opacity per rank: farthest levels are intentionally darkest.
+const RANK_OPACITY = [0.42, 0.68, 1]
 
 export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanCardProps) {
     // The card-level "complete" tooltip and the per-line tooltips overlap, so we
@@ -99,19 +164,12 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
     const potentialLoss = entryPrice ? ((entryPrice - stopLoss) / entryPrice) * 100 : null
     const potentialGain = entryPrice ? ((takeProfit - entryPrice) / entryPrice) * 100 : null
 
-    // --- DUMMY DATA (replace with real technical levels later) ---
-    const current = 4920
-    const supports: PriceLevel[] = [
-        { kind: "support", label: "Support 1", price: 4780, rank: 0 },
-        { kind: "support", label: "Support 2", price: 4600, rank: 1 },
-        { kind: "support", label: "Support 3", price: 4350, rank: 2 },
-    ]
-    const resistances: PriceLevel[] = [
-        { kind: "resistance", label: "Resistance 1", price: 5120, rank: 0 },
-        { kind: "resistance", label: "Resistance 2", price: 5340, rank: 1 },
-        { kind: "resistance", label: "Resistance 3", price: 5700, rank: 2 },
-    ]
-    // -------------------------------------------------------------
+    const current = resolveCurrentPrice(currentPrice, riskPlan)
+    const apiSupports = normalizeLevels("support", riskPlan.levels?.supports)
+    const apiResistances = normalizeLevels("resistance", riskPlan.levels?.resistances)
+    const fallbackLevels = buildFallbackLevels(current, riskPlan)
+    const supports = apiSupports.length ? apiSupports : fallbackLevels.supports
+    const resistances = apiResistances.length ? apiResistances : fallbackLevels.resistances
 
     const levels = [...supports, ...resistances]
     const prices = [current, ...levels.map((l) => l.price)]
@@ -136,7 +194,7 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
                             <span className="text-[10px] font-medium text-muted-foreground">R:R {riskPlan.riskReward.toFixed(1)}x</span>
                         </div>
 
-                        <div className="relative pt-7 pb-1">
+                        <div className="relative pt-7 pb-2">
                             {/* current price flag */}
                             <div
                                 className="absolute top-0 flex -translate-x-1/2 flex-col items-center"
@@ -150,9 +208,9 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
                                 </svg>
                             </div>
 
-                            <div className="relative h-9">
+                            <div className="relative h-[72px]">
                                 {/* track with a soft support→resistance wash */}
-                                <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-border">
+                                <div className="absolute inset-x-0 top-8 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-border">
                                     <div
                                         className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500/25 to-transparent"
                                         style={{ width: `${currentPct}%` }}
@@ -168,13 +226,14 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
                                     const isSupport = level.kind === "support"
                                     const color = isSupport ? "#dc2626" : "#16a34a"
                                     const opacity = RANK_OPACITY[level.rank] ?? 0.3
-                                    const distancePct = ((level.price - current) / current) * 100
+                                    const distancePct = level.distancePct ?? ((level.price - current) / current) * 100
+                                    const priceLabelClassName = isSupport ? "text-red-700" : "text-green-700"
                                     return (
                                         <Tooltip key={level.label}>
                                             <TooltipTrigger asChild>
                                                 <button
                                                     type="button"
-                                                    className="group absolute top-1/2 flex h-full -translate-x-1/2 -translate-y-1/2 items-center px-1.5"
+                                                    className="group absolute top-8 flex h-full -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center px-1.5"
                                                     style={{ left: `${toPct(level.price)}%` }}
                                                     onMouseEnter={() => setLineHovered(true)}
                                                     onMouseLeave={() => setLineHovered(false)}
@@ -184,6 +243,12 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
                                                         className="h-5 w-[3px] rounded-[1px] transition-transform group-hover:scale-y-110"
                                                         style={{ backgroundColor: color, opacity }}
                                                     />
+                                                    <span
+                                                        className={`absolute top-[44px] whitespace-nowrap font-ibm-plex-mono text-[9px] font-semibold leading-none tracking-normal ${priceLabelClassName}`}
+                                                        style={{ opacity: Math.max(opacity, 0.74) }}
+                                                    >
+                                                        {formatRupiah(level.price).replace("Rp ", "")}
+                                                    </span>
                                                 </button>
                                             </TooltipTrigger>
                                             <TooltipContent>
@@ -196,6 +261,7 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
                                                         {level.label}
                                                     </div>
                                                     <div className="mt-0.5 font-ibm-plex-mono font-semibold">{formatRupiah(level.price)}</div>
+                                                    {level.basis ? <div className="text-[11px] text-muted-foreground">{level.basis}</div> : null}
                                                     <div className="text-[11px] font-ibm-plex-mono" style={{ color }}>
                                                         {formatSignedPercent(distancePct)} dari harga
                                                     </div>
@@ -207,16 +273,10 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
 
                                 {/* current price line */}
                                 <span
-                                    className="absolute top-1/2 h-6 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-[1px] bg-foreground"
+                                    className="absolute top-8 h-6 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-[1px] bg-foreground"
                                     style={{ left: `${currentPct}%` }}
                                 />
                             </div>
-                        </div>
-
-                        <div className="flex items-center justify-between text-[9px] uppercase tracking-wide">
-                            <span className="font-medium text-red-700/80">Support</span>
-                            <span className="text-muted-foreground/60">Harga sekarang</span>
-                            <span className="font-medium text-green-700/80">Resistance</span>
                         </div>
                     </div>
                 </TooltipTrigger>
