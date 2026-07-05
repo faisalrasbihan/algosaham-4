@@ -121,8 +121,14 @@ type ScreenerDbRow = {
   nbsa_ratio_5d: string | number | null
   change_d1_pct: string | number | null
   change_5d_pct: string | number | null
+  change_20d_pct: string | number | null
+  change_60d_pct: string | number | null
   change_1m_pct: string | number | null
   change_1y_pct: string | number | null
+  range_20d_pct: string | number | null
+  volatility_20d: string | number | null
+  dist_from_52w_high_pct: string | number | null
+  dist_from_52w_low_pct: string | number | null
 }
 
 function toOptionalNumber(value: unknown) {
@@ -139,20 +145,38 @@ function toOptionalInteger(value: unknown) {
   return parsed === null ? null : Math.trunc(parsed)
 }
 
+function ratio(numerator: number | null, denominator: number | null) {
+  if (numerator === null || denominator === null || denominator === 0) return null
+  return numerator / denominator
+}
+
+function percentDiff(value: number | null, baseline: number | null) {
+  if (value === null || baseline === null || baseline === 0) return null
+  return ((value / baseline) - 1) * 100
+}
+
 function normalizeScreenerRow(row: ScreenerDbRow) {
+  const close = toOptionalNumber(row.close)
+  const volume = toOptionalNumber(row.volume)
+  const prevDailyValue = toOptionalNumber(row.prev_daily_value)
+  const sma20 = toOptionalNumber(row.sma_20)
+  const sma50 = toOptionalNumber(row.sma_50)
+  const volumeSma20 = toOptionalNumber(row.volume_sma_20)
+  const valueSma20 = toOptionalNumber(row.value_sma_20)
+
   return {
     stockCode: row.stock_code,
     open: toOptionalNumber(row.open),
     high: toOptionalNumber(row.high),
     low: toOptionalNumber(row.low),
-    close: toOptionalNumber(row.close),
-    volume: toOptionalNumber(row.volume),
+    close,
+    volume,
     freq: toOptionalNumber(row.freq),
     valuasi: toOptionalNumber(row.valuasi),
     nbsa: toOptionalNumber(row.nbsa),
     prevClose: toOptionalNumber(row.prev_close),
     gapPct: toOptionalNumber(row.gap_pct),
-    prevDailyValue: toOptionalNumber(row.prev_daily_value),
+    prevDailyValue,
     isValidOhlcv: Boolean(row.is_valid_ohlcv),
     isZeroOhlc: Boolean(row.is_zero_ohlc),
     month: toOptionalInteger(row.month),
@@ -176,17 +200,28 @@ function normalizeScreenerRow(row: ScreenerDbRow) {
     marketCap: toOptionalNumber(row.market_cap),
     marketCapGroup: row.market_cap_group,
     isSyariah: row.is_syariah === true || row.is_syariah === 1,
-    sma20: toOptionalNumber(row.sma_20),
-    sma50: toOptionalNumber(row.sma_50),
-    volumeSma20: toOptionalNumber(row.volume_sma_20),
-    valueSma20: toOptionalNumber(row.value_sma_20),
+    sma20,
+    sma50,
+    volumeSma20,
+    valueSma20,
+    volumeRatio20d: ratio(volume, volumeSma20),
+    avgValue20d: valueSma20,
+    valueRatio20d: ratio(prevDailyValue, valueSma20),
+    closeVsSma20Pct: percentDiff(close, sma20),
+    closeVsSma50Pct: percentDiff(close, sma50),
     nbsa5d: toOptionalNumber(row.nbsa_5d),
     value5d: toOptionalNumber(row.value_5d),
     nbsaRatio5d: toOptionalNumber(row.nbsa_ratio_5d),
     changeD1Pct: toOptionalNumber(row.change_d1_pct),
     change5DPct: toOptionalNumber(row.change_5d_pct),
+    return20dPct: toOptionalNumber(row.change_20d_pct),
+    return60dPct: toOptionalNumber(row.change_60d_pct),
     change1MPct: toOptionalNumber(row.change_1m_pct),
     change1YPct: toOptionalNumber(row.change_1y_pct),
+    range20dPct: toOptionalNumber(row.range_20d_pct),
+    volatility20d: toOptionalNumber(row.volatility_20d),
+    distFrom52wHighPct: toOptionalNumber(row.dist_from_52w_high_pct),
+    distFrom52wLowPct: toOptionalNumber(row.dist_from_52w_low_pct),
   }
 }
 
@@ -229,33 +264,79 @@ async function queryLatestSnapshotRows(filters: ScreenerFilters) {
 
   return genkiClient.unsafe<ScreenerDbRow[]>(
     `
-      WITH latest_view AS (
+      WITH priced_view AS (
         SELECT
           mv.*,
           CASE
             WHEN mv.prev_close IS NOT NULL AND mv.prev_close <> 0
               THEN ((mv.close / mv.prev_close) - 1) * 100
             ELSE NULL
+          END AS daily_return_pct
+        FROM core.mv_stock_daily mv
+      ),
+      latest_view AS (
+        SELECT
+          pv.*,
+          CASE
+            WHEN pv.prev_close IS NOT NULL AND pv.prev_close <> 0
+              THEN ((pv.close / pv.prev_close) - 1) * 100
+            ELSE NULL
           END AS change_d1_pct,
           CASE
-            WHEN LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
-              AND LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
-              THEN ((mv.close / LAG(mv.close, 5) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
+            WHEN LAG(pv.close, 5) OVER (PARTITION BY pv.stock_code ORDER BY pv.date) IS NOT NULL
+              AND LAG(pv.close, 5) OVER (PARTITION BY pv.stock_code ORDER BY pv.date) <> 0
+              THEN ((pv.close / LAG(pv.close, 5) OVER (PARTITION BY pv.stock_code ORDER BY pv.date)) - 1) * 100
             ELSE NULL
           END AS change_5d_pct,
           CASE
-            WHEN LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
-              AND LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
-              THEN ((mv.close / LAG(mv.close, 21) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
+            WHEN LAG(pv.close, 20) OVER (PARTITION BY pv.stock_code ORDER BY pv.date) IS NOT NULL
+              AND LAG(pv.close, 20) OVER (PARTITION BY pv.stock_code ORDER BY pv.date) <> 0
+              THEN ((pv.close / LAG(pv.close, 20) OVER (PARTITION BY pv.stock_code ORDER BY pv.date)) - 1) * 100
+            ELSE NULL
+          END AS change_20d_pct,
+          CASE
+            WHEN LAG(pv.close, 60) OVER (PARTITION BY pv.stock_code ORDER BY pv.date) IS NOT NULL
+              AND LAG(pv.close, 60) OVER (PARTITION BY pv.stock_code ORDER BY pv.date) <> 0
+              THEN ((pv.close / LAG(pv.close, 60) OVER (PARTITION BY pv.stock_code ORDER BY pv.date)) - 1) * 100
+            ELSE NULL
+          END AS change_60d_pct,
+          CASE
+            WHEN LAG(pv.close, 21) OVER (PARTITION BY pv.stock_code ORDER BY pv.date) IS NOT NULL
+              AND LAG(pv.close, 21) OVER (PARTITION BY pv.stock_code ORDER BY pv.date) <> 0
+              THEN ((pv.close / LAG(pv.close, 21) OVER (PARTITION BY pv.stock_code ORDER BY pv.date)) - 1) * 100
             ELSE NULL
           END AS change_1m_pct,
           CASE
-            WHEN LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) IS NOT NULL
-              AND LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date) <> 0
-              THEN ((mv.close / LAG(mv.close, 252) OVER (PARTITION BY mv.stock_code ORDER BY mv.date)) - 1) * 100
+            WHEN LAG(pv.close, 252) OVER (PARTITION BY pv.stock_code ORDER BY pv.date) IS NOT NULL
+              AND LAG(pv.close, 252) OVER (PARTITION BY pv.stock_code ORDER BY pv.date) <> 0
+              THEN ((pv.close / LAG(pv.close, 252) OVER (PARTITION BY pv.stock_code ORDER BY pv.date)) - 1) * 100
             ELSE NULL
-          END AS change_1y_pct
-        FROM core.mv_stock_daily mv
+          END AS change_1y_pct,
+          CASE
+            WHEN MIN(pv.low) OVER (PARTITION BY pv.stock_code ORDER BY pv.date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) IS NOT NULL
+              AND MIN(pv.low) OVER (PARTITION BY pv.stock_code ORDER BY pv.date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) <> 0
+              THEN ((MAX(pv.high) OVER (PARTITION BY pv.stock_code ORDER BY pv.date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW)
+                / MIN(pv.low) OVER (PARTITION BY pv.stock_code ORDER BY pv.date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW)) - 1) * 100
+            ELSE NULL
+          END AS range_20d_pct,
+          STDDEV_SAMP(pv.daily_return_pct) OVER (
+            PARTITION BY pv.stock_code
+            ORDER BY pv.date
+            ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
+          ) AS volatility_20d,
+          CASE
+            WHEN MAX(pv.high) OVER (PARTITION BY pv.stock_code ORDER BY pv.date ROWS BETWEEN 251 PRECEDING AND CURRENT ROW) IS NOT NULL
+              AND MAX(pv.high) OVER (PARTITION BY pv.stock_code ORDER BY pv.date ROWS BETWEEN 251 PRECEDING AND CURRENT ROW) <> 0
+              THEN ((pv.close / MAX(pv.high) OVER (PARTITION BY pv.stock_code ORDER BY pv.date ROWS BETWEEN 251 PRECEDING AND CURRENT ROW)) - 1) * 100
+            ELSE NULL
+          END AS dist_from_52w_high_pct,
+          CASE
+            WHEN MIN(pv.low) OVER (PARTITION BY pv.stock_code ORDER BY pv.date ROWS BETWEEN 251 PRECEDING AND CURRENT ROW) IS NOT NULL
+              AND MIN(pv.low) OVER (PARTITION BY pv.stock_code ORDER BY pv.date ROWS BETWEEN 251 PRECEDING AND CURRENT ROW) <> 0
+              THEN ((pv.close / MIN(pv.low) OVER (PARTITION BY pv.stock_code ORDER BY pv.date ROWS BETWEEN 251 PRECEDING AND CURRENT ROW)) - 1) * 100
+            ELSE NULL
+          END AS dist_from_52w_low_pct
+        FROM priced_view pv
       )
       SELECT
         stock_code,
@@ -302,8 +383,14 @@ async function queryLatestSnapshotRows(filters: ScreenerFilters) {
         nbsa_ratio_5d,
         change_d1_pct,
         change_5d_pct,
+        change_20d_pct,
+        change_60d_pct,
         change_1m_pct,
-        change_1y_pct
+        change_1y_pct,
+        range_20d_pct,
+        volatility_20d,
+        dist_from_52w_high_pct,
+        dist_from_52w_low_pct
       FROM latest_view
       WHERE ${whereClauses.join("\n        AND ")}
       ORDER BY stock_code ASC

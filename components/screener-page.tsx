@@ -100,13 +100,24 @@ type ScreenerRow = {
   sma50: number | null
   volumeSma20: number | null
   valueSma20: number | null
+  volumeRatio20d: number | null
+  avgValue20d: number | null
+  valueRatio20d: number | null
+  closeVsSma20Pct: number | null
+  closeVsSma50Pct: number | null
   nbsa5d: number | null
   value5d: number | null
   nbsaRatio5d: number | null
   changeD1Pct: number | null
   change5DPct: number | null
+  return20dPct: number | null
+  return60dPct: number | null
   change1MPct: number | null
   change1YPct: number | null
+  range20dPct: number | null
+  volatility20d: number | null
+  distFrom52wHighPct: number | null
+  distFrom52wLowPct: number | null
   alignmentScore: number | null
   fundamentalScore: number | null
   alignmentBreakdown: AlignmentBreakdownItem[]
@@ -249,9 +260,20 @@ const COLUMN_LABELS = {
   sma50: "SMA 50",
   volumeSma20: "Vol SMA 20",
   valueSma20: "Value SMA 20",
+  volumeRatio20d: "Vol Ratio 20D",
+  avgValue20d: "Avg Value 20D",
+  valueRatio20d: "Value Ratio 20D",
+  closeVsSma20Pct: "Close vs SMA20",
+  closeVsSma50Pct: "Close vs SMA50",
   nbsa5d: "NBSA 5D",
   value5d: "Value 5D",
   nbsaRatio5d: "NBSA Ratio 5D",
+  return20dPct: "20D Chg",
+  return60dPct: "60D Chg",
+  range20dPct: "Range 20D",
+  volatility20d: "Volatility 20D",
+  distFrom52wHighPct: "52W High Gap",
+  distFrom52wLowPct: "52W Low Gap",
   action: "Action",
 } as const
 
@@ -299,9 +321,20 @@ const COLUMN_TOOLTIPS: Record<ColumnId, string> = {
   sma50: "Simple moving average harga penutupan 50 hari.",
   volumeSma20: "Rata-rata volume transaksi 20 hari.",
   valueSma20: "Rata-rata nilai transaksi 20 hari.",
+  volumeRatio20d: "Volume hari terakhir dibanding rata-rata volume 20 hari. Nilai 2 berarti dua kali rata-rata.",
+  avgValue20d: "Rata-rata nilai transaksi 20 hari.",
+  valueRatio20d: "Nilai transaksi hari terakhir dibanding rata-rata nilai transaksi 20 hari.",
+  closeVsSma20Pct: "Jarak harga penutupan terhadap SMA 20 dalam persen.",
+  closeVsSma50Pct: "Jarak harga penutupan terhadap SMA 50 dalam persen.",
   nbsa5d: "Akumulasi net buy sell asing selama 5 hari terakhir.",
   value5d: "Akumulasi nilai transaksi selama 5 hari terakhir.",
   nbsaRatio5d: "Rasio net buy sell asing terhadap nilai transaksi 5 hari dalam persen.",
+  return20dPct: "Perubahan harga dibanding 20 hari bursa sebelumnya.",
+  return60dPct: "Perubahan harga dibanding 60 hari bursa sebelumnya.",
+  range20dPct: "Rentang high-low 20 hari terakhir dalam persen.",
+  volatility20d: "Volatilitas return harian 20 hari terakhir.",
+  distFrom52wHighPct: "Jarak harga penutupan terhadap high 52 minggu dalam persen.",
+  distFrom52wLowPct: "Jarak harga penutupan terhadap low 52 minggu dalam persen.",
   action: "Aksi cepat untuk menambahkan saham ke radar atau membuat alert.",
 }
 
@@ -346,9 +379,20 @@ const COLUMN_CONFIGS: ColumnConfig[] = [
   { id: "sma50", label: "SMA 50", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "volumeSma20", label: "Vol SMA 20", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "valueSma20", label: "Value SMA 20", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "volumeRatio20d", label: "Vol Ratio 20D", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "avgValue20d", label: "Avg Value 20D", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "valueRatio20d", label: "Value Ratio 20D", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "closeVsSma20Pct", label: "Close vs SMA20", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "closeVsSma50Pct", label: "Close vs SMA50", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "nbsa5d", label: "NBSA 5D", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "value5d", label: "Value 5D", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "nbsaRatio5d", label: "NBSA Ratio 5D", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "return20dPct", label: "20D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "return60dPct", label: "60D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "range20dPct", label: "Range 20D", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "volatility20d", label: "Volatility 20D", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "distFrom52wHighPct", label: "52W High Gap", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "distFrom52wLowPct", label: "52W Low Gap", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
 ]
 
 const COLUMN_TEMPLATES = {
@@ -362,20 +406,24 @@ type ColumnTemplateKey = keyof typeof COLUMN_TEMPLATES
 const FIXED_COLUMN_IDS: ColumnId[] = ["stockCode", "action"]
 
 const PRESET_FIELD_COLUMN_IDS: Partial<Record<string, ColumnId[]>> = {
-  avg_value_20d: ["valueSma20"],
-  close_vs_sma_20_pct: ["close", "sma20"],
-  close_vs_sma_50_pct: ["close", "sma50"],
+  avg_value_20d: ["avgValue20d"],
+  close_vs_sma_20_pct: ["closeVsSma20Pct"],
+  close_vs_sma_50_pct: ["closeVsSma50Pct"],
   der: ["der"],
+  dist_from_52w_high_pct: ["distFrom52wHighPct"],
+  dist_from_52w_low_pct: ["distFrom52wLowPct"],
   market_cap: ["marketCap"],
   pbv: ["pbv"],
   pe_ratio: ["peRatio"],
+  range_20d_pct: ["range20dPct"],
   return_1d: ["changeD1Pct"],
   return_5d: ["change5DPct"],
-  return_20d: ["change1MPct"],
-  return_60d: ["change1YPct"],
+  return_20d: ["return20dPct"],
+  return_60d: ["return60dPct"],
   roe: ["roe"],
-  value_ratio_20d: ["valueSma20"],
-  volume_ratio_20d: ["volumeSma20"],
+  value_ratio_20d: ["valueRatio20d"],
+  volatility_20d: ["volatility20d"],
+  volume_ratio_20d: ["volumeRatio20d"],
 }
 
 const SCREENER_SECTOR_OPTIONS = [
@@ -731,7 +779,12 @@ function getPresetColumnTemplate(preset: ScreenerPreset): ColumnId[] {
   const mappedColumnIds = preset.defaultFields.flatMap((field) => PRESET_FIELD_COLUMN_IDS[field] ?? [])
   if (mappedColumnIds.length === 0) return getDefaultColumnTemplate()
 
-  return Array.from(new Set([...FIXED_COLUMN_IDS, ...mappedColumnIds, "action"])) as ColumnId[]
+  const scoreColumnIds: ColumnId[] = ["alignmentScore"]
+  if (preset.config.fundamentalIndicators.length > 0) {
+    scoreColumnIds.push("fundamentalScore")
+  }
+
+  return Array.from(new Set(["stockCode", ...scoreColumnIds, ...mappedColumnIds, "action"])) as ColumnId[]
 }
 
 function formatPercent(value: number | null, digits = 1) {
@@ -1104,10 +1157,6 @@ export function ScreenerPage() {
   const [isRunning, setIsRunning] = useState(false)
   const [runElapsedTime, setRunElapsedTime] = useState("0.0")
   const [runError, setRunError] = useState<string | null>(null)
-  const marketCapSelectionLabel =
-    marketCapFilter === "large" ? "Large cap" : marketCapFilter === "mid" ? "Mid cap" : marketCapFilter === "small" ? "Small cap" : "Semua"
-  const sectorSelectionLabel = sectorFilter === "all" ? "Semua" : sectorFilter
-  const syariahSelectionLabel = syariahFilter === "all" ? "Semua" : syariahFilter === "yes" ? "Syariah" : "Non-syariah"
 
   useEffect(() => {
     const storedRadar = window.localStorage.getItem("algosaham-screener-radar")
@@ -1483,14 +1532,7 @@ export function ScreenerPage() {
     setEditingRuleId(null)
     setActiveRules(nextRules)
     setActivePresetId(preset.id)
-    setVisibleColumnIds((current) =>
-      Array.from(new Set([
-        ...getDefaultColumnTemplate(),
-        ...current,
-        ...getPresetColumnTemplate(preset),
-        ...nextRules.flatMap((rule) => getRelatedColumnsForRule(rule.key)),
-      ])) as ColumnId[],
-    )
+    setVisibleColumnIds(getPresetColumnTemplate(preset))
 
     if (preset.config.filters?.marketCap?.length === 1) {
       const [marketCap] = preset.config.filters.marketCap
@@ -1719,7 +1761,10 @@ export function ScreenerPage() {
     },
   ]
 
-  const visibleColumns = columns.filter((column) => visibleColumnIds.includes(column.id as ColumnId))
+  const columnById = new Map(columns.map((column) => [column.id as ColumnId, column]))
+  const visibleColumns = visibleColumnIds
+    .map((columnId) => columnById.get(columnId))
+    .filter((column): column is DataTableColumn<ScreenerRow> => column !== undefined)
   const activePreset = screenerPresets.find((preset) => preset.id === activePresetId) ?? null
   const canSaveStrategy = Boolean(activePresetId || activeRules.length > 0)
   const screenerTableClassName =
@@ -2187,15 +2232,10 @@ export function ScreenerPage() {
 
                 <Select value={sectorFilter} onValueChange={handleSectorFilterChange}>
                   <SelectTrigger className="bg-background border-border/70">
-                    <span className="truncate text-left">{sectorSelectionLabel}</span>
+                    <SelectValue placeholder="Semua sektor" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">
-                      <span className="flex w-full items-center justify-between gap-3">
-                        <span>Semua</span>
-                        <span className="text-xs text-muted-foreground">Sektor</span>
-                      </span>
-                    </SelectItem>
+                    <SelectItem value="all">Semua sektor</SelectItem>
                     {sectorOptions.map((sector) => (
                       <SelectItem key={sector} value={sector}>{sector}</SelectItem>
                     ))}
@@ -2204,15 +2244,10 @@ export function ScreenerPage() {
 
                 <Select value={marketCapFilter} onValueChange={handleMarketCapFilterChange}>
                   <SelectTrigger className="bg-background border-border/70">
-                    <span className="truncate text-left">{marketCapSelectionLabel}</span>
+                    <SelectValue placeholder="Semua market cap" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">
-                      <span className="flex w-full items-center justify-between gap-3">
-                        <span>Semua</span>
-                        <span className="text-xs text-muted-foreground">Market cap</span>
-                      </span>
-                    </SelectItem>
+                    <SelectItem value="all">Semua market cap</SelectItem>
                     <SelectItem value="large">Large cap</SelectItem>
                     <SelectItem value="mid">Mid cap</SelectItem>
                     <SelectItem value="small">Small cap</SelectItem>
@@ -2221,15 +2256,10 @@ export function ScreenerPage() {
 
                 <Select value={syariahFilter} onValueChange={handleSyariahFilterChange}>
                   <SelectTrigger className="bg-background border-border/70">
-                    <span className="truncate text-left">{syariahSelectionLabel}</span>
+                    <SelectValue placeholder="Semua" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">
-                      <span className="flex w-full items-center justify-between gap-3">
-                        <span>Semua</span>
-                        <span className="text-xs text-muted-foreground">Status</span>
-                      </span>
-                    </SelectItem>
+                    <SelectItem value="all">Semua</SelectItem>
                     <SelectItem value="yes">Syariah</SelectItem>
                     <SelectItem value="no">Non-syariah</SelectItem>
                   </SelectContent>

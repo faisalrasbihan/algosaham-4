@@ -45,6 +45,13 @@ type ApiPriceLevel = {
     distancePct?: number
 }
 
+type PlacedPriceLevel = {
+    level: PriceLevel
+    pct: number
+    labelLeft: number
+    labelLane: number
+}
+
 function clamp(value: number, min: number, max: number) {
     return Math.min(Math.max(value, min), max)
 }
@@ -153,6 +160,34 @@ function normalizeLevels(kind: PriceLevel["kind"], levels: ApiPriceLevel[] | und
 
 // Opacity per rank: farthest levels are intentionally darkest.
 const RANK_OPACITY = [0.42, 0.68, 1]
+const LABEL_LANE_TOPS = [58, 82, 106, 130]
+const MIN_LABEL_GAP_PCT = 13
+
+function placeLevelLabels(levels: PriceLevel[], toPct: (value: number) => number) {
+    const laneLastPct = LABEL_LANE_TOPS.map(() => Number.NEGATIVE_INFINITY)
+    const placedByIndex = new Map<number, PlacedPriceLevel>()
+
+    levels
+        .map((level, index) => ({ level, index, pct: toPct(level.price) }))
+        .sort((a, b) => a.pct - b.pct)
+        .forEach((item) => {
+            const availableLane = laneLastPct.findIndex((lastPct) => item.pct - lastPct >= MIN_LABEL_GAP_PCT)
+            const fallbackLane = laneLastPct.indexOf(Math.min(...laneLastPct))
+            const labelLane = availableLane >= 0 ? availableLane : fallbackLane
+
+            laneLastPct[labelLane] = item.pct
+            placedByIndex.set(item.index, {
+                level: item.level,
+                pct: item.pct,
+                labelLeft: clamp(item.pct, 8, 92),
+                labelLane,
+            })
+        })
+
+    return levels
+        .map((_, index) => placedByIndex.get(index))
+        .filter((item): item is PlacedPriceLevel => Boolean(item))
+}
 
 export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanCardProps) {
     // The card-level "complete" tooltip and the per-line tooltips overlap, so we
@@ -183,12 +218,13 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
     const currentPct = toPct(current)
     const markerLeft = clamp(currentPct, 6, 94)
     const hasCurrent = Number.isFinite(currentPrice) && currentPrice > 0
+    const placedLevels = placeLevelLabels(levels, toPct)
 
     return (
         <TooltipProvider delayDuration={80}>
             <Tooltip open={planOpen && !lineHovered} onOpenChange={setPlanOpen}>
                 <TooltipTrigger asChild>
-                    <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 min-h-[136px] h-full flex flex-col justify-between cursor-help">
+                    <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 min-h-[184px] h-full flex flex-col justify-between cursor-help">
                         <div className="flex items-center justify-between gap-2">
                             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Trade Plan</div>
                             <span className="text-[10px] font-medium text-muted-foreground">R:R {riskPlan.riskReward.toFixed(1)}x</span>
@@ -208,9 +244,9 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
                                 </svg>
                             </div>
 
-                            <div className="relative h-[72px]">
+                            <div className="relative h-[144px]">
                                 {/* track with a soft support→resistance wash */}
-                                <div className="absolute inset-x-0 top-8 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-border">
+                                <div className="absolute inset-x-0 top-7 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-border">
                                     <div
                                         className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500/25 to-transparent"
                                         style={{ width: `${currentPct}%` }}
@@ -222,19 +258,18 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
                                 </div>
 
                                 {/* support / resistance lines */}
-                                {levels.map((level) => {
+                                {placedLevels.map(({ level, pct }) => {
                                     const isSupport = level.kind === "support"
                                     const color = isSupport ? "#dc2626" : "#16a34a"
                                     const opacity = RANK_OPACITY[level.rank] ?? 0.3
                                     const distancePct = level.distancePct ?? ((level.price - current) / current) * 100
-                                    const priceLabelClassName = isSupport ? "text-red-700" : "text-green-700"
                                     return (
                                         <Tooltip key={level.label}>
                                             <TooltipTrigger asChild>
                                                 <button
                                                     type="button"
-                                                    className="group absolute top-8 flex h-full -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center px-1.5"
-                                                    style={{ left: `${toPct(level.price)}%` }}
+                                                    className="group absolute top-7 flex h-10 -translate-x-1/2 -translate-y-1/2 items-center px-1.5"
+                                                    style={{ left: `${pct}%` }}
                                                     onMouseEnter={() => setLineHovered(true)}
                                                     onMouseLeave={() => setLineHovered(false)}
                                                     aria-label={`${level.label}: ${formatRupiah(level.price)}`}
@@ -243,12 +278,6 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
                                                         className="h-5 w-[3px] rounded-[1px] transition-transform group-hover:scale-y-110"
                                                         style={{ backgroundColor: color, opacity }}
                                                     />
-                                                    <span
-                                                        className={`absolute top-[44px] whitespace-nowrap font-ibm-plex-mono text-[9px] font-semibold leading-none tracking-normal ${priceLabelClassName}`}
-                                                        style={{ opacity: Math.max(opacity, 0.74) }}
-                                                    >
-                                                        {formatRupiah(level.price).replace("Rp ", "")}
-                                                    </span>
                                                 </button>
                                             </TooltipTrigger>
                                             <TooltipContent>
@@ -273,9 +302,36 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
 
                                 {/* current price line */}
                                 <span
-                                    className="absolute top-8 h-6 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-[1px] bg-foreground"
+                                    className="absolute top-7 h-6 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-[1px] bg-foreground"
                                     style={{ left: `${currentPct}%` }}
                                 />
+
+                                {/* placed labels use lanes so nearby levels do not collide */}
+                                {placedLevels.map(({ level, labelLeft, labelLane }) => {
+                                    const isSupport = level.kind === "support"
+                                    const opacity = RANK_OPACITY[level.rank] ?? 0.3
+                                    const levelCode = `${isSupport ? "S" : "R"}${level.rank + 1}`
+                                    return (
+                                        <span
+                                            key={`${level.label}-label`}
+                                            className={`pointer-events-none absolute flex -translate-x-1/2 flex-col items-center rounded bg-background/90 px-1.5 py-1 font-ibm-plex-mono leading-none tracking-normal ring-1 ring-border/40 ${
+                                                isSupport ? "text-red-700" : "text-green-700"
+                                            }`}
+                                            style={{
+                                                left: `${labelLeft}%`,
+                                                top: LABEL_LANE_TOPS[labelLane],
+                                                opacity: Math.max(opacity, 0.76),
+                                            }}
+                                        >
+                                            <span className="whitespace-nowrap text-[9px] font-semibold">
+                                                {formatRupiah(level.price).replace("Rp ", "")}
+                                            </span>
+                                            <span className="mt-1 text-[8px] font-bold opacity-70">
+                                                {levelCode}
+                                            </span>
+                                        </span>
+                                    )
+                                })}
                             </div>
                         </div>
                     </div>
