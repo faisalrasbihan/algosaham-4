@@ -225,7 +225,7 @@ const COLUMN_LABELS = {
   open: "Open",
   high: "High",
   low: "Low",
-  close: "Harga",
+  close: "Price",
   changeD1Pct: "1D Chg",
   change5DPct: "5D Chg",
   change1MPct: "1M Chg",
@@ -256,7 +256,7 @@ const COLUMN_LABELS = {
   npm: "NPM",
   financialDate: "Financial Date",
   marketCap: "Market Cap",
-  sma20: "SMA 20",
+  sma20: "MA-20",
   sma50: "SMA 50",
   volumeSma20: "Vol SMA 20",
   valueSma20: "Value SMA 20",
@@ -345,7 +345,7 @@ const COLUMN_CONFIGS: ColumnConfig[] = [
   { id: "change5DPct", label: "5D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "change1MPct", label: "1M Chg", kind: "percent", sortable: true, headClassName: "w-[120px] text-right", cellClassName: "w-[120px] text-right font-ibm-plex-mono" },
   { id: "change1YPct", label: "1Y Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
-  { id: "close", label: "Harga", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "close", label: "Price", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "open", label: "Open", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "high", label: "High", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "low", label: "Low", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
@@ -375,7 +375,7 @@ const COLUMN_CONFIGS: ColumnConfig[] = [
   { id: "npm", label: "NPM", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "financialDate", label: "Financial Date", kind: "date", sortable: true, headClassName: "min-w-[118px]" },
   { id: "marketCap", label: "Market Cap", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
-  { id: "sma20", label: "SMA 20", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
+  { id: "sma20", label: "MA-20", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "sma50", label: "SMA 50", kind: "currency", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "volumeSma20", label: "Vol SMA 20", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "valueSma20", label: "Value SMA 20", kind: "number", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
@@ -404,6 +404,7 @@ const COLUMN_TEMPLATES = {
 
 type ColumnTemplateKey = keyof typeof COLUMN_TEMPLATES
 const FIXED_COLUMN_IDS: ColumnId[] = ["stockCode", "action"]
+const PRESET_BASE_COLUMN_IDS: ColumnId[] = ["close", "changeD1Pct", "change5DPct", "change1MPct", "sma20"]
 
 const PRESET_FIELD_COLUMN_IDS: Partial<Record<string, ColumnId[]>> = {
   avg_value_20d: ["avgValue20d"],
@@ -777,14 +778,13 @@ function getDefaultColumnTemplate(): ColumnId[] {
 
 function getPresetColumnTemplate(preset: ScreenerPreset): ColumnId[] {
   const mappedColumnIds = preset.defaultFields.flatMap((field) => PRESET_FIELD_COLUMN_IDS[field] ?? [])
-  if (mappedColumnIds.length === 0) return getDefaultColumnTemplate()
 
   const scoreColumnIds: ColumnId[] = ["alignmentScore"]
   if (preset.config.fundamentalIndicators.length > 0) {
     scoreColumnIds.push("fundamentalScore")
   }
 
-  return Array.from(new Set(["stockCode", ...scoreColumnIds, ...mappedColumnIds, "action"])) as ColumnId[]
+  return Array.from(new Set(["stockCode", ...scoreColumnIds, ...PRESET_BASE_COLUMN_IDS, ...mappedColumnIds, "action"])) as ColumnId[]
 }
 
 function formatPercent(value: number | null, digits = 1) {
@@ -1769,10 +1769,10 @@ export function ScreenerPage() {
   const canSaveStrategy = Boolean(activePresetId || activeRules.length > 0)
   const screenerTableClassName =
     visibleColumns.length <= 8
-      ? "w-max min-w-[720px] md:min-w-[980px]"
+      ? "w-full min-w-full md:min-w-[980px]"
       : visibleColumns.length <= 14
-        ? "w-max min-w-[1040px] md:min-w-[1480px]"
-        : "w-max min-w-[1500px] md:min-w-[2200px]"
+        ? "w-full min-w-[1040px] md:min-w-[1480px]"
+        : "w-full min-w-[1500px] md:min-w-[2200px]"
 
   return (
     <div className="h-screen overflow-hidden bg-background dotted-background bg-fixed">
