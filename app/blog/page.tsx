@@ -12,6 +12,7 @@ import {
 
 import { blogPosts } from "@/app/blog/blog-data"
 import { PageChrome } from "@/components/page-chrome"
+import { PageHeader, PageSection, SectionHeader, Surface } from "@/components/page-layout"
 
 export const metadata: Metadata = {
   title: "Blog | algosaham.ai",
@@ -46,45 +47,29 @@ export default function BlogPage() {
 
   return (
     <PageChrome>
-      <section className="relative overflow-hidden border-b border-border bg-gradient-to-br from-background via-secondary/20 to-background">
-        <div className="absolute inset-0 dotted-background opacity-40" />
-        <div className="absolute left-0 top-16 h-64 w-64 rounded-full bg-ochre/10 blur-3xl" />
-        <div className="absolute bottom-0 right-12 h-72 w-72 rounded-full bg-cambridge-blue/10 blur-3xl" />
-        <div className="container relative mx-auto px-6 py-16">
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end">
-            <div className="max-w-3xl space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-ochre/20 bg-ochre/10 px-4 py-2 text-sm text-ochre">
-                <Sparkles className="h-4 w-4" />
-                Editorial hub
-              </div>
-              <div className="space-y-4">
-                <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-6xl">
-                  Blog yang dibangun untuk trader yang ingin berpikir lebih rapi.
-                </h1>
-                <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                  Bukan feed opini pasar. Fokusnya adalah cara membaca backtest,
-                  membangun proses screening, dan mengikuti evolusi produk dengan
-                  konteks yang jelas.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
+      <PageHeader
+        eyebrow={<span className="inline-flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" /> Editorial hub</span>}
+        title="Blog untuk trader yang ingin berpikir lebih rapi."
+        description="Bukan feed opini pasar. Fokusnya adalah cara membaca backtest, membangun proses screening, dan mengikuti evolusi produk dengan konteks yang jelas."
+        actions={
+          <>
                 <Link
                   href={`/blog/${featuredPost.slug}`}
-                  className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                  className="inline-flex items-center gap-2 rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
                 >
                   Baca artikel unggulan
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href="/strategies"
-                  className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-medium text-foreground transition-colors hover:border-ochre/30 hover:text-ochre"
+                  className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-ochre/30 hover:text-ochre"
                 >
                   Jelajahi strategi
                 </Link>
-              </div>
-            </div>
-
-            <div className="rounded-[2rem] border border-border bg-card/90 p-6 shadow-sm">
+          </>
+        }
+        aside={
+          <Surface className="p-5">
               <p className="mb-3 text-sm uppercase tracking-[0.22em] text-muted-foreground">
                 Artikel unggulan
               </p>
@@ -105,32 +90,24 @@ export default function BlogPage() {
                 {featuredPost.summaryPoints.map((point) => (
                   <div
                     key={point}
-                    className="rounded-2xl border border-border bg-secondary/40 px-4 py-3 text-sm leading-6 text-foreground/90"
+                    className="rounded-lg border border-border bg-secondary/40 px-4 py-3 text-sm leading-6 text-foreground/90"
                   >
                     {point}
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
+          </Surface>
+        }
+      />
 
-      <section>
-        <div className="container mx-auto px-6 py-12">
-          <div className="mb-8 flex items-end justify-between gap-4">
-            <div>
-              <p className="mb-2 text-sm uppercase tracking-[0.22em] text-muted-foreground">
-                Latest writing
-              </p>
-              <h2 className="text-3xl font-semibold tracking-tight text-foreground">
-                Arsip yang siap tumbuh tanpa mengubah pola halaman
-              </h2>
-            </div>
-            <div className="hidden rounded-full border border-border px-4 py-2 text-sm text-muted-foreground md:block">
+      <PageSection className="pt-4">
+          <SectionHeader
+            eyebrow="Latest writing"
+            title="Arsip yang siap tumbuh tanpa mengubah pola halaman"
+            aside={<div className="hidden rounded-md border border-border bg-card px-3 py-2 text-sm text-muted-foreground md:block">
               {blogPosts.length} artikel awal
-            </div>
-          </div>
+            </div>}
+          />
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="grid gap-5">
@@ -138,7 +115,7 @@ export default function BlogPage() {
                 <Link
                   key={post.slug}
                   href={`/blog/${post.slug}`}
-                  className="group rounded-[2rem] border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-ochre/30 hover:shadow-sm"
+                  className="group rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-ochre/30"
                 >
                   <div className="mb-5 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                     <span className="rounded-full bg-secondary px-3 py-1 text-foreground">
@@ -165,13 +142,13 @@ export default function BlogPage() {
             </div>
 
             <div className="space-y-6">
-              <div className="rounded-[2rem] border border-border bg-secondary/30 p-6">
+              <Surface className="bg-secondary/30 p-5">
                 <p className="mb-4 text-sm uppercase tracking-[0.22em] text-muted-foreground">
                   Fokus editorial
                 </p>
                 <div className="space-y-4">
                   {categories.map((category) => (
-                    <div key={category.name} className="rounded-2xl bg-background/90 p-4">
+                    <div key={category.name} className="rounded-lg bg-background/90 p-4">
                       <category.icon className="mb-3 h-5 w-5 text-ochre" />
                       <h3 className="mb-2 text-base font-semibold text-foreground">
                         {category.name}
@@ -182,9 +159,9 @@ export default function BlogPage() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </Surface>
 
-              <div className="rounded-[2rem] border border-border bg-foreground p-6 text-background">
+              <Surface className="border-foreground bg-foreground p-5 text-background">
                 <BookOpen className="mb-4 h-6 w-6 text-ochre-700" />
                 <h3 className="mb-3 text-xl font-semibold">
                   Dibangun supaya penambahan artikel berikutnya tetap rapi.
@@ -200,11 +177,10 @@ export default function BlogPage() {
                   Kirim ide topik
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-              </div>
+              </Surface>
             </div>
           </div>
-        </div>
-      </section>
+      </PageSection>
     </PageChrome>
   )
 }

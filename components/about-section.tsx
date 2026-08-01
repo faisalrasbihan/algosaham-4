@@ -346,7 +346,7 @@ export function AboutSection() {
           </div>
 
           {/* Tips Section */}
-          <div className="max-w-4xl mx-auto p-8 md:p-12 rounded-3xl border border-border bg-gradient-to-br from-ochre/5 via-primary/5 to-ochre/5">
+          <div className="mx-auto max-w-4xl rounded-xl border border-border bg-card p-6 shadow-sm md:p-8">
             <h3 className="text-2xl font-bold text-foreground mb-8 text-center font-mono">
               Tips Biar Makin Maksimal
             </h3>

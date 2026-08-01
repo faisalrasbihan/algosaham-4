@@ -9,6 +9,7 @@ import { toast } from "sonner"
 
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
+import { PageHeader, SectionHeader } from "@/components/page-layout"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -220,8 +221,7 @@ type SortKey = keyof ScreenerRow
 
 const COLUMN_LABELS = {
   stockCode: "Saham",
-  alignmentScore: "Score",
-  fundamentalScore: "Fund. Score",
+  alignmentScore: "AI Score",
   open: "Open",
   high: "High",
   low: "Low",
@@ -281,8 +281,7 @@ type ColumnId = keyof typeof COLUMN_LABELS
 
 const COLUMN_TOOLTIPS: Record<ColumnId, string> = {
   stockCode: "Kode saham emiten yang muncul di hasil screener.",
-  alignmentScore: "Score 0-100 dari backend yang merangkum kekuatan sinyal screener untuk saham ini. Jika strategi memakai indikator teknikal dan fundamental, score ini menggabungkan keduanya; rincian per indikator muncul saat baris diarahkan kursor.",
-  fundamentalScore: "Skor fundamental 0-100 dari breakdown backend `fundamentals`. Kosong (—) jika screener dijalankan tanpa penilaian fundamental.",
+  alignmentScore: "AI Score 0-100 dari backend yang merangkum kekuatan sinyal screener untuk saham ini. Jika strategi memakai indikator teknikal dan fundamental, score ini menggabungkan keduanya; rincian per indikator muncul saat baris diarahkan kursor.",
   open: "Harga pembukaan pada sesi perdagangan terakhir.",
   high: "Harga tertinggi pada sesi perdagangan terakhir.",
   low: "Harga terendah pada sesi perdagangan terakhir.",
@@ -339,8 +338,7 @@ const COLUMN_TOOLTIPS: Record<ColumnId, string> = {
 }
 
 const COLUMN_CONFIGS: ColumnConfig[] = [
-  { id: "alignmentScore", label: "Score", kind: "number", sortable: true, headClassName: "w-[112px] text-right", cellClassName: "text-right" },
-  { id: "fundamentalScore", label: "Fund. Score", kind: "number", sortable: true, headClassName: "w-[124px] text-right", cellClassName: "text-right" },
+  { id: "alignmentScore", label: "AI Score", kind: "number", sortable: true, headClassName: "w-[112px] text-right", cellClassName: "text-right" },
   { id: "changeD1Pct", label: "1D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "change5DPct", label: "5D Chg", kind: "percent", sortable: true, headClassName: "text-right", cellClassName: "text-right font-ibm-plex-mono" },
   { id: "change1MPct", label: "1M Chg", kind: "percent", sortable: true, headClassName: "w-[120px] text-right", cellClassName: "w-[120px] text-right font-ibm-plex-mono" },
@@ -396,9 +394,9 @@ const COLUMN_CONFIGS: ColumnConfig[] = [
 ]
 
 const COLUMN_TEMPLATES = {
-  recommended: ["stockCode", "alignmentScore", "fundamentalScore", "changeD1Pct", "change5DPct", "change1MPct", "change1YPct", "close", "valuasi", "peRatio", "pbv", "roe", "marketCap", "sma20", "sma50", "nbsaRatio5d", "action"],
+  recommended: ["stockCode", "alignmentScore", "changeD1Pct", "change5DPct", "change1MPct", "change1YPct", "close", "valuasi", "peRatio", "pbv", "roe", "marketCap", "sma20", "sma50", "nbsaRatio5d", "action"],
   technical: ["stockCode", "changeD1Pct", "change5DPct", "change1MPct", "change1YPct", "close", "gapPct", "prevDailyValue", "sma20", "sma50", "volumeSma20", "valueSma20", "nbsa5d", "nbsaRatio5d", "action"],
-  fundamental: ["stockCode", "fundamentalScore", "change1MPct", "change1YPct", "close", "marketCap", "assets", "liabilities", "equity", "sales", "profit", "eps", "peRatio", "pbv", "der", "roa", "roe", "npm", "action"],
+  fundamental: ["stockCode", "alignmentScore", "change1MPct", "change1YPct", "close", "marketCap", "assets", "liabilities", "equity", "sales", "profit", "eps", "peRatio", "pbv", "der", "roa", "roe", "npm", "action"],
   all: ["stockCode", ...COLUMN_CONFIGS.map((column) => column.id), "action"],
 } as const
 
@@ -448,9 +446,9 @@ const QUICK_FILTER_RELATED_COLUMNS: Partial<Record<string, ColumnId[]>> = {
   ma20GapPct: ["close", "sma20"],
   ma5GapPct: ["close", "sma50"],
   trend: ["close", "sma20", "sma50"],
-  pe: ["fundamentalScore", "peRatio"],
-  pbv: ["fundamentalScore", "pbv"],
-  roe: ["fundamentalScore", "roe"],
+  pe: ["peRatio"],
+  pbv: ["pbv"],
+  roe: ["roe"],
 }
 
 const METRIC_GUIDE_ITEMS = [
@@ -778,13 +776,7 @@ function getDefaultColumnTemplate(): ColumnId[] {
 
 function getPresetColumnTemplate(preset: ScreenerPreset): ColumnId[] {
   const mappedColumnIds = preset.defaultFields.flatMap((field) => PRESET_FIELD_COLUMN_IDS[field] ?? [])
-
-  const scoreColumnIds: ColumnId[] = ["alignmentScore"]
-  if (preset.config.fundamentalIndicators.length > 0) {
-    scoreColumnIds.push("fundamentalScore")
-  }
-
-  return Array.from(new Set(["stockCode", ...scoreColumnIds, ...PRESET_BASE_COLUMN_IDS, ...mappedColumnIds, "action"])) as ColumnId[]
+  return Array.from(new Set(["stockCode", "alignmentScore", ...PRESET_BASE_COLUMN_IDS, ...mappedColumnIds, "action"])) as ColumnId[]
 }
 
 function formatPercent(value: number | null, digits = 1) {
@@ -1059,7 +1051,7 @@ function ScreenerRowHoverCard({ row }: { row: ScreenerRow }) {
       {hasAlignment ? (
         <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Score</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">AI Score</span>
             <span className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 font-ibm-plex-mono text-xs font-semibold ${alignmentToneClasses(alignmentScore as number)}`}>
               {alignmentScore}/100
             </span>
@@ -1362,11 +1354,7 @@ export function ScreenerPage() {
       setScreeningDateRange(result.dateRange)
       // When the backend ranks by alignment, open the table on that ranking.
       if (result.rows.some((row) => row.alignmentScore !== null)) {
-        const scoreColumns: ColumnId[] = ["alignmentScore"]
-        if (result.rows.some((row) => row.fundamentalScore !== null)) {
-          scoreColumns.push("fundamentalScore")
-        }
-        ensureColumnsVisible(scoreColumns)
+        ensureColumnsVisible(["alignmentScore"])
         setSortKey("alignmentScore")
         setSortDirection("desc")
       }
@@ -1656,10 +1644,12 @@ export function ScreenerPage() {
     }
 
     if (column.kind === "currency") {
-      return formatNumericValue(typeof value === "number" ? value : null, 2)
+      const digits = column.id === "close" ? 0 : 2
+      return formatNumericValue(typeof value === "number" ? value : null, digits)
     }
 
-    return formatNumericValue(typeof value === "number" ? value : null)
+    const digits = column.id === "volumeRatio20d" ? 2 : 0
+    return formatNumericValue(typeof value === "number" ? value : null, digits)
   }
 
   function renderColumnHeader(columnId: ColumnId, label: string, sortable = false) {
@@ -1710,9 +1700,6 @@ export function ScreenerPage() {
       cell: (row: ScreenerRow) => {
         if (column.id === "alignmentScore") {
           return <ScoreBadgeCell score={row.alignmentScore} />
-        }
-        if (column.id === "fundamentalScore") {
-          return <ScoreBadgeCell score={row.fundamentalScore} />
         }
         const value = row[column.id]
         const isPositivePercent = column.kind === "percent" && typeof value === "number" && value > 0
@@ -1775,46 +1762,33 @@ export function ScreenerPage() {
         : "w-full min-w-[1500px] md:min-w-[2200px]"
 
   return (
-    <div className="h-screen overflow-hidden bg-background dotted-background bg-fixed">
+    <div className="h-screen overflow-hidden bg-background">
       <div className="fixed inset-x-0 top-0 z-40">
         <Navbar />
       </div>
 
       <main className="h-full overflow-y-auto pt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-          <section className="rounded-2xl border border-border/70 bg-card shadow-sm overflow-hidden">
-            <div className="h-1 bg-gradient-to-r from-[#487b78] via-slate-300 to-transparent" />
-            <div className="p-6 sm:p-8">
-              <div className="max-w-3xl space-y-3">
-                <Badge variant="outline" className="border-slate-200 bg-slate-50 font-mono text-[11px] uppercase tracking-[0.14em] text-slate-600">
-                  Screener
-                </Badge>
-                <div>
-                  <h1 className="text-3xl sm:text-4xl font-bold font-ibm-plex-mono tracking-tight text-balance">pantau semua saham dalam satu radar</h1>
-                  <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-                    Filter, urutkan, dan tandai saham berdasarkan data fundamental dan teknikal. Alert disimpan lokal untuk versi awal halaman ini.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
+        <PageHeader
+          compact
+          eyebrow="Screener"
+          title="Pantau semua saham dalam satu radar"
+          description="Filter, urutkan, dan tandai saham berdasarkan data fundamental dan teknikal. Alert disimpan lokal untuk versi awal halaman ini."
+        />
 
-          <section className="rounded-xl border border-border/70 bg-card shadow-sm">
-            <div className="p-5 sm:p-6 space-y-5">
+        <div className="mx-auto max-w-7xl space-y-6 px-4 pb-12 sm:px-6 lg:px-8">
+
+          <section>
+            <div className="space-y-5">
               {/* Strategi Populer — header */}
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div className="space-y-1">
-                  <h2 className="text-xl font-bold tracking-tight text-foreground">Strategi Populer</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Pilih pola pasar yang ingin kamu cari. Tinggal pilih, atur, lalu jalankan.
-                  </p>
-                </div>
-                <div className="whitespace-nowrap font-ibm-plex-mono text-sm text-muted-foreground">
+              <SectionHeader
+                title="strategi populer"
+                description="Pilih pola pasar yang ingin kamu cari. Tinggal pilih, atur, lalu jalankan."
+                aside={<div className="whitespace-nowrap font-ibm-plex-mono text-sm text-muted-foreground">
                   <span className="text-[#487b78]">{filteredRows.length} saham cocok</span>
                   {screeningSummary?.stocksScanned ? <span> dari {screeningSummary.stocksScanned}</span> : null}
                   {latestSnapshotDate ? <span> · update terakhir {latestSnapshotDate}</span> : null}
-                </div>
-              </div>
+                </div>}
+              />
 
               {/* Category tabs */}
               {screenerPresets.length > 0 ? (
@@ -2275,8 +2249,7 @@ export function ScreenerPage() {
                     <SelectValue placeholder="Urutkan" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="alignmentScore:desc">Score tertinggi</SelectItem>
-                    <SelectItem value="fundamentalScore:desc">Fund. score tertinggi</SelectItem>
+                    <SelectItem value="alignmentScore:desc">AI Score tertinggi</SelectItem>
                     <SelectItem value="close:desc">Close tertinggi</SelectItem>
                     <SelectItem value="changeD1Pct:desc">D-1 change tertinggi</SelectItem>
                     <SelectItem value="change5DPct:desc">5D change tertinggi</SelectItem>

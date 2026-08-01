@@ -1,4 +1,5 @@
 import { LineChart, Zap, Shield, Code2, TrendingUp, Users } from "lucide-react";
+import { SectionHeader } from "@/components/page-layout";
 
 export function FeaturesSection() {
   const features = [
@@ -37,10 +38,12 @@ export function FeaturesSection() {
   return (
     <section className="py-24 px-4 border-t border-border/50">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Semua yang Anda Butuhkan untuk Sukses</h2>
-          <p className="text-lg text-muted-foreground font-mono max-w-2xl mx-auto">Tools tingkat profesional yang dirancang untuk trader yang serius dengan karier mereka.</p>
-        </div>
+        <SectionHeader
+          eyebrow="Platform"
+          title="Semua yang Anda butuhkan untuk bekerja lebih sistematis"
+          description="Tools profesional untuk riset, simulasi, evaluasi risiko, dan monitoring strategi."
+          className="mb-10"
+        />
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
@@ -49,7 +52,7 @@ export function FeaturesSection() {
                 <feature.icon className="w-6 h-6 text-primary" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-2">{feature.title}</h3>
-              <p className="text-muted-foreground font-mono text-sm">{feature.description}</p>
+              <p className="text-sm leading-6 text-muted-foreground">{feature.description}</p>
             </div>
           ))}
         </div>

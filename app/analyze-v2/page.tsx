@@ -557,9 +557,9 @@ function AnalyzeV2Content() {
 
     if (!urlTicker || (loading && !data)) {
         return (
-            <div className="min-h-screen bg-background dotted-background flex flex-col">
+            <div className="min-h-screen bg-background flex flex-col">
                 <Navbar />
-                <div className="flex-1 flex flex-col items-center justify-center -mt-10 md:-mt-16">
+                <div className="flex-1">
                     <StockSearch onSearch={handleSearch} loading={loading} />
                 </div>
             </div>
@@ -568,7 +568,7 @@ function AnalyzeV2Content() {
 
     if (error || !data) {
         return (
-            <div className="min-h-screen bg-background dotted-background flex flex-col">
+            <div className="min-h-screen bg-background flex flex-col">
                 <Navbar />
                 <div className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
                     <button
@@ -608,7 +608,7 @@ function AnalyzeV2Content() {
     ]).slice(0, 7)
 
     return (
-        <div className="min-h-screen bg-background dotted-background flex flex-col">
+        <div className="min-h-screen bg-background flex flex-col">
             <Navbar />
             <div className="flex-1 pb-12">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-5 md:mt-7 space-y-5">

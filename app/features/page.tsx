@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 
 import { PageChrome } from "@/components/page-chrome"
+import { PageHeader, PageSection, SectionHeader, Surface } from "@/components/page-layout"
 import { Button } from "@/components/ui/button"
 
 export const metadata: Metadata = {
@@ -125,30 +126,12 @@ const principles = [
 export default function FeaturesPage() {
   return (
     <PageChrome>
-      <section className="relative overflow-hidden border-b border-border bg-secondary/25">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute left-[-8rem] top-10 h-72 w-72 rounded-full bg-ochre/10 blur-3xl" />
-          <div className="absolute bottom-[-4rem] right-[-4rem] h-80 w-80 rounded-full bg-cambridge-blue/15 blur-3xl" />
-        </div>
-
-        <div className="container mx-auto px-6 py-20 md:py-24">
-          <div className="grid gap-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-            <div className="max-w-3xl">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-ochre/20 bg-background/90 px-4 py-2 text-sm text-foreground shadow-sm">
-                <Sparkles className="h-4 w-4 text-ochre" />
-                Semua fitur inti dalam satu alur kerja
-              </div>
-              <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl lg:text-6xl">
-                Satu platform untuk riset, simulasi, dan memantau strategi saham.
-              </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-                Halaman ini merangkum fitur utama di algosaham.ai yang paling
-                sering dipakai untuk mencari ide, menguji strategi, mengikuti
-                strategi komunitas, dan memantau signal harian dengan lebih
-                terstruktur.
-              </p>
-
-              <div className="mt-8 flex flex-wrap gap-3">
+      <PageHeader
+        eyebrow={<span className="inline-flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" /> Semua fitur inti dalam satu alur kerja</span>}
+        title="Satu platform untuk riset, simulasi, dan memantau strategi saham."
+        description="Cari ide, uji strategi, ikuti strategi komunitas, dan pantau signal harian dalam workflow yang konsisten."
+        actions={
+          <>
                 <Link href="/backtest">
                   <Button size="lg" className="bg-ochre text-white hover:bg-ochre/90">
                     Coba Backtest
@@ -160,10 +143,10 @@ export default function FeaturesPage() {
                     Lihat Strategi
                   </Button>
                 </Link>
-              </div>
-            </div>
-
-            <div className="rounded-[2rem] border border-border bg-card/90 p-6 shadow-[0_24px_80px_-32px_rgba(54,53,55,0.25)]">
+          </>
+        }
+        aside={
+          <Surface className="p-5">
               <div className="flex items-center justify-between border-b border-border pb-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Feature stack</p>
@@ -180,7 +163,7 @@ export default function FeaturesPage() {
                 {featureHighlights.map((feature) => (
                   <div
                     key={feature.title}
-                    className="flex items-start gap-4 rounded-2xl border border-border/70 bg-secondary/40 p-4"
+                    className="flex items-start gap-4 rounded-lg border border-border/70 bg-secondary/40 p-3"
                   >
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-background">
                       <feature.icon className="h-5 w-5 text-ochre" />
@@ -199,26 +182,21 @@ export default function FeaturesPage() {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
+          </Surface>
+        }
+      />
 
-      <section className="container mx-auto px-6 py-16 md:py-20">
-        <div className="mb-10 max-w-2xl">
-          <p className="font-ibm-plex-mono text-sm uppercase tracking-[0.2em] text-ochre">
-            Main Features
-          </p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
-            Bukan sekadar daftar tools. Ini alur kerja yang saling terhubung.
-          </h2>
-        </div>
+      <PageSection className="pt-4">
+        <SectionHeader
+          eyebrow="Main features"
+          title="Bukan sekadar daftar tools. Ini alur kerja yang saling terhubung"
+        />
 
         <div className="grid gap-6 lg:grid-cols-2">
           {featureHighlights.map((feature, index) => (
             <div
               key={feature.title}
-              className={`rounded-[2rem] border border-border p-7 shadow-sm transition-colors hover:border-ochre/30 ${
+              className={`rounded-xl border border-border p-5 shadow-sm transition-colors hover:border-ochre/30 ${
                 index === 0 || index === 3 ? "bg-card" : "bg-secondary/30"
               }`}
             >
@@ -266,7 +244,7 @@ export default function FeaturesPage() {
             </div>
           ))}
         </div>
-      </section>
+      </PageSection>
 
       <section className="border-y border-border bg-secondary/20">
         <div className="container mx-auto px-6 py-16 md:py-20">
@@ -284,7 +262,7 @@ export default function FeaturesPage() {
                 dipakai sebagai satu sistem.
               </p>
 
-              <div className="mt-8 rounded-[2rem] border border-border bg-card p-6">
+              <div className="mt-8 rounded-xl border border-border bg-card p-5 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-ochre/10">
                     <Target className="h-5 w-5 text-ochre" />
@@ -313,7 +291,7 @@ export default function FeaturesPage() {
               {workflow.map((item) => (
                 <div
                   key={item.step}
-                  className="rounded-[2rem] border border-border bg-card p-6"
+                  className="rounded-xl border border-border bg-card p-5 shadow-sm"
                 >
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                     <div className="font-ibm-plex-mono text-sm font-semibold tracking-[0.2em] text-ochre">
@@ -336,7 +314,7 @@ export default function FeaturesPage() {
       </section>
 
       <section className="container mx-auto px-6 py-16 md:py-20">
-        <div className="rounded-[2rem] border border-border bg-foreground px-6 py-8 text-background md:px-10 md:py-10">
+        <div className="rounded-xl border border-border bg-foreground px-6 py-8 text-background md:px-10 md:py-10">
           <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
               <p className="font-ibm-plex-mono text-sm uppercase tracking-[0.2em] text-background/60">

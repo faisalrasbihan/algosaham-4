@@ -4,8 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Updated to use the new color palette with ochre as main brand color */
-  --background: #fafafa;
+  /* Warm, low-contrast application canvas. Cards remain pure white. */
+  --background: oklch(0.985 0.005 90);
   --foreground: #363537;
   /* jet.DEFAULT */
   --card: #ffffff;
@@ -17,11 +17,11 @@
   --primary: #d07225;
   /* ochre.DEFAULT - main brand color */
   --primary-foreground: #ffffff;
-  --secondary: #f3f5f6;
+  --secondary: oklch(0.96 0.008 85);
   /* french_gray.900 */
   --secondary-foreground: #363537;
   /* jet.DEFAULT */
-  --muted: #e8eaed;
+  --muted: oklch(0.955 0.008 85);
   /* french_gray.800 */
   --muted-foreground: #46505d;
   /* french_gray.200 */
@@ -30,9 +30,9 @@
   --accent-foreground: #305250;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #d0d5dc;
+  --border: oklch(0.9 0.01 80);
   /* french_gray.600 */
-  --input: #d0d5dc;
+  --input: oklch(0.9 0.01 80);
   --ring: #d07225;
   /* ochre.DEFAULT */
   --chart-1: #8cbcb9;
@@ -167,6 +167,7 @@
 
   body {
     @apply bg-background text-foreground font-sans;
+    font-feature-settings: "cv02", "cv11";
   }
 }
 
@@ -185,11 +186,12 @@
   animation: scroll 30s linear infinite;
 }
 
-/* Subtle dotted background pattern */
+/*
+ * Kept as a compatibility hook while legacy routes are migrated. The design
+ * system now uses a clear warm canvas instead of a decorative dot pattern.
+ */
 .dotted-background {
-  background-image: radial-gradient(circle, #b8c0ca 1px, transparent 1px);
-  background-size: 25px 25px;
-  background-position: 0 0, 16px 16px;
+  background-image: none;
 }
 
 /* Grainy texture and gradient button */

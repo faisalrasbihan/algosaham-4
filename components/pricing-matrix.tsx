@@ -10,6 +10,7 @@ import { useSearchParams } from "next/navigation"
 import { PaymentMethodDialog } from "@/components/payment-method-dialog"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { AccountManagementPage } from "@/components/account-management-page"
+import { SectionHeader } from "@/components/page-layout"
 import {
   PRICING_MATRIX_SECTIONS,
   SUBSCRIPTION_PLANS,
@@ -238,16 +239,13 @@ function PricingMatrixInner() {
 
   return (
     <TooltipProvider>
-      <section className="dotted-background px-4 py-16">
+      <section className="px-4 py-12">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-12 text-center">
-            <h1 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">
-              Harga Transparan, Fitur Lengkap, dan Fleksibel
-            </h1>
-            <p className="mx-auto mb-8 max-w-2xl font-mono text-lg text-muted-foreground">
-              Pilih level sesuai gaya trading kamu. Naik level kapan aja!
-            </p>
-            {!isPaidUser && (
+          <SectionHeader
+            eyebrow="Paket"
+            title="Harga transparan, fitur lengkap, dan fleksibel"
+            description="Pilih level sesuai gaya trading kamu. Naik level kapan saja."
+            aside={!isPaidUser ? (
               <div className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200/60 bg-slate-100 p-1 text-muted-foreground">
                 <button
                   onClick={() => setIsYearly(false)}
@@ -266,8 +264,8 @@ function PricingMatrixInner() {
                   Tahunan
                 </button>
               </div>
-            )}
-          </div>
+            ) : null}
+          />
 
           <div className="grid gap-6 md:grid-cols-3">
             {plans.map((plan, index) => {

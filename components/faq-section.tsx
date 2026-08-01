@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, HelpCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SectionHeader } from "@/components/page-layout";
 
 interface FAQItem {
   question: string;
@@ -108,21 +109,12 @@ export function FAQSection() {
   return (
     <section className="py-24 px-4 bg-background border-t border-border/50">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-mono mb-6">
-            <HelpCircle className="w-4 h-4" />
-            Pertanyaan Umum
-          </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Pertanyaan yang Sering Diajukan
-          </h2>
-          <p className="text-lg text-muted-foreground font-mono max-w-2xl mx-auto">
-            Temukan jawaban untuk pertanyaan umum tentang{" "}
-            <span className="text-ochre font-mono" style={{ fontFamily: "var(--font-ibm-plex-mono)" }}>
-              Algosaham.ai
-            </span>
-          </p>
-        </div>
+        <SectionHeader
+          eyebrow={<span className="inline-flex items-center gap-2"><HelpCircle className="h-3.5 w-3.5" /> Pertanyaan umum</span>}
+          title="Pertanyaan yang sering diajukan"
+          description="Temukan jawaban untuk pertanyaan umum tentang Algosaham.ai."
+          className="mb-10"
+        />
 
         <div className="space-y-4 mb-8">
           {faqsToDisplay.map((faq) => {
@@ -148,7 +140,7 @@ export function FAQSection() {
                 {isExpanded && (
                   <div className="px-6 pb-4">
                     <div className="pt-2 border-t border-border">
-                      <p className="text-muted-foreground font-mono text-sm leading-relaxed whitespace-pre-line">
+                      <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
                         {faq.answer}
                       </p>
                     </div>
@@ -186,4 +178,3 @@ export function FAQSection() {
     </section>
   );
 }
-

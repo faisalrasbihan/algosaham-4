@@ -10,6 +10,7 @@ import { CardCarousel } from "@/components/card-carousel"
 import { StrategyCardSkeleton } from "@/components/strategy-card-skeleton"
 import { MarketplaceStrategyCard } from "./cards/marketplace-strategy-card"
 import { Strategy } from "./cards/types"
+import { PageContainer, SectionHeader } from "@/components/page-layout"
 
 interface DBStrategy {
   id: number
@@ -111,18 +112,15 @@ export function PopularStrategiesShowcase() {
   }, [])
 
   return (
-    <section className="py-12 dotted-background">
+    <section className="py-12">
       {/* Section header */}
-      <div className="px-6 mb-8">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-3 text-balance">
-            Strategi trading terbaik, tanpa pikir panjang.
-          </h2>
-          <p className="text-base text-muted-foreground text-pretty leading-relaxed">
-            Dibuat dari analisis data historis berbasis ML dan sudah dicoba komunitas trader. Kamu tinggal ikuti atau modifikasi biar makin cuan.
-          </p>
-        </div>
-      </div>
+      <PageContainer>
+        <SectionHeader
+          eyebrow="Strategy showcase"
+          title="Strategi trading pilihan untuk mulai dieksplorasi"
+          description="Dibuat dari analisis data historis dan sudah dicoba komunitas trader. Ikuti langsung atau modifikasi sesuai workflow kamu."
+        />
+      </PageContainer>
 
       {/* Strategy cards grid */}
       <div className="mb-8">
@@ -173,4 +171,3 @@ export function PopularStrategiesShowcase() {
     </section>
   )
 }
-

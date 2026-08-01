@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react"
+import { SectionHeader } from "@/components/page-layout"
 
 export function HowItWorksSection() {
   const steps = [
@@ -31,12 +32,12 @@ export function HowItWorksSection() {
   return (
     <section className="py-24 px-4 bg-muted/30">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold font-sans text-foreground mb-4">Cara Algosaham.ai Bekerja</h2>
-          <p className="text-lg text-muted-foreground font-mono max-w-2xl mx-auto">
-            Semua yang Kamu Butuh untuk Bangun Strategi Trading Ada di Sini
-          </p>
-        </div>
+        <SectionHeader
+          eyebrow="Workflow"
+          title="Cara Algosaham.ai bekerja"
+          description="Bangun, uji, evaluasi, lalu jalankan strategi dalam satu alur yang mudah dipahami."
+          className="mb-10"
+        />
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {steps.map((step, index) => (

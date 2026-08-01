@@ -40,6 +40,8 @@ import type { BacktestRequest, BacktestResult } from "@/lib/api"
 import { normalizeBacktestContractConfig } from "@/lib/backtest-contract"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { PortfolioMarketSections } from "@/components/portfolio-market-sections"
+import { PageHeader, SectionHeader } from "@/components/page-layout"
 
 // Dialog states for unsubscribe: 'confirm' | 'loading' | 'success'
 type UnsubscribeDialogState = 'confirm' | 'loading' | 'success'
@@ -151,7 +153,7 @@ function TradingJournalLoadingSkeleton() {
             {[1, 2].map((group) => (
                 <div key={group} className="animate-pulse space-y-3">
                     <ShimmerBlock className="h-4 w-36 rounded-full" />
-                    <section className="rounded-3xl border border-border/70 bg-white/80 px-4 py-4 shadow-[0_14px_34px_rgba(54,53,55,0.06)]">
+                    <section className="rounded-xl border border-border bg-card px-4 py-4 shadow-sm">
                         <div className="grid grid-cols-5 gap-4 border-b border-border/60 pb-3">
                             {[1, 2, 3, 4, 5].map((column) => (
                                 <ShimmerBlock key={column} className="h-3 w-full max-w-[110px] rounded-full" />
@@ -802,23 +804,28 @@ export default function Portfolio() {
     }, {})
 
     return (
-        <div className="min-h-screen bg-background dotted-background">
+        <div className="min-h-screen bg-background">
             <Navbar />
-            <div className="flex-1 overflow-y-auto mt-8 pb-8">
+            <div className="flex-1 overflow-y-auto pb-8">
+                <PageHeader
+                    compact
+                    eyebrow="Portfolio"
+                    title="Pasar dan strategi dalam satu tampilan"
+                    description="Pantau konteks pasar, watchlist, screener, dan strategi yang kamu ikuti tanpa berpindah workflow."
+                />
 
                 <div className="space-y-12">
+                    <PortfolioMarketSections />
+
                     {/* Subscribed Strategies Section */}
                     <section>
-                        <div className="px-6">
+                        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                             <div className="mb-6">
                                 <div>
-                                    <h2 className="flex items-center gap-2 font-ibm-plex-mono text-2xl font-bold text-foreground">
-                                        <span className="h-5 w-[3px] rounded-full bg-gradient-to-b from-[#d07225] to-[#487b78]" aria-hidden="true" />
-                                        <span>subscribed strategies</span>
-                                    </h2>
-                                    <p className="mt-1 max-w-2xl font-sans text-sm text-muted-foreground">
-                                        Strategi yang kamu ikuti dari komunitas. Kami akan mengirimkan notifikasi setiap ada signal baru yang muncul pada strategi-strategi ini. Performa strategi ini <strong className="font-semibold text-ochre">diperbarui secara otomatis setiap hari</strong>.
-                                    </p>
+                                    <SectionHeader
+                                        title="subscribed strategies"
+                                        description={<>Strategi yang kamu ikuti dari komunitas. Kami akan mengirimkan notifikasi setiap ada signal baru yang muncul pada strategi-strategi ini. Performa strategi ini <strong className="font-semibold text-ochre">diperbarui secara otomatis setiap hari</strong>.</>}
+                                    />
                                     <SectionSummary
                                         items={[
                                             {
@@ -865,16 +872,13 @@ export default function Portfolio() {
 
                     {/* My Strategies Section */}
                     <section>
-                        <div className="px-6">
+                        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                             <div className="mb-6">
                                 <div>
-                                    <h2 className="flex items-center gap-2 font-ibm-plex-mono text-2xl font-bold text-foreground">
-                                        <span className="h-5 w-[3px] rounded-full bg-gradient-to-b from-[#d07225] to-[#487b78]" aria-hidden="true" />
-                                        <span>my strategies</span>
-                                    </h2>
-                                    <p className="mt-1 max-w-2xl font-sans text-sm text-muted-foreground">
-                                        Strategi yang kamu buat dan simpan. Data yang ditampilkan <strong className="font-semibold text-ochre">bersifat statis</strong>, jalankan ulang (<em>rerun</em>) secara berkala untuk melihat hasil <em>backtest</em> terbaru.
-                                    </p>
+                                    <SectionHeader
+                                        title="my strategies"
+                                        description={<>Strategi yang kamu buat dan simpan. Data yang ditampilkan <strong className="font-semibold text-ochre">bersifat statis</strong>, jalankan ulang (<em>rerun</em>) secara berkala untuk melihat hasil <em>backtest</em> terbaru.</>}
+                                    />
                                     <SectionSummary
                                         items={[
                                             {
@@ -1295,7 +1299,7 @@ export default function Portfolio() {
                                         <TradingJournalLoadingSkeleton />
                                     ) : null}
                                     {!isLoadingSelectedSubscribedStrategy && selectedJournalEntries.length === 0 ? (
-                                        <div className="rounded-3xl border border-border/70 bg-white/80 px-6 py-12 text-center shadow-[0_14px_34px_rgba(54,53,55,0.06)]">
+                                        <div className="rounded-xl border border-border bg-card px-6 py-12 text-center shadow-sm">
                                             <p className="text-sm font-medium text-foreground">Belum ada trade history</p>
                                             <p className="mt-2 text-sm text-muted-foreground">
                                                 Backtest untuk strategi ini belum menghasilkan trade yang bisa ditampilkan.
@@ -1310,7 +1314,7 @@ export default function Portfolio() {
                                                 </h3>
                                             </div>
 
-                                            <section className="rounded-3xl border border-border/70 bg-white/80 shadow-[0_14px_34px_rgba(54,53,55,0.06)]">
+                                            <section className="rounded-xl border border-border bg-card shadow-sm">
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow className="hover:bg-transparent">

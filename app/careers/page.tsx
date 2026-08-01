@@ -3,6 +3,7 @@ import Link from "next/link"
 import { ArrowRight, BarChart3, Brush, Database, Hammer } from "lucide-react"
 
 import { PageChrome } from "@/components/page-chrome"
+import { PageHeader, PageSection, SectionHeader, Surface } from "@/components/page-layout"
 
 export const metadata: Metadata = {
   title: "Careers | algosaham.ai",
@@ -39,25 +40,12 @@ const roles = [
 export default function CareersPage() {
   return (
     <PageChrome>
-      <section className="relative overflow-hidden border-b border-border">
-        <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-cambridge-blue/10 to-transparent" />
-        <div className="container mx-auto px-6 py-16">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="max-w-3xl space-y-6">
-              <p className="text-sm uppercase tracking-[0.22em] text-cambridge-blue">
-                Careers
-              </p>
-              <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
-                Saat ini kami belum membuka lowongan.
-              </h1>
-              <p className="text-lg leading-8 text-muted-foreground">
-                Kami belum sedang merekrut untuk posisi baru. Namun, halaman ini
-                akan diperbarui secara berkala, jadi silakan cek lagi secara rutin
-                untuk melihat peluang terbaru.
-              </p>
-            </div>
-
-            <div className="rounded-[2rem] border border-border bg-foreground p-6 text-background">
+      <PageHeader
+        eyebrow="Careers"
+        title="Saat ini kami belum membuka lowongan."
+        description="Kami belum sedang merekrut untuk posisi baru. Namun, halaman ini akan diperbarui secara berkala, jadi silakan cek lagi secara rutin untuk melihat peluang terbaru."
+        aside={
+          <Surface className="border-foreground bg-foreground p-5 text-background">
               <p className="mb-2 text-sm uppercase tracking-[0.22em] text-cambridge-blue-700">
                 Tetap terhubung
               </p>
@@ -76,40 +64,33 @@ export default function CareersPage() {
                 Hubungi kami
                 <ArrowRight className="h-4 w-4" />
               </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+          </Surface>
+        }
+      />
 
-      <section>
-        <div className="container mx-auto px-6 py-12">
-          <div className="mb-8 max-w-2xl">
-            <p className="mb-2 text-sm uppercase tracking-[0.22em] text-muted-foreground">
-              Area kontribusi
-            </p>
-            <h2 className="text-3xl font-semibold tracking-tight text-foreground">
-              Fokus area yang biasanya relevan saat kami membuka peran baru.
-            </h2>
-          </div>
+      <PageSection className="pt-4">
+          <SectionHeader
+            eyebrow="Area kontribusi"
+            title="Fokus area yang biasanya relevan saat kami membuka peran baru"
+          />
 
           <div className="grid gap-6 md:grid-cols-2">
             {roles.map((role) => (
-              <div
+              <Surface
                 key={role.title}
-                className="rounded-[2rem] border border-border bg-card p-6"
+                className="p-5"
               >
                 <role.icon className="mb-4 h-6 w-6 text-cambridge-blue" />
-                <h3 className="mb-3 text-2xl font-semibold text-foreground">
+                <h3 className="mb-2 text-lg font-semibold text-foreground">
                   {role.title}
                 </h3>
-                <p className="text-base leading-7 text-muted-foreground">
+                <p className="text-sm leading-6 text-muted-foreground">
                   {role.description}
                 </p>
-              </div>
+              </Surface>
             ))}
           </div>
-        </div>
-      </section>
+      </PageSection>
     </PageChrome>
   )
 }

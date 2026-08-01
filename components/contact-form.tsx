@@ -76,7 +76,7 @@ export function ContactForm() {
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_360px]">
       <form
         onSubmit={handleSubmit}
-        className="rounded-[2rem] border border-border bg-card p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)] md:p-8"
+        className="rounded-xl border border-border bg-card p-5 shadow-sm md:p-6"
       >
         <div className="mb-8 grid gap-6 rounded-[1.5rem] border border-cambridge-blue/20 bg-[linear-gradient(135deg,rgba(72,123,120,0.08),rgba(208,114,37,0.04))] p-6">
           <div>
@@ -274,7 +274,7 @@ export function ContactForm() {
       </form>
 
       <aside className="space-y-5">
-        <div className="rounded-[2rem] border border-border bg-foreground p-6 text-background shadow-[0_24px_80px_-40px_rgba(15,23,42,0.5)]">
+        <div className="rounded-xl border border-foreground bg-foreground p-5 text-background shadow-sm">
           <Mail className="mb-4 h-6 w-6 text-ochre-700" />
           <h2 className="mb-3 text-2xl font-semibold">Pesan Anda akan masuk ke tim kami.</h2>
           <p className="text-sm leading-7 text-background/75">
@@ -283,7 +283,7 @@ export function ContactForm() {
           </p>
         </div>
 
-        <div className="rounded-[2rem] border border-border bg-secondary/30 p-6">
+        <div className="rounded-xl border border-border bg-secondary/30 p-5 shadow-sm">
           <h3 className="mb-4 text-lg font-semibold text-foreground">Yang membantu kami merespons lebih cepat</h3>
           <ul className="space-y-3 text-sm leading-7 text-muted-foreground">
             <li className="flex gap-3">
@@ -302,7 +302,7 @@ export function ContactForm() {
         </div>
 
         {isSubmitted ? (
-          <div className="rounded-[2rem] border border-cambridge-blue/30 bg-cambridge-blue/10 p-6">
+          <div className="rounded-xl border border-cambridge-blue/30 bg-cambridge-blue/10 p-5 shadow-sm">
             <h3 className="mb-2 text-lg font-semibold text-foreground">Pesan terkirim</h3>
             <p className="text-sm leading-7 text-muted-foreground">
               Terima kasih. Tim Algosaham.ai sudah menerima pesan Anda dan akan menindaklanjutinya secepat mungkin.

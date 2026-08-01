@@ -15,13 +15,13 @@ export default function BacktestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dotted-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
       {/* Mobile Warning - Visible only on small screens */}
       <div className="flex lg:hidden flex-1 items-center justify-center p-6 mt-12">
-        <div className="text-center max-w-md space-y-4 bg-white/60 backdrop-blur-md border border-slate-200 p-8 rounded-2xl shadow-sm">
-          <div className="w-16 h-16 mx-auto bg-orange-50 rounded-2xl flex items-center justify-center mb-6 ring-1 ring-orange-100">
+        <div className="max-w-md space-y-4 rounded-xl border border-border bg-card p-6 text-center shadow-sm">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-100">
             <Monitor className="w-8 h-8 text-[#d07225]" />
           </div>
           <h2 className="text-xl font-bold font-ibm-plex-mono text-foreground tracking-tight">

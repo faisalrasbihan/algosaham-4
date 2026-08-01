@@ -1,13 +1,17 @@
 import { PageChrome } from "@/components/page-chrome"
+import { PageHeader, PageSection, Surface } from "@/components/page-layout"
 
 export default function SyaratKetentuanPage() {
     return (
         <PageChrome>
-            <main className="flex-1 container mx-auto max-w-4xl px-6 py-12">
-                <h1 className="mb-2 text-3xl font-bold">Ketentuan Layanan Algosaham.ai</h1>
-                <h2 className="mb-2 text-xl font-semibold text-muted-foreground">Syarat dan Ketentuan Penggunaan Platform</h2>
-                <p className="mb-8 text-sm text-muted-foreground">Terakhir diperbarui: 23 Februari 2026</p>
-
+            <PageHeader
+                compact
+                eyebrow="Legal"
+                title="Ketentuan layanan Algosaham.ai"
+                description="Syarat dan Ketentuan Penggunaan Platform. Terakhir diperbarui: 23 Februari 2026."
+            />
+            <PageSection className="pt-0">
+              <Surface className="max-w-4xl p-5 sm:p-8">
                 <div className="space-y-8 text-foreground/90">
                     <section className="space-y-4">
                         <p>
@@ -136,7 +140,8 @@ export default function SyaratKetentuanPage() {
                         <p>Subjek: Ketentuan Layanan</p>
                     </section>
                 </div>
-            </main>
+              </Surface>
+            </PageSection>
         </PageChrome>
     )
 }

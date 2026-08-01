@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
+import { PageContainer, PageHeader } from "@/components/page-layout"
 
 interface StockSearchProps {
   onSearch: (ticker: string) => void
@@ -40,25 +40,16 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
   const currentTickerDisplay = ticker.trim().toUpperCase()
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-8 md:py-10">
-      <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-        <div className="h-1 w-full bg-gradient-to-r from-[#487b78] via-[#d07225] to-transparent" />
-        <div className="p-5 md:p-6">
-          <div className="space-y-3 text-center">
-            <Badge variant="outline" className="border-[#d07225]/25 bg-[#d07225]/10 font-mono text-[11px] uppercase tracking-[0.14em] text-[#d07225]">
-              Analyze
-            </Badge>
-            <div>
-              <h1 className="mb-3 text-3xl font-bold tracking-tight text-balance font-ibm-plex-mono md:text-4xl">
-                analisa saham indonesia
-              </h1>
-              <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
-                Masukkan kode saham untuk melihat analisis teknikal dan fundamental.
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="mt-6 w-full transition-all">
+    <div className="w-full">
+      <PageHeader
+        compact
+        eyebrow="Analisis"
+        title="Analisis saham Indonesia"
+        description="Masukkan kode saham untuk melihat analisis teknikal dan fundamental."
+      />
+      <PageContainer className="pb-12">
+        <section className="max-w-3xl rounded-xl border border-border bg-card p-5 shadow-sm md:p-6">
+          <form onSubmit={handleSubmit} className="w-full transition-all">
             <div className={`flex flex-col gap-3 md:items-stretch ${loading ? "items-center md:justify-center" : "md:flex-row"}`}>
               {!loading && (
                 <div className="relative flex-1 transition-all duration-500">
@@ -110,8 +101,8 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
               </button>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
+      </PageContainer>
     </div>
   )
 }

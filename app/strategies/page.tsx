@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { PageHeader, SectionHeader } from "@/components/page-layout"
 
 // Dialog states: 'confirm' | 'loading' | 'success'
 type SubscribeDialogState = 'confirm' | 'loading' | 'success'
@@ -33,13 +34,7 @@ const EXPLORE_SKELETON_COUNT = 5
 
 function SectionHeading({ title, description }: { title: string; description: string }) {
   return (
-    <div className="mb-6">
-      <h2 className="flex items-center gap-2 font-ibm-plex-mono text-2xl font-bold text-foreground mb-1">
-        <span className="h-5 w-[3px] rounded-full bg-gradient-to-b from-[#d07225] to-[#487b78]" aria-hidden="true" />
-        <span>{title.toLowerCase()}</span>
-      </h2>
-      <p className="font-sans text-muted-foreground">{description}</p>
-    </div>
+    <SectionHeader title={title.toLowerCase()} description={description} />
   )
 }
 
@@ -260,16 +255,22 @@ export default function Strategies() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-background dotted-background bg-fixed">
+    <div className="h-screen overflow-hidden bg-background">
       <div className="fixed inset-x-0 top-0 z-40">
         <Navbar />
       </div>
 
       <div className="h-full overflow-y-auto pt-16">
-        <div className="space-y-12 pt-6">
+        <PageHeader
+          compact
+          eyebrow="Strategi"
+          title="Jelajahi strategi yang sudah diuji"
+          description="Bandingkan strategi resmi dan komunitas berdasarkan pendekatan, performa, serta profil risikonya."
+        />
+        <div className="mx-auto max-w-7xl space-y-12 px-4 pb-12 sm:px-6 lg:px-8">
           {/* Featured / Showcase Section */}
           <section>
-            <div className="px-6">
+            <div>
               <SectionHeading
                 title="Strategy Showcase"
                 description="Strategi dengan kinerja terbaik yang kami pilihkan untuk Anda"
@@ -290,7 +291,7 @@ export default function Strategies() {
 
           {/* Marketplace / Explore Section */}
           <section>
-            <div className="px-6">
+            <div>
               {isLoadingExplore ? (
                 <div className="space-y-10">
                   <div>

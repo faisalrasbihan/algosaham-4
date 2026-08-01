@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Clock3, CornerDownRight } from "lucide-react"
 
 import { PageChrome } from "@/components/page-chrome"
 import { blogPosts, getBlogPost } from "@/app/blog/blog-data"
+import { SectionHeader, Surface } from "@/components/page-layout"
 
 const accentMap = {
   ochre: {
@@ -66,9 +67,8 @@ export default function BlogPostPage({
 
   return (
     <PageChrome>
-      <section className="relative overflow-hidden border-b border-border bg-gradient-to-br from-background via-secondary/20 to-background">
-        <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-ochre/8 to-transparent" />
-        <div className="container mx-auto px-6 py-14">
+      <header className="bg-background">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
           <div className="max-w-4xl space-y-8">
             <Link
               href="/blog"
@@ -80,7 +80,7 @@ export default function BlogPostPage({
 
             <div className="space-y-5">
               <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className={`rounded-full px-3 py-1 font-medium ${accent.bg} ${accent.text}`}>
+                <span className={`rounded-md px-3 py-1 font-medium ${accent.bg} ${accent.text}`}>
                   {post.category}
                 </span>
                 <span className="text-muted-foreground">{post.author}</span>
@@ -97,7 +97,7 @@ export default function BlogPostPage({
                 </span>
               </div>
 
-              <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
+              <h1 className="max-w-3xl text-3xl font-bold tracking-[-0.035em] text-foreground sm:text-4xl">
                 {post.title}
               </h1>
               <p className="max-w-3xl text-lg leading-8 text-muted-foreground">
@@ -105,9 +105,9 @@ export default function BlogPostPage({
               </p>
             </div>
 
-            <div className={`grid gap-4 rounded-[2rem] border bg-card/70 p-6 md:grid-cols-3 ${accent.border}`}>
+            <div className={`grid gap-4 rounded-xl border bg-card p-5 shadow-sm md:grid-cols-3 ${accent.border}`}>
               {post.summaryPoints.map((point) => (
-                <div key={point} className="rounded-2xl bg-background/80 p-4">
+                <div key={point} className="rounded-lg bg-background p-4">
                   <CornerDownRight className={`mb-3 h-5 w-5 ${accent.text}`} />
                   <p className="text-sm leading-6 text-foreground/90">{point}</p>
                 </div>
@@ -115,16 +115,14 @@ export default function BlogPostPage({
             </div>
           </div>
         </div>
-      </section>
+      </header>
 
       <section>
         <div className="container mx-auto grid gap-10 px-6 py-12 lg:grid-cols-[minmax(0,1fr)_320px]">
           <article className="space-y-10">
             {post.sections.map((section) => (
               <section key={section.heading} className="space-y-4">
-                <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                  {section.heading}
-                </h2>
+                <SectionHeader title={section.heading} className="mb-0" />
                 <div className="space-y-4 text-base leading-8 text-muted-foreground">
                   {section.paragraphs.map((paragraph) => (
                     <p key={paragraph}>{paragraph}</p>
@@ -135,7 +133,7 @@ export default function BlogPostPage({
           </article>
 
           <aside className="space-y-6">
-            <div className="rounded-[2rem] border border-border bg-secondary/30 p-6">
+            <Surface className="bg-secondary/30 p-5">
               <p className="mb-2 text-sm uppercase tracking-[0.22em] text-ochre">
                 Editorial intent
               </p>
@@ -146,9 +144,9 @@ export default function BlogPostPage({
                 Fokus utamanya adalah cara berpikir, evaluasi strategi, dan catatan
                 produk yang bisa langsung dipakai pengguna aktif algosaham.ai.
               </p>
-            </div>
+            </Surface>
 
-            <div className="rounded-[2rem] border border-border bg-card p-6">
+            <Surface className="p-5">
               <p className="mb-4 text-sm uppercase tracking-[0.22em] text-muted-foreground">
                 Artikel lain
               </p>
@@ -157,7 +155,7 @@ export default function BlogPostPage({
                   <Link
                     key={item.slug}
                     href={`/blog/${item.slug}`}
-                    className="block rounded-2xl border border-border p-4 transition-colors hover:border-ochre/30 hover:bg-secondary/40"
+                    className="block rounded-lg border border-border p-4 transition-colors hover:border-ochre/30 hover:bg-secondary/40"
                   >
                     <p className="mb-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                       {item.category}
@@ -171,7 +169,7 @@ export default function BlogPostPage({
                   </Link>
                 ))}
               </div>
-            </div>
+            </Surface>
 
             <Link
               href="/strategies"

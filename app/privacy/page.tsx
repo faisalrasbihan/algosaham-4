@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { PageChrome } from "@/components/page-chrome"
+import { PageHeader, PageSection, Surface } from "@/components/page-layout"
 
 export const metadata: Metadata = {
   title: "Kebijakan Privasi | algosaham.ai",
@@ -14,23 +15,15 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <PageChrome>
-      <section className="bg-background">
-        <div className="container mx-auto max-w-4xl px-6 py-12">
-          <div className="mb-8 space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">
-              Kebijakan Privasi
-            </h1>
-            <h2 className="text-lg font-semibold text-muted-foreground">
-              ALGOSAHAM.AI
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Platform Analisis &amp; Trading Saham
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Terakhir diperbarui: 23 Februari 2026
-            </p>
-          </div>
+      <PageHeader
+        compact
+        eyebrow="Legal"
+        title="Kebijakan privasi"
+        description="Cara algosaham.ai mengelola dan melindungi Data Pribadi pengguna. Terakhir diperbarui: 23 Februari 2026."
+      />
 
+      <PageSection className="pt-0">
+        <Surface className="max-w-4xl p-5 sm:p-8">
           <div className="space-y-6 text-foreground/90">
             <p>
               Algosaham.ai berkomitmen untuk melindungi Data Pribadi pengguna
@@ -169,8 +162,8 @@ export default function PrivacyPage() {
               <p>Subjek: Kebijakan Privasi / Data Pribadi</p>
             </section>
           </div>
-        </div>
-      </section>
+        </Surface>
+      </PageSection>
     </PageChrome>
   )
 }

@@ -224,13 +224,14 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
         <TooltipProvider delayDuration={80}>
             <Tooltip open={planOpen && !lineHovered} onOpenChange={setPlanOpen}>
                 <TooltipTrigger asChild>
-                    <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 min-h-[184px] h-full flex flex-col justify-between cursor-help">
-                        <div className="flex items-center justify-between gap-2">
+                    <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 min-h-[184px] h-full flex flex-col cursor-help">
+                        <div className="flex items-center justify-between gap-2 pt-1">
                             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Trade Plan</div>
                             <span className="text-[10px] font-medium text-muted-foreground">R:R {riskPlan.riskReward.toFixed(1)}x</span>
                         </div>
 
-                        <div className="relative pt-7 pb-2">
+                        <div className="relative flex flex-1 flex-col justify-center">
+                          <div className="relative w-full pt-7 pb-2">
                             {/* current price flag */}
                             <div
                                 className="absolute top-0 flex -translate-x-1/2 flex-col items-center"
@@ -333,6 +334,7 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
                                     )
                                 })}
                             </div>
+                          </div>
                         </div>
                     </div>
                 </TooltipTrigger>
