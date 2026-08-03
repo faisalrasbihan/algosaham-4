@@ -2,31 +2,23 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   ArrowUpRight,
-  Bell,
-  BellOff,
   Check,
   ChevronRight,
-  Flame,
   RefreshCw,
   Search,
   Star,
-  TrendingUp,
+  Trash2,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
 import { SectionHeader as SystemSectionHeader } from "@/components/page-layout"
 
-type MarketPeriod = {
-  id: string
-  label: string
-  change: number
-  points: number[]
-}
-
 type WatchlistStock = {
+  id: number
   ticker: string
   name: string
   score: number
@@ -48,7 +40,7 @@ type ScreenerMatch = {
 }
 
 type FollowedScreener = {
-  id: string
+  id: number
   name: string
   category: string
   summary: string
@@ -57,147 +49,6 @@ type FollowedScreener = {
   lastRun: string
   filters: string[]
 }
-
-const marketPeriods: MarketPeriod[] = [
-  {
-    id: "1D",
-    label: "1D",
-    change: 0.74,
-    points: [7248, 7276, 7264, 7271, 7292, 7286, 7304, 7317, 7309, 7326],
-  },
-  {
-    id: "5D",
-    label: "5D",
-    change: 1.91,
-    points: [7188, 7212, 7199, 7238, 7251, 7243, 7280, 7296, 7311, 7326],
-  },
-  {
-    id: "1M",
-    label: "1M",
-    change: -0.63,
-    points: [7372, 7358, 7381, 7340, 7317, 7334, 7301, 7287, 7310, 7326],
-  },
-  {
-    id: "6M",
-    label: "6M",
-    change: 8.2,
-    points: [6772, 6841, 6903, 6888, 7035, 7104, 7071, 7192, 7278, 7326],
-  },
-  {
-    id: "YTD",
-    label: "YTD",
-    change: 4.85,
-    points: [6987, 7042, 7011, 7108, 7160, 7138, 7212, 7254, 7289, 7326],
-  },
-  {
-    id: "1Y",
-    label: "1Y",
-    change: 12.43,
-    points: [6516, 6634, 6701, 6878, 6952, 7018, 7142, 7089, 7240, 7326],
-  },
-]
-
-const watchlistStocks: WatchlistStock[] = [
-  {
-    ticker: "BBRI",
-    name: "Bank Rakyat Indonesia",
-    score: 88,
-    price: 4820,
-    day: 1.05,
-    week: 3.1,
-    month: 5.82,
-    ma20: 4694,
-    gap52wLow: 18.44,
-  },
-  {
-    ticker: "BBCA",
-    name: "Bank Central Asia",
-    score: 84,
-    price: 10150,
-    day: 0.5,
-    week: 1.75,
-    month: 3.31,
-    ma20: 9972,
-    gap52wLow: 15.08,
-  },
-  {
-    ticker: "TLKM",
-    name: "Telkom Indonesia",
-    score: 81,
-    price: 3110,
-    day: -0.64,
-    week: 2.3,
-    month: 4.01,
-    ma20: 3048,
-    gap52wLow: 12.27,
-  },
-  {
-    ticker: "ANTM",
-    name: "Aneka Tambang",
-    score: 78,
-    price: 1685,
-    day: 2.12,
-    week: 4.66,
-    month: 8.01,
-    ma20: 1609,
-    gap52wLow: 24.81,
-  },
-  {
-    ticker: "GOTO",
-    name: "GoTo Gojek Tokopedia",
-    score: 72,
-    price: 69,
-    day: -1.43,
-    week: 0,
-    month: -2.82,
-    ma20: 70,
-    gap52wLow: 9.52,
-  },
-]
-
-const followedScreeners: FollowedScreener[] = [
-  {
-    id: "undervalued-quality",
-    name: "Murah Berkualitas",
-    category: "Value",
-    summary: "Valuasi masih masuk akal, sementara kualitas bisnis tetap terjaga.",
-    freshMatches: 2,
-    lastRun: "10 menit lalu",
-    filters: ["PE ≤ 8", "ROE ≥ 12", "SMA Trend"],
-    matches: [
-      { ticker: "BSSR", name: "Baramulti Suksessarana", score: 86, price: 4290, change: 0.23, isNew: true },
-      { ticker: "TSPC", name: "Tempo Scan Pacific", score: 79, price: 2580, change: -0.39 },
-      { ticker: "BFIN", name: "BFI Finance Indonesia", score: 74, price: 785, change: 0, isNew: true },
-    ],
-  },
-  {
-    id: "fresh-breakout-base",
-    name: "Breakout Baru",
-    category: "Momentum",
-    summary: "Harga baru meninggalkan area konsolidasi dengan konfirmasi yang cukup.",
-    freshMatches: 3,
-    lastRun: "5 menit lalu",
-    filters: ["Base 20D", "Breakout ≥ 1.5%", "Volume ≥ 1.5×"],
-    matches: [
-      { ticker: "ANTM", name: "Aneka Tambang", score: 91, price: 1685, change: 2.12, isNew: true },
-      { ticker: "ADRO", name: "Alamtri Resources", score: 85, price: 2470, change: 1.44, isNew: true },
-      { ticker: "BBRI", name: "Bank Rakyat Indonesia", score: 77, price: 4820, change: 1.05, isNew: true },
-    ],
-  },
-  {
-    id: "calm-volume-dry-up",
-    name: "Volume Sepi",
-    category: "Setup",
-    summary: "Transaksi menyusut dan volatilitas mereda sebelum potensi pergerakan baru.",
-    freshMatches: 1,
-    lastRun: "1 jam lalu",
-    filters: ["Volume Dry-up", "Low Volatility", "Range 20D"],
-    matches: [
-      { ticker: "BBCA", name: "Bank Central Asia", score: 82, price: 10150, change: 0.5 },
-      { ticker: "TLKM", name: "Telkom Indonesia", score: 76, price: 3110, change: -0.64, isNew: true },
-    ],
-  },
-]
 
 const rupiahFormatter = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 0,
@@ -331,222 +182,160 @@ export function WhatsAppNotificationToggle({
   )
 }
 
-function MarketChart({ points }: { points: number[] }) {
-  const width = 760
-  const height = 250
-  const inset = 12
-  const min = Math.min(...points)
-  const max = Math.max(...points)
-  const range = Math.max(max - min, 1)
-  const coordinates = points.map((point, index) => {
-    const x = inset + (index / (points.length - 1)) * (width - inset * 2)
-    const y = inset + ((max - point) / range) * (height - inset * 2)
-    return { x, y }
-  })
-  const line = coordinates.map(({ x, y }) => `${x},${y}`).join(" ")
-  const area = `${coordinates[0].x},${height} ${line} ${coordinates[coordinates.length - 1].x},${height}`
+function TradingViewIhsgChart() {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    container.innerHTML = ""
+
+    const widgetSlot = document.createElement("div")
+    widgetSlot.className = "tradingview-widget-container__widget h-full w-full"
+    container.appendChild(widgetSlot)
+
+    const script = document.createElement("script")
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
+    script.type = "text/javascript"
+    script.async = true
+    script.innerHTML = JSON.stringify({
+      autosize: true,
+      symbol: "IDX:COMPOSITE",
+      interval: "D",
+      timezone: "exchange",
+      theme: "light",
+      backgroundColor: "#ffffff",
+      gridColor: "rgba(46, 46, 46, 0.06)",
+      style: "1",
+      locale: "en",
+      allow_symbol_change: false,
+      calendar: false,
+      details: false,
+      hide_side_toolbar: false,
+      hide_top_toolbar: false,
+      hide_legend: false,
+      hide_volume: false,
+      save_image: false,
+      withdateranges: true,
+      studies: ["MASimple@tv-basicstudies"],
+      support_host: "https://www.tradingview.com",
+    })
+    container.appendChild(script)
+
+    return () => {
+      container.innerHTML = ""
+    }
+  }, [])
 
   return (
-    <div className="relative h-[250px] w-full">
-      <svg
-        aria-label="Grafik pergerakan IHSG"
-        className="h-full w-full overflow-visible"
-        preserveAspectRatio="none"
-        role="img"
-        viewBox={`0 0 ${width} ${height}`}
-      >
-        <defs>
-          <linearGradient id="portfolio-market-area" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#5e9a82" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#5e9a82" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {[0.25, 0.5, 0.75].map((ratio) => (
-          <line
-            key={ratio}
-            stroke="#ece8e1"
-            strokeDasharray="3 7"
-            strokeWidth="1"
-            x1="0"
-            x2={width}
-            y1={height * ratio}
-            y2={height * ratio}
-          />
-        ))}
-        <polygon fill="url(#portfolio-market-area)" points={area} />
-        <polyline
-          fill="none"
-          points={line}
-          stroke="#4d8a72"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="3"
-          vectorEffect="non-scaling-stroke"
-        />
-        <circle
-          cx={coordinates[coordinates.length - 1].x}
-          cy={coordinates[coordinates.length - 1].y}
-          fill="#fffdf9"
-          r="5"
-          stroke="#4d8a72"
-          strokeWidth="3"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-      <div className="pointer-events-none absolute inset-x-1 bottom-0 flex justify-between font-ibm-plex-mono text-[9px] text-muted-foreground sm:text-[10px]">
-        {["09:00", "10:30", "12:00", "14:30", "16:00"].map((time) => (
-          <span key={time}>{time}</span>
-        ))}
+    <div className="h-[430px] w-full sm:h-[520px]">
+      <div
+        ref={containerRef}
+        className="tradingview-widget-container h-[calc(100%_-_24px)] w-full"
+        aria-label="Grafik live IHSG dari TradingView"
+      />
+      <div className="flex h-6 items-center justify-end px-2 text-[10px] text-muted-foreground">
+        <a
+          href="https://www.tradingview.com/symbols/IDX-COMPOSITE/"
+          rel="noopener nofollow"
+          target="_blank"
+          className="transition-colors hover:text-foreground"
+        >
+          IHSG chart by TradingView
+        </a>
       </div>
     </div>
   )
 }
 
 function IhsgIndexSection() {
-  const [selectedPeriod, setSelectedPeriod] = useState("1D")
-  const activePeriod = marketPeriods.find((period) => period.id === selectedPeriod) ?? marketPeriods[0]
-
   return (
-    <section aria-labelledby="ihsg-index-heading">
-      <SectionHeading
-        id="ihsg-index-heading"
-        title="Ringkasan IHSG"
-        description="Ringkasan kondisi pasar untuk membantu membaca sinyal pada strategi dan saham yang sedang kamu pantau."
-        aside={(
-          <div className="flex flex-wrap gap-2">
-            <SummaryPill label="Composite" value="IDX:IHSG" />
-            <SummaryPill label="Session" value="Open" hint="09:00–16:00 WIB" />
-            <SummaryPill label="Sync" value="16:00" hint="WIB" />
-          </div>
-        )}
-      />
-
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
-        <article className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
-          <div className="flex flex-col gap-4 border-b border-border/70 px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-6">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">
-                IHSG · Jakarta Composite
-              </p>
-              <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="font-heading text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                  7.326,12
-                </span>
-                <PercentageValue className="text-sm" value={activePeriod.change} />
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">Penutupan sebelumnya 7.272,30</p>
-            </div>
-            <div className="inline-flex w-fit items-center gap-2 rounded-lg border border-emerald-700/20 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
-              <TrendingUp className="h-3.5 w-3.5" />
-              Bullish intraday
-            </div>
-          </div>
-
-          <div className="px-4 pb-4 pt-2 sm:px-6">
-            <MarketChart points={activePeriod.points} />
-            <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-6">
-              {marketPeriods.map((period) => {
-                const isActive = selectedPeriod === period.id
-                return (
-                  <button
-                    key={period.id}
-                    aria-pressed={isActive}
-                    className={cn(
-                      "rounded-md border px-2 py-2 text-center transition-colors",
-                      isActive
-                        ? "border-[#d07225]/50 bg-[#d07225]/8"
-                        : "border-transparent hover:border-border hover:bg-muted/60",
-                    )}
-                    onClick={() => setSelectedPeriod(period.id)}
-                    type="button"
-                  >
-                    <span className="block font-ibm-plex-mono text-[10px] font-semibold text-foreground">
-                      {period.label}
-                    </span>
-                    <PercentageValue className="mt-1 block text-[10px]" value={period.change} />
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </article>
-
-        <article className="rounded-xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Flame className="h-4 w-4 text-[#d07225]" />
-            Market pulse
-          </div>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            {[
-              { label: "Volume", value: "12,4B", hint: "lot hari ini" },
-              { label: "Value", value: "Rp 9,8T", hint: "nilai transaksi" },
-              { label: "Advancers", value: "312", hint: "saham naik", tone: "positive" },
-              { label: "Decliners", value: "241", hint: "saham turun", tone: "negative" },
-            ].map((metric) => (
-              <div key={metric.label} className="rounded-lg border border-border/70 bg-muted/25 p-4">
-                <div className="text-xs font-medium text-muted-foreground">
-                  {metric.label}
-                </div>
-                <div
-                  className={cn(
-                    "mt-2 font-heading text-2xl font-semibold tracking-tight",
-                    metric.tone === "positive" && "text-emerald-700",
-                    metric.tone === "negative" && "text-rose-600",
-                    !metric.tone && "text-foreground",
-                  )}
-                >
-                  {metric.value}
-                </div>
-                <div className="mt-1 text-[11px] text-muted-foreground">{metric.hint}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 space-y-3 border-t border-border/70 pt-5 text-sm leading-5 text-foreground/80">
-            <div className="flex gap-3">
-              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-600" />
-              Energi memimpin penguatan, didukung saham komoditas.
-            </div>
-            <div className="flex gap-3">
-              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-rose-500" />
-              Properti tertahan di tengah sentimen suku bunga.
-            </div>
-            <div className="flex gap-3">
-              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#d07225]" />
-              Arus dana asing masih mencatatkan net buy.
-            </div>
-          </div>
-        </article>
+    <section aria-label="Ringkasan pasar IHSG">
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+        <SummaryPill label="Indeks" value="IDX:COMPOSITE" />
+        <SummaryPill label="Bursa" value="IDX" hint="Jakarta" />
+        <SummaryPill label="Zona waktu" value="WIB" />
       </div>
+
+      <article className="overflow-hidden rounded-xl border border-border/80 bg-card p-1 shadow-sm">
+        <TradingViewIhsgChart />
+      </article>
     </section>
   )
 }
 
 function StockWatchlistSection() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [favorites, setFavorites] = useState(() => new Set(["BBRI", "ANTM"]))
-  const [alerts, setAlerts] = useState(() => new Set(["BBRI", "TLKM"]))
+  const [stocks, setStocks] = useState<WatchlistStock[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [removingTicker, setRemovingTicker] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetch("/api/watchlist/stocks")
+      .then(async (response) => {
+        const result = await response.json()
+        if (!response.ok || !result.success) throw new Error(result.error || "Gagal memuat saham tersimpan")
+        if (cancelled) return
+
+        setStocks(result.stocks.map((stock: { id: number; ticker: string; snapshot?: Record<string, unknown> | null }) => {
+          const snapshot = stock.snapshot ?? {}
+          const numberValue = (key: string) => typeof snapshot[key] === "number" ? snapshot[key] as number : 0
+          return {
+            id: stock.id,
+            ticker: stock.ticker,
+            name: typeof snapshot.sector === "string" && snapshot.sector ? snapshot.sector : "Saham IDX",
+            score: numberValue("score"),
+            price: numberValue("price"),
+            day: numberValue("day"),
+            week: numberValue("week"),
+            month: numberValue("month"),
+            ma20: numberValue("ma20"),
+            gap52wLow: numberValue("gap52wLow"),
+          }
+        }))
+      })
+      .catch((error) => {
+        console.error("Failed to load portfolio stocks:", error)
+        if (!cancelled) toast.error("Saham pantauan gagal dimuat")
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const filteredStocks = useMemo(() => {
     const query = searchTerm.trim().toLowerCase()
-    if (!query) return watchlistStocks
-    return watchlistStocks.filter(
+    if (!query) return stocks
+    return stocks.filter(
       (stock) =>
         stock.ticker.toLowerCase().includes(query) ||
         stock.name.toLowerCase().includes(query),
     )
-  }, [searchTerm])
+  }, [searchTerm, stocks])
 
-  function toggleSet(
-    ticker: string,
-    setter: React.Dispatch<React.SetStateAction<Set<string>>>,
-  ) {
-    setter((current) => {
-      const next = new Set(current)
-      if (next.has(ticker)) next.delete(ticker)
-      else next.add(ticker)
-      return next
-    })
+  async function removeStock(ticker: string) {
+    if (removingTicker) return
+    setRemovingTicker(ticker)
+
+    try {
+      const response = await fetch(`/api/watchlist/stocks?ticker=${encodeURIComponent(ticker)}`, { method: "DELETE" })
+      const result = await response.json()
+      if (!response.ok || !result.success) throw new Error(result.error || "Gagal menghapus saham")
+      setStocks((current) => current.filter((stock) => stock.ticker !== ticker))
+      toast.success(`${ticker} dihapus dari pantauan`)
+    } catch (error) {
+      console.error("Failed to remove portfolio stock:", error)
+      toast.error("Saham gagal dihapus")
+    } finally {
+      setRemovingTicker(null)
+    }
   }
 
   return (
@@ -554,12 +343,10 @@ function StockWatchlistSection() {
       <SectionHeading
         id="stock-watchlist-heading"
         title="Saham pantauan"
-        description="Saham yang kamu ikuti, disusun agar perubahan harga, score, dan posisi terhadap tren bisa dipindai dalam sekali lihat."
+        description="Saham yang Anda simpan dari hasil screener, lengkap dengan snapshot saat saham ditambahkan."
         aside={(
           <div className="flex flex-wrap gap-2">
-            <SummaryPill label="Followed" value={watchlistStocks.length} hint="saham" />
-            <SummaryPill label="Alerts On" value={alerts.size} hint="aktif" />
-            <WhatsAppNotificationToggle sectionLabel="stock watchlist" />
+            <SummaryPill label="Tersimpan" value={stocks.length} hint="saham" />
           </div>
         )}
       />
@@ -630,26 +417,13 @@ function StockWatchlistSection() {
                           {stock.ticker}
                         </Link>
                         <button
-                          aria-label={`${favorites.has(stock.ticker) ? "Hapus" : "Tambah"} ${stock.ticker} dari favorit`}
-                          className="text-muted-foreground transition hover:text-[#d07225]"
-                          onClick={() => toggleSet(stock.ticker, setFavorites)}
+                          aria-label={`Hapus ${stock.ticker} dari saham pantauan`}
+                          className="text-[#d07225] transition hover:text-[#a65b1d] disabled:opacity-40"
+                          disabled={removingTicker === stock.ticker}
+                          onClick={() => void removeStock(stock.ticker)}
                           type="button"
                         >
-                          <Star
-                            className={cn("h-3.5 w-3.5", favorites.has(stock.ticker) && "fill-[#d07225] text-[#d07225]")}
-                          />
-                        </button>
-                        <button
-                          aria-label={`${alerts.has(stock.ticker) ? "Matikan" : "Aktifkan"} alert ${stock.ticker}`}
-                          className="text-muted-foreground transition hover:text-[#487b78]"
-                          onClick={() => toggleSet(stock.ticker, setAlerts)}
-                          type="button"
-                        >
-                          {alerts.has(stock.ticker) ? (
-                            <Bell className="h-3.5 w-3.5 fill-[#487b78]/20 text-[#487b78]" />
-                          ) : (
-                            <BellOff className="h-3.5 w-3.5" />
-                          )}
+                          <Star className="h-3.5 w-3.5 fill-current" />
                         </button>
                       </div>
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">{stock.name}</p>
@@ -678,14 +452,16 @@ function StockWatchlistSection() {
 
         {filteredStocks.length === 0 ? (
           <div className="px-5 py-12 text-center">
-            <p className="font-ibm-plex-mono text-sm font-semibold">Saham tidak ditemukan</p>
-            <p className="mt-1 text-xs text-muted-foreground">Coba ticker atau nama emiten yang berbeda.</p>
+            <p className="text-sm font-semibold">{isLoading ? "Memuat saham…" : stocks.length === 0 ? "Belum ada saham tersimpan" : "Saham tidak ditemukan"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {stocks.length === 0 ? "Simpan saham dari tabel hasil Screener untuk melihatnya di sini." : "Coba ticker atau sektor yang berbeda."}
+            </p>
           </div>
         ) : null}
 
         <div className="flex items-center justify-between border-t border-border/70 bg-muted/30 px-5 py-3 text-[11px] text-muted-foreground">
           <span>Klik ticker untuk membuka analisis lengkap.</span>
-          <span className="font-ibm-plex-mono">{filteredStocks.length} / {watchlistStocks.length} shown</span>
+          <span className="font-ibm-plex-mono">{filteredStocks.length} / {stocks.length} tampil</span>
         </div>
       </div>
     </section>
@@ -693,25 +469,123 @@ function StockWatchlistSection() {
 }
 
 function ScreenerWatchlistSection() {
-  const [selectedScreenerId, setSelectedScreenerId] = useState(followedScreeners[0].id)
+  const [followedScreeners, setFollowedScreeners] = useState<FollowedScreener[]>([])
+  const [selectedScreenerId, setSelectedScreenerId] = useState<number | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetch("/api/watchlist/screeners")
+      .then(async (response) => {
+        const result = await response.json()
+        if (!response.ok || !result.success) throw new Error(result.error || "Gagal memuat screener tersimpan")
+        if (cancelled) return
+
+        const mapped: FollowedScreener[] = result.screeners.map((screener: {
+          id: number
+          name: string
+          description?: string | null
+          category?: string | null
+          filterLabels?: string[] | null
+          latestMatches?: Array<Record<string, unknown>> | null
+          lastRunAt?: string | null
+        }) => ({
+          id: screener.id,
+          name: screener.name,
+          category: screener.category || "Kustom",
+          summary: screener.description || "Kombinasi filter screener tersimpan.",
+          freshMatches: 0,
+          lastRun: screener.lastRunAt
+            ? new Date(screener.lastRunAt).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+            : "Belum dijalankan",
+          filters: screener.filterLabels ?? [],
+          matches: (screener.latestMatches ?? []).map((match) => ({
+            ticker: typeof match.ticker === "string" ? match.ticker : "",
+            name: typeof match.sector === "string" && match.sector ? match.sector : "Saham IDX",
+            score: typeof match.score === "number" ? match.score : 0,
+            price: typeof match.price === "number" ? match.price : 0,
+            change: typeof match.change === "number" ? match.change : 0,
+          })).filter((match) => Boolean(match.ticker)),
+        }))
+
+        setFollowedScreeners(mapped)
+        setSelectedScreenerId((current) => current ?? mapped[0]?.id ?? null)
+      })
+      .catch((error) => {
+        console.error("Failed to load portfolio screeners:", error)
+        if (!cancelled) toast.error("Screener tersimpan gagal dimuat")
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const selectedScreener =
     followedScreeners.find((screener) => screener.id === selectedScreenerId) ??
     followedScreeners[0]
   const totalMatches = followedScreeners.reduce((sum, screener) => sum + screener.matches.length, 0)
-  const totalFreshMatches = followedScreeners.reduce((sum, screener) => sum + screener.freshMatches, 0)
+
+  async function deleteScreener() {
+    if (!selectedScreener || isDeleting) return
+    setIsDeleting(true)
+
+    try {
+      const response = await fetch(`/api/watchlist/screeners/${selectedScreener.id}`, { method: "DELETE" })
+      const result = await response.json()
+      if (!response.ok || !result.success) throw new Error(result.error || "Gagal menghapus screener")
+
+      setFollowedScreeners((current) => {
+        const next = current.filter((screener) => screener.id !== selectedScreener.id)
+        setSelectedScreenerId(next[0]?.id ?? null)
+        return next
+      })
+      toast.success("Screener dihapus")
+    } catch (error) {
+      console.error("Failed to delete saved screener:", error)
+      toast.error("Screener gagal dihapus")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  if (isLoading || !selectedScreener) {
+    return (
+      <section aria-labelledby="screener-watchlist-heading">
+        <SectionHeading
+          id="screener-watchlist-heading"
+          title="Screener tersimpan"
+          description="Simpan kombinasi filter dari halaman Screener untuk membukanya kembali dengan cepat."
+        />
+        <div className="rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center shadow-sm">
+          <p className="text-sm font-semibold">{isLoading ? "Memuat screener…" : "Belum ada screener tersimpan"}</p>
+          <p className="mt-1 text-sm text-muted-foreground">Screener yang Anda simpan akan muncul di sini.</p>
+          {!isLoading ? (
+            <Link className="mt-4 inline-flex h-9 items-center gap-2 rounded-md bg-[#d07225] px-4 text-sm font-medium text-white hover:bg-[#b9631f]" href="/screener">
+              Buka Screener
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          ) : null}
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section aria-labelledby="screener-watchlist-heading">
       <SectionHeading
         id="screener-watchlist-heading"
         title="Screener tersimpan"
-        description="Screener yang kamu ikuti diringkas menjadi daftar sinyal, sehingga perubahan penting tidak tenggelam di antara seluruh saham."
+        description="Kombinasi filter yang Anda simpan, beserta snapshot hasil terakhir saat screener dijalankan."
         aside={(
           <div className="flex flex-wrap gap-2">
-            <SummaryPill label="Followed" value={followedScreeners.length} hint="screeners" />
-            <SummaryPill label="Matches" value={totalMatches} hint="saham" />
-            <SummaryPill label="New Today" value={totalFreshMatches} hint="sinyal" />
-            <WhatsAppNotificationToggle sectionLabel="screener watchlist" />
+            <SummaryPill label="Tersimpan" value={followedScreeners.length} hint="screener" />
+            <SummaryPill label="Snapshot" value={totalMatches} hint="saham" />
           </div>
         )}
       />
@@ -720,7 +594,7 @@ function ScreenerWatchlistSection() {
         <aside className="border-b border-border/70 bg-muted/35 p-3 lg:border-b-0 lg:border-r">
           <div className="px-2 pb-3 pt-1">
             <div className="text-xs font-medium text-muted-foreground">
-              Screener diikuti
+              Screener tersimpan
             </div>
           </div>
           <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
@@ -770,7 +644,7 @@ function ScreenerWatchlistSection() {
             className="mt-3 flex items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-3 py-3 text-sm font-medium text-[#a65b1d] transition hover:border-[#d07225] hover:bg-card"
             href="/screener"
           >
-            Ikuti screener baru
+            Simpan screener baru
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
         </aside>
@@ -782,9 +656,9 @@ function ScreenerWatchlistSection() {
                 <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                   {selectedScreener.category}
                 </span>
-                <span className="inline-flex items-center gap-1 font-ibm-plex-mono text-[9px] text-emerald-700">
+                <span className="inline-flex items-center gap-1 text-xs text-emerald-700">
                   <Check className="h-3 w-3" />
-                  Followed
+                  Tersimpan
                 </span>
               </div>
               <h3 className="mt-3 font-heading text-xl font-semibold tracking-tight">
@@ -804,13 +678,24 @@ function ScreenerWatchlistSection() {
                 ))}
               </div>
             </div>
-            <Link
-              className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground shadow-sm transition hover:border-[#d07225]/60 hover:text-[#a65b1d]"
-              href={`/screener?preset=${selectedScreener.id}`}
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Buka screener
-            </Link>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void deleteScreener()}
+                disabled={isDeleting}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-muted-foreground shadow-sm transition hover:border-rose-300 hover:text-rose-600 disabled:opacity-50"
+                aria-label={`Hapus screener ${selectedScreener.name}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+              <Link
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground shadow-sm transition hover:border-[#d07225]/60 hover:text-[#a65b1d]"
+                href={`/screener?saved=${selectedScreener.id}`}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Buka screener
+              </Link>
+            </div>
           </div>
 
           <div className="p-5 sm:p-6">
@@ -829,7 +714,11 @@ function ScreenerWatchlistSection() {
             </div>
 
             <div className="mt-4 overflow-hidden rounded-lg border border-border/70">
-              {selectedScreener.matches.map((stock) => (
+              {selectedScreener.matches.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  Screener ini disimpan sebelum menghasilkan hasil. Buka dan jalankan kembali untuk memperbarui snapshot.
+                </div>
+              ) : selectedScreener.matches.map((stock) => (
                 <Link
                   key={stock.ticker}
                   className="group flex items-center gap-3 border-b border-border/60 bg-card px-4 py-3 transition last:border-b-0 hover:bg-muted/35"
@@ -876,7 +765,7 @@ function ScreenerWatchlistSection() {
               <span>Klik saham untuk membuka analisis lengkap.</span>
               <Link
                 className="inline-flex items-center gap-1 font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a65b1d] hover:text-[#7d4416]"
-                href={`/screener?preset=${selectedScreener.id}`}
+                href={`/screener?saved=${selectedScreener.id}`}
               >
                 Lihat semua
                 <ArrowUpRight className="h-3.5 w-3.5" />

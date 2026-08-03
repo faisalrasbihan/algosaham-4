@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Activity, Brain, Building2, Search } from "lucide-react"
+import { Activity, Brain, Building2, Flame, Search } from "lucide-react"
 import { PageContainer, PageHeader } from "@/components/page-layout"
 import { TickerCircleIcon } from "@/components/ticker-circle-icon"
 
@@ -43,7 +43,24 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
     ? "Gunakan kode ticker yang valid, misalnya BBCA."
     : ""
 
-  const exampleTickers = ["BBCA", "TLKM", "ASII", "BMRI", "UNVR"]
+  const exampleTickerRows = [
+    [
+      { code: "BBCA" },
+      { code: "TLKM" },
+      { code: "ASII" },
+      { code: "BMRI" },
+      { code: "UNVR" },
+      { code: "BBRI" },
+      { code: "GOTO", hot: true },
+    ],
+    [
+      { code: "BBNI" },
+      { code: "ANTM", hot: true },
+      { code: "ADRO" },
+      { code: "ICBP" },
+      { code: "KLBF" },
+    ],
+  ]
   const analysisPreviews = [
     {
       icon: Activity,
@@ -88,10 +105,10 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
                     autoComplete="off"
                     aria-label="Kode ticker saham"
                     aria-invalid={Boolean(validationMessage)}
-                    placeholder="Masukkan ticker, misalnya BBCA"
+                    placeholder="Cari kode saham, misalnya BBCA"
                     value={ticker}
                     onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                    className="h-12 rounded-xl border-border/80 bg-background px-4 text-base uppercase focus-visible:ring-primary"
+                    className="h-12 rounded-xl border-border/80 bg-background px-4 text-base focus-visible:ring-primary"
                     disabled={loading}
                   />
                   {validationMessage ? (
@@ -126,26 +143,46 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
               ) : null}
             </form>
 
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 border-t border-border/70 pt-4">
-              <span className="mr-1 text-xs text-muted-foreground">Coba langsung:</span>
-              {exampleTickers.map((code) => (
-                <button
-                  key={code}
-                  type="button"
-                  onClick={() => handleQuickTicker(code)}
-                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/80 bg-background px-2.5 pr-3 text-sm font-medium transition-colors hover:border-foreground/20 hover:bg-muted"
-                  disabled={loading}
+            <div
+              className="mt-4 flex flex-col items-center gap-2 border-t border-border/70 pt-4"
+              role="group"
+              aria-label="Pilihan saham populer"
+            >
+              {exampleTickerRows.map((row) => (
+                <div
+                  key={row.map((item) => item.code).join("-")}
+                  className="flex flex-wrap items-center justify-center gap-1.5"
                 >
-                  <TickerCircleIcon ticker={code} />
-                  {code}
-                </button>
+                  {row.map((item) => (
+                    <button
+                      key={item.code}
+                      type="button"
+                      onClick={() => handleQuickTicker(item.code)}
+                      className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/80 bg-background px-2.5 pr-3 text-sm font-medium transition-colors hover:border-foreground/20 hover:bg-muted"
+                      disabled={loading}
+                    >
+                      <TickerCircleIcon ticker={item.code} />
+                      {item.code}
+                      {item.hot ? (
+                        <span className="-ml-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-[#c56824]">
+                          <Flame
+                            className="h-3 w-3 fill-[#d07225]/15 text-[#d07225] motion-safe:animate-pulse motion-safe:[animation-duration:2.4s]"
+                            aria-hidden="true"
+                          />
+                          Hot
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
               ))}
             </div>
 
-            <p className="mt-3 text-center text-[11px] leading-5 text-muted-foreground">
-              Analisis bersifat informatif dan bukan rekomendasi investasi.
-            </p>
           </section>
+
+          <p className="mx-auto mt-3 max-w-3xl text-center text-[11px] leading-5 text-muted-foreground">
+            Analisis bersifat informatif dan bukan rekomendasi investasi.
+          </p>
 
           <section className="mt-12 sm:mt-14" aria-labelledby="analysis-preview-title">
             <div className="mx-auto mb-6 max-w-2xl text-center">

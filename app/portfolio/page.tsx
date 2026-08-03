@@ -804,21 +804,20 @@ export default function Portfolio() {
     }, {})
 
     return (
-        <div className="min-h-screen bg-background">
+        <div
+            className="min-h-screen bg-background"
+            style={{
+                background:
+                    "radial-gradient(circle at 12% 18%, rgba(72, 123, 120, 0.055), transparent 34%), radial-gradient(circle at 88% 12%, rgba(208, 114, 37, 0.045), transparent 32%), linear-gradient(180deg, #fbfbfa 0%, #f8f8f6 62%, #ffffff 100%)",
+            }}
+        >
             <Navbar />
-            <main className="pt-16">
-                <div
-                    className="min-h-[calc(100vh-4rem)] pb-16"
-                    style={{
-                        background:
-                            "radial-gradient(circle at 12% 18%, rgba(72, 123, 120, 0.055), transparent 34%), radial-gradient(circle at 88% 12%, rgba(208, 114, 37, 0.045), transparent 32%), linear-gradient(180deg, #fbfbfa 0%, #f8f8f6 62%, #ffffff 100%)",
-                    }}
-                >
+            <main>
+                <div className="min-h-[calc(100vh-4rem)] pb-16">
                     <PageHeader
                         compact
-                        className="border-b-0 bg-transparent [&>div]:pb-8 [&>div]:pt-10 sm:[&>div]:pb-10 sm:[&>div]:pt-14"
+                        className="border-b-0 bg-transparent [&>div]:pb-8 [&>div]:pt-10 sm:[&>div]:pb-10 sm:[&>div]:pt-12"
                         title="Pasar dan strategi dalam satu tampilan"
-                        description="Pantau kondisi pasar, saham pilihan, screener, dan strategi Anda dalam satu alur kerja."
                     />
 
                     <div className="space-y-14 sm:space-y-16">

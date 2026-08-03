@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, timestamp, numeric, integer, bigint, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, timestamp, numeric, integer, bigint, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 // ============================================
@@ -116,6 +116,38 @@ export const screenerPresets = pgTable("screener_presets", {
 });
 
 // ============================================
+// SAVED STOCKS - User-owned stock watchlist
+// ============================================
+export const savedStocks = pgTable("saved_stocks", {
+  id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
+  userId: text("user_id").notNull().references(() => users.clerkId, { onDelete: "cascade" }),
+  ticker: text("ticker").notNull(),
+  snapshot: jsonb("snapshot").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("saved_stocks_user_ticker_unique").on(table.userId, table.ticker),
+]);
+
+// ============================================
+// SAVED SCREENERS - User-owned reusable screeners
+// ============================================
+export const savedScreeners = pgTable("saved_screeners", {
+  id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity().primaryKey(),
+  userId: text("user_id").notNull().references(() => users.clerkId, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category"),
+  sourcePresetId: text("source_preset_id"),
+  config: jsonb("config").$type<any>().notNull(),
+  filterLabels: jsonb("filter_labels").$type<string[]>().notNull().default([]),
+  latestMatches: jsonb("latest_matches").$type<Array<Record<string, unknown>>>().notNull().default([]),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ============================================
 // SUBSCRIPTIONS - User follows Strategy with performance tracking
 // ============================================
 export const subscriptions = pgTable("subscriptions", {
@@ -209,6 +241,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   strategies: many(strategies),
   subscriptions: many(subscriptions),
   payments: many(payments),
+  savedStocks: many(savedStocks),
+  savedScreeners: many(savedScreeners),
 }));
 
 export const strategiesRelations = relations(strategies, ({ one, many }) => ({
@@ -227,6 +261,20 @@ export const screenerPresetsRelations = relations(screenerPresets, ({ one }) => 
   category: one(screenerPresetCategories, {
     fields: [screenerPresets.categoryId],
     references: [screenerPresetCategories.id],
+  }),
+}));
+
+export const savedStocksRelations = relations(savedStocks, ({ one }) => ({
+  user: one(users, {
+    fields: [savedStocks.userId],
+    references: [users.clerkId],
+  }),
+}));
+
+export const savedScreenersRelations = relations(savedScreeners, ({ one }) => ({
+  user: one(users, {
+    fields: [savedScreeners.userId],
+    references: [users.clerkId],
   }),
 }));
 

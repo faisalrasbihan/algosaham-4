@@ -658,6 +658,19 @@ type ScreenerRule = {
   params: Record<string, string>
 }
 
+type SavedScreenerConfig = ScreenerRequest & {
+  builderState?: {
+    rules?: Array<{
+      key: string
+      params: Record<string, string>
+    }>
+    search?: string
+    sortKey?: string
+    sortDirection?: "asc" | "desc"
+    visibleColumnIds?: string[]
+  }
+}
+
 const CLIENT_SIDE_RULE_KEYS: FilterKey[] = [
   "changePct",
   "monthChangePct",
@@ -1106,6 +1119,7 @@ export function ScreenerPage() {
   const signInOpenedRef = useRef(false)
   const userConfiguredScreenerRef = useRef(false)
   const defaultPresetAppliedRef = useRef(false)
+  const savedScreenerLoadedRef = useRef(false)
   const [search, setSearch] = useState("")
   const [sectorFilter, setSectorFilter] = useState("all")
   const [marketCapFilter, setMarketCapFilter] = useState("all")
@@ -1113,16 +1127,17 @@ export function ScreenerPage() {
   const [sortKey, setSortKey] = useState<SortKey>("close")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const [radarTickers, setRadarTickers] = useState<string[]>([])
+  const [savingRadarTickers, setSavingRadarTickers] = useState<string[]>([])
   const [alerts, setAlerts] = useState<SavedAlert[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [alertDraft, setAlertDraft] = useState<AlertDraft>(defaultAlertDraft)
   const [visibleColumnIds, setVisibleColumnIds] = useState<ColumnId[]>(() => getDefaultColumnTemplate())
   const [activeRules, setActiveRules] = useState<ScreenerRule[]>([])
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
-  const [saveStrategyOpen, setSaveStrategyOpen] = useState(false)
-  const [strategyName, setStrategyName] = useState("")
-  const [strategyDescription, setStrategyDescription] = useState("")
-  const [savingStrategy, setSavingStrategy] = useState(false)
+  const [saveScreenerOpen, setSaveScreenerOpen] = useState(false)
+  const [screenerName, setScreenerName] = useState("")
+  const [screenerDescription, setScreenerDescription] = useState("")
+  const [savingScreener, setSavingScreener] = useState(false)
   const [indicatorSearch, setIndicatorSearch] = useState("")
   const [activePresetId, setActivePresetId] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORIES_LABEL)
@@ -1135,16 +1150,7 @@ export function ScreenerPage() {
   const [runError, setRunError] = useState<string | null>(null)
 
   useEffect(() => {
-    const storedRadar = window.localStorage.getItem("algosaham-screener-radar")
     const storedAlerts = window.localStorage.getItem("algosaham-screener-alerts")
-
-    if (storedRadar) {
-      try {
-        setRadarTickers(JSON.parse(storedRadar))
-      } catch {
-        setRadarTickers([])
-      }
-    }
 
     if (storedAlerts) {
       try {
@@ -1154,6 +1160,29 @@ export function ScreenerPage() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      if (isLoaded) setRadarTickers([])
+      return
+    }
+
+    let cancelled = false
+    fetch("/api/watchlist/stocks")
+      .then(async (response) => {
+        const result = await response.json()
+        if (!response.ok || !result.success) throw new Error(result.error || "Gagal memuat saham tersimpan")
+        if (!cancelled) setRadarTickers(result.stocks.map((stock: { ticker: string }) => stock.ticker))
+      })
+      .catch((error) => {
+        console.error("Failed to load saved stocks:", error)
+        if (!cancelled) toast.error("Saham tersimpan gagal dimuat")
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isLoaded, isSignedIn])
 
   useEffect(() => {
     if (defaultPresetAppliedRef.current || userConfiguredScreenerRef.current) return
@@ -1166,8 +1195,28 @@ export function ScreenerPage() {
   }, [])
 
   useEffect(() => {
-    window.localStorage.setItem("algosaham-screener-radar", JSON.stringify(radarTickers))
-  }, [radarTickers])
+    if (!isLoaded || !isSignedIn || savedScreenerLoadedRef.current) return
+
+    const savedId = new URLSearchParams(window.location.search).get("saved")
+    if (!savedId) return
+
+    savedScreenerLoadedRef.current = true
+    userConfiguredScreenerRef.current = true
+
+    fetch(`/api/watchlist/screeners/${encodeURIComponent(savedId)}`)
+      .then(async (response) => {
+        const result = await response.json()
+        if (!response.ok || !result.success) throw new Error(result.error || "Gagal memuat screener")
+        applySavedScreenerConfig(result.screener.config, result.screener.sourcePresetId)
+        setScreenerName(result.screener.name ?? "")
+        setScreenerDescription(result.screener.description ?? "")
+        toast.success(`Screener “${result.screener.name}” dimuat`)
+      })
+      .catch((error) => {
+        console.error("Failed to load saved screener:", error)
+        toast.error("Screener tersimpan gagal dimuat")
+      })
+  }, [isLoaded, isSignedIn])
 
   useEffect(() => {
     window.localStorage.setItem("algosaham-screener-alerts", JSON.stringify(alerts))
@@ -1399,8 +1448,54 @@ export function ScreenerPage() {
       })
   }, [activeRules, marketCapFilter, screenerRows, search, sectorFilter, sortDirection, sortKey, syariahFilter])
 
-  function toggleRadar(ticker: string) {
-    setRadarTickers((current) => current.includes(ticker) ? current.filter((item) => item !== ticker) : [...current, ticker])
+  async function toggleRadar(row: ScreenerRow) {
+    if (!isLoaded || savingRadarTickers.includes(row.stockCode)) return
+    if (!isSignedIn) {
+      signInOpenedRef.current = true
+      void openSignIn()
+      return
+    }
+
+    const ticker = row.stockCode
+    const wasSaved = radarTickers.includes(ticker)
+    setSavingRadarTickers((current) => [...current, ticker])
+    setRadarTickers((current) => wasSaved ? current.filter((item) => item !== ticker) : [...current, ticker])
+
+    try {
+      const response = await fetch(
+        wasSaved ? `/api/watchlist/stocks?ticker=${encodeURIComponent(ticker)}` : "/api/watchlist/stocks",
+        wasSaved
+          ? { method: "DELETE" }
+          : {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ticker,
+                snapshot: {
+                  sector: row.sector,
+                  score: row.alignmentScore,
+                  price: row.close,
+                  day: row.changeD1Pct,
+                  week: row.change5DPct,
+                  month: row.change1MPct,
+                  ma20: row.sma20,
+                  gap52wLow: row.distFrom52wLowPct,
+                },
+              }),
+            },
+      )
+      const result = await response.json()
+      if (!response.ok || !result.success) throw new Error(result.error || "Gagal memperbarui saham tersimpan")
+      toast.success(wasSaved ? `${ticker} dihapus dari pantauan` : `${ticker} disimpan ke Portfolio`)
+    } catch (error) {
+      console.error("Failed to update saved stock:", error)
+      setRadarTickers((current) => wasSaved
+        ? Array.from(new Set([...current, ticker]))
+        : current.filter((item) => item !== ticker))
+      toast.error("Saham tersimpan gagal diperbarui")
+    } finally {
+      setSavingRadarTickers((current) => current.filter((item) => item !== ticker))
+    }
   }
 
   function handleSort(nextKey: SortKey) {
@@ -1528,6 +1623,69 @@ export function ScreenerPage() {
     }
   }
 
+  function applySavedScreenerConfig(config: SavedScreenerConfig, sourcePresetId?: string | null) {
+    const savedBuilderRules = config.builderState?.rules?.flatMap((savedRule) => {
+      if (!savedRule || typeof savedRule.key !== "string") return []
+      if (!Object.prototype.hasOwnProperty.call(FILTER_LIBRARY, savedRule.key)) return []
+
+      const key = savedRule.key as FilterKey
+      const params = savedRule.params && typeof savedRule.params === "object"
+        ? Object.fromEntries(
+            Object.entries(savedRule.params)
+              .filter(([, value]) => typeof value === "string")
+              .map(([name, value]) => [name, value]),
+          )
+        : { ...FILTER_LIBRARY[key].defaultParams }
+
+      return [createRuleWithParams(key, params)]
+    })
+
+    const nextRules = savedBuilderRules?.length
+      ? savedBuilderRules
+      : [
+          ...(config.fundamentalIndicators ?? [])
+            .map((indicator) => createRuleFromPresetIndicator(indicator as PresetIndicatorConfig, "fundamental"))
+            .filter((rule): rule is ScreenerRule => rule !== null),
+          ...(config.technicalIndicators ?? [])
+            .map((indicator) => createRuleFromPresetIndicator(indicator as PresetIndicatorConfig, "technical"))
+            .filter((rule): rule is ScreenerRule => rule !== null),
+        ]
+
+    setEditingRuleId(null)
+    setActiveRules(nextRules)
+    setActivePresetId(sourcePresetId && screenerPresets.some((preset) => preset.id === sourcePresetId) ? sourcePresetId : null)
+    const savedColumns = config.builderState?.visibleColumnIds?.filter(
+      (columnId): columnId is ColumnId => Object.prototype.hasOwnProperty.call(COLUMN_LABELS, columnId),
+    )
+    const relatedColumns = nextRules.flatMap((rule) => getRelatedColumnsForRule(rule.key))
+    setVisibleColumnIds(
+      Array.from(new Set([
+        ...FIXED_COLUMN_IDS,
+        ...(savedColumns?.length ? savedColumns : getDefaultColumnTemplate()),
+        ...relatedColumns,
+      ])) as ColumnId[],
+    )
+
+    if (typeof config.builderState?.search === "string") {
+      setSearch(config.builderState.search.slice(0, 80))
+    }
+    if (
+      config.builderState?.sortKey &&
+      config.builderState.sortKey !== "action" &&
+      Object.prototype.hasOwnProperty.call(COLUMN_LABELS, config.builderState.sortKey)
+    ) {
+      setSortKey(config.builderState.sortKey as SortKey)
+    }
+    if (config.builderState?.sortDirection === "asc" || config.builderState?.sortDirection === "desc") {
+      setSortDirection(config.builderState.sortDirection)
+    }
+
+    const filters = config.filters
+    setMarketCapFilter(filters?.marketCap?.length === 1 ? String(filters.marketCap[0]).toLowerCase() : "all")
+    setSectorFilter(filters?.sectors?.length === 1 ? String(filters.sectors[0]) : "all")
+    setSyariahFilter(typeof filters?.syariah === "boolean" ? (filters.syariah ? "yes" : "no") : "all")
+  }
+
   function handleSectorFilterChange(value: string) {
     userConfiguredScreenerRef.current = true
     setActivePresetId(null)
@@ -1546,47 +1704,64 @@ export function ScreenerPage() {
     setSyariahFilter(value)
   }
 
-  async function handleSaveStrategy() {
-    if (!strategyName.trim()) return
+  async function handleSaveScreener() {
+    if (!screenerName.trim()) return
 
-    setSavingStrategy(true)
-    const config = buildScreenerConfig()
+    setSavingScreener(true)
+    const config: SavedScreenerConfig = {
+      ...buildScreenerConfig(),
+      builderState: {
+        rules: activeRules.map((rule) => ({
+          key: rule.key,
+          params: { ...rule.params },
+        })),
+        search,
+        sortKey,
+        sortDirection,
+        visibleColumnIds,
+      },
+    }
 
     try {
-      const response = await fetch("/api/strategies/save", {
+      const response = await fetch("/api/watchlist/screeners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: strategyName,
-          description: strategyDescription,
+          name: screenerName,
+          description: screenerDescription,
+          category: activePreset?.groupLabel ?? "Kustom",
+          sourcePresetId: activePresetId,
           config,
-          backtestResults: {
-            recentSignals: {
-              signals: filteredRows.slice(0, 10).map((row) => ({
-                ticker: row.stockCode,
-                date: new Date().toISOString(),
-              })),
-            },
-          },
+          filterLabels: activeRules.map((rule) => FILTER_LIBRARY[rule.key].label),
+          latestMatches: filteredRows.slice(0, 20).map((row) => ({
+            ticker: row.stockCode,
+            score: row.alignmentScore,
+            price: row.close,
+            change: row.changeD1Pct,
+            sector: row.sector,
+          })),
+          lastRunAt: screenerRows.length > 0 ? new Date().toISOString() : null,
         }),
       })
 
       const result = await response.json()
       if (!response.ok || !result.success) {
-        throw new Error(result.message || result.error || "Gagal menyimpan strategy.")
+        throw new Error(result.message || result.error || "Gagal menyimpan screener.")
       }
 
-      setSaveStrategyOpen(false)
-      setStrategyName("")
-      setStrategyDescription("")
+      setSaveScreenerOpen(false)
+      setScreenerName("")
+      setScreenerDescription("")
+      toast.success("Screener disimpan ke Portfolio")
     } catch (error) {
-      console.error("Save strategy error:", error)
+      console.error("Save screener error:", error)
+      toast.error(error instanceof Error ? error.message : "Gagal menyimpan screener")
     } finally {
-      setSavingStrategy(false)
+      setSavingScreener(false)
     }
   }
 
-  function handleOpenSaveStrategy() {
+  function handleOpenSaveScreener() {
     if (!activePresetId && activeRules.length === 0) return
     if (!isLoaded) return
 
@@ -1596,7 +1771,8 @@ export function ScreenerPage() {
       return
     }
 
-    setSaveStrategyOpen(true)
+    if (!screenerName.trim() && activePreset) setScreenerName(activePreset.name)
+    setSaveScreenerOpen(true)
   }
 
   function handleRunScreener() {
@@ -1715,7 +1891,8 @@ export function ScreenerPage() {
               variant={inRadar ? "secondary" : "ghost"}
               size="icon"
               className={`h-7 w-7 ${inRadar ? "text-[#d07225]" : "text-muted-foreground"}`}
-              onClick={() => toggleRadar(row.stockCode)}
+              onClick={() => void toggleRadar(row)}
+              disabled={savingRadarTickers.includes(row.stockCode)}
               aria-label={inRadar ? `Hapus ${row.stockCode} dari radar` : `Tambah ${row.stockCode} ke radar`}
               title={inRadar ? "Radar aktif" : "Tambah radar"}
             >
@@ -1743,7 +1920,7 @@ export function ScreenerPage() {
     .map((columnId) => columnById.get(columnId))
     .filter((column): column is DataTableColumn<ScreenerRow> => column !== undefined)
   const activePreset = screenerPresets.find((preset) => preset.id === activePresetId) ?? null
-  const canSaveStrategy = Boolean(activePresetId || activeRules.length > 0)
+  const canSaveScreener = Boolean(activePresetId || activeRules.length > 0)
   const screenerTableClassName =
     visibleColumns.length <= 8
       ? "w-full min-w-full md:min-w-[980px]"
@@ -1979,8 +2156,8 @@ export function ScreenerPage() {
                         variant="ghost"
                         size="icon"
                         className="h-10 w-10 text-muted-foreground hover:bg-muted hover:text-foreground"
-                        onClick={handleOpenSaveStrategy}
-                        disabled={!canSaveStrategy}
+                        onClick={handleOpenSaveScreener}
+                        disabled={!canSaveScreener}
                         aria-label="Simpan preset"
                       >
                         <Save className="h-4 w-4" />
@@ -2384,7 +2561,7 @@ export function ScreenerPage() {
         <Footer />
       </main>
 
-      <Dialog open={saveStrategyOpen} onOpenChange={setSaveStrategyOpen}>
+      <Dialog open={saveScreenerOpen} onOpenChange={setSaveScreenerOpen}>
         <DialogContent className="border-border/70 bg-card shadow-xl">
           <DialogHeader>
             <DialogTitle>Simpan preset screener</DialogTitle>
@@ -2395,10 +2572,10 @@ export function ScreenerPage() {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Nama strategy</label>
+              <label className="text-sm font-medium">Nama screener</label>
               <Input
-                value={strategyName}
-                onChange={(event) => setStrategyName(event.target.value)}
+                value={screenerName}
+                onChange={(event) => setScreenerName(event.target.value)}
                 placeholder="Contoh: RSI + Value Large Cap"
                 className="bg-background"
               />
@@ -2407,8 +2584,8 @@ export function ScreenerPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Deskripsi</label>
               <textarea
-                value={strategyDescription}
-                onChange={(event) => setStrategyDescription(event.target.value)}
+                value={screenerDescription}
+                onChange={(event) => setScreenerDescription(event.target.value)}
                 placeholder="Jelaskan preset screener ini."
                 className="min-h-[96px] w-full rounded-md border border-border/70 bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-[#487b78]"
               />
@@ -2416,10 +2593,10 @@ export function ScreenerPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSaveStrategyOpen(false)}>Batal</Button>
-            <Button onClick={handleSaveStrategy} disabled={savingStrategy || !strategyName.trim()} className="gap-2">
+            <Button variant="outline" onClick={() => setSaveScreenerOpen(false)}>Batal</Button>
+            <Button onClick={handleSaveScreener} disabled={savingScreener || !screenerName.trim()} className="gap-2">
               <Save className="h-4 w-4" />
-              Simpan strategy
+              {savingScreener ? "Menyimpan…" : "Simpan screener"}
             </Button>
           </DialogFooter>
         </DialogContent>
