@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Activity, ArrowRight, BadgeCheck, ChartColumn, ServerCog } from "lucide-react"
+import { ArrowRight, BadgeCheck, ChartColumn, ServerCog } from "lucide-react"
 
 import { PageChrome } from "@/components/page-chrome"
 import { PageHeader, PageSection, SectionHeader, Surface } from "@/components/page-layout"
@@ -25,7 +25,6 @@ export default function StatusPage() {
   return (
     <PageChrome>
       <PageHeader
-        eyebrow={<span className="inline-flex items-center gap-2"><Activity className="h-3.5 w-3.5" /> System status</span>}
         title="Status operasional seharusnya mudah dibaca, bukan disembunyikan."
         description="Belum ada dashboard incident otomatis, tetapi halaman ini sudah punya bentuk yang tepat untuk komunikasi operasional yang jelas."
         aside={

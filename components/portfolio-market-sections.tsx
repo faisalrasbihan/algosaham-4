@@ -233,13 +233,11 @@ function PercentageValue({
 
 function SectionHeading({
   id,
-  eyebrow,
   title,
   description,
   aside,
 }: {
   id: string
-  eyebrow: string
   title: string
   description: string
   aside?: React.ReactNode
@@ -247,7 +245,6 @@ function SectionHeading({
   return (
     <SystemSectionHeader
       id={id}
-      eyebrow={eyebrow}
       title={title}
       description={description}
       aside={aside}
@@ -265,13 +262,72 @@ function SummaryPill({
   hint?: string
 }) {
   return (
-    <div className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-[#d9d5ce] bg-[#fffdf9] px-3 py-2 shadow-[0_1px_0_rgba(54,53,55,0.03)]">
-      <span className="font-ibm-plex-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+    <div className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-border/80 bg-card px-3 py-2 shadow-sm">
+      <span className="text-xs text-muted-foreground">
         {label}
       </span>
-      <span className="font-ibm-plex-mono text-sm font-bold text-foreground">{value}</span>
+      <span className="text-sm font-semibold text-foreground">{value}</span>
       {hint ? <span className="text-[11px] text-muted-foreground">{hint}</span> : null}
     </div>
+  )
+}
+
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M20.1 11.85a8.1 8.1 0 0 1-11.98 7.12L4 20l1.08-3.98a8.1 8.1 0 1 1 15.02-4.17Z"
+        fill="currentColor"
+      />
+      <path
+        d="M8.18 7.55c.2-.45.42-.46.65-.47h.55c.17 0 .4.06.5.36l.7 1.7c.08.22.04.4-.07.57l-.45.57c-.14.16-.28.31-.11.59.18.28.78 1.25 1.75 2.03 1.2.96 2.15 1.27 2.5 1.42.27.12.47.1.65-.1l.88-1.04c.2-.24.43-.18.68-.09l1.64.78c.28.13.47.2.53.31.07.11.07.63-.15 1.23-.22.6-1.28 1.12-1.77 1.17-.46.05-1.05.07-1.7-.14-.4-.13-.93-.3-1.6-.59-.28-.12-2.45-.9-4.24-2.5-1.5-1.34-2.52-3-2.81-3.56-.3-.56-.03-1.7.19-2.12l.18-.32Z"
+        fill="white"
+      />
+    </svg>
+  )
+}
+
+export function WhatsAppNotificationToggle({
+  sectionLabel,
+  className,
+}: {
+  sectionLabel: string
+  className?: string
+}) {
+  const [enabled, setEnabled] = useState(false)
+
+  return (
+    <button
+      aria-label={`${enabled ? "Nonaktifkan" : "Aktifkan"} notifikasi WhatsApp untuk ${sectionLabel}`}
+      aria-pressed={enabled}
+      className={cn(
+        "inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 py-2 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]/25 focus-visible:ring-offset-2",
+        enabled
+          ? "border-[#25D366]/45 bg-[#effcf3] text-[#167d3e]"
+          : "border-border/80 bg-card text-muted-foreground hover:border-[#25D366]/45 hover:bg-[#f7fcf8] hover:text-[#167d3e]",
+        className,
+      )}
+      onClick={() => setEnabled((current) => !current)}
+      type="button"
+    >
+      <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
+        <WhatsAppIcon className={cn("h-5 w-5", enabled ? "text-[#25D366]" : "text-[#829087]")} />
+        {enabled ? (
+          <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-[#effcf3] bg-[#167d3e] text-white">
+            <Check className="h-2 w-2 stroke-[3]" />
+          </span>
+        ) : null}
+      </span>
+      <span className="font-medium">WhatsApp</span>
+      <span className={cn("text-[11px]", enabled ? "text-[#167d3e]" : "text-muted-foreground")}>
+        {enabled ? "aktif" : "nonaktif"}
+      </span>
+    </button>
   )
 }
 
@@ -354,8 +410,7 @@ function IhsgIndexSection() {
     <section aria-labelledby="ihsg-index-heading">
       <SectionHeading
         id="ihsg-index-heading"
-        eyebrow="Konteks Pasar"
-        title="ihsg index"
+        title="Ringkasan IHSG"
         description="Ringkasan kondisi pasar untuk membantu membaca sinyal pada strategi dan saham yang sedang kamu pantau."
         aside={(
           <div className="flex flex-wrap gap-2">
@@ -367,21 +422,21 @@ function IhsgIndexSection() {
       />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
-        <article className="overflow-hidden rounded-2xl border border-[#d9d5ce] bg-[#fffdf9] shadow-[0_12px_40px_rgba(72,61,48,0.055)]">
-          <div className="flex flex-col gap-4 border-b border-[#ece8e1] px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-6">
+        <article className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
+          <div className="flex flex-col gap-4 border-b border-border/70 px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-6">
             <div>
-              <p className="font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.19em] text-muted-foreground">
+              <p className="text-xs font-medium text-muted-foreground">
                 IHSG · Jakarta Composite
               </p>
               <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="font-ibm-plex-mono text-4xl font-bold tracking-[-0.055em] text-[#282629] sm:text-5xl">
+                <span className="font-heading text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
                   7.326,12
                 </span>
                 <PercentageValue className="text-sm" value={activePeriod.change} />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">Penutupan sebelumnya 7.272,30</p>
             </div>
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-700/20 bg-emerald-50 px-3 py-1.5 font-ibm-plex-mono text-[10px] font-semibold text-emerald-700">
+            <div className="inline-flex w-fit items-center gap-2 rounded-lg border border-emerald-700/20 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
               <TrendingUp className="h-3.5 w-3.5" />
               Bullish intraday
             </div>
@@ -397,10 +452,10 @@ function IhsgIndexSection() {
                     key={period.id}
                     aria-pressed={isActive}
                     className={cn(
-                      "rounded-lg border px-2 py-2 text-center transition-colors",
+                      "rounded-md border px-2 py-2 text-center transition-colors",
                       isActive
-                        ? "border-[#d07225]/60 bg-[#f7e3d2]/55"
-                        : "border-transparent hover:border-[#d9d5ce] hover:bg-[#f7f4ee]",
+                        ? "border-[#d07225]/50 bg-[#d07225]/8"
+                        : "border-transparent hover:border-border hover:bg-muted/60",
                     )}
                     onClick={() => setSelectedPeriod(period.id)}
                     type="button"
@@ -416,8 +471,8 @@ function IhsgIndexSection() {
           </div>
         </article>
 
-        <article className="rounded-2xl border border-[#d9d5ce] bg-[#fffdf9] p-5 shadow-[0_12px_40px_rgba(72,61,48,0.055)] sm:p-6">
-          <div className="flex items-center gap-2 font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.19em] text-muted-foreground">
+        <article className="rounded-xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <Flame className="h-4 w-4 text-[#d07225]" />
             Market pulse
           </div>
@@ -428,13 +483,13 @@ function IhsgIndexSection() {
               { label: "Advancers", value: "312", hint: "saham naik", tone: "positive" },
               { label: "Decliners", value: "241", hint: "saham turun", tone: "negative" },
             ].map((metric) => (
-              <div key={metric.label} className="rounded-xl border border-[#e4e0d9] bg-white/70 p-4">
-                <div className="font-ibm-plex-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <div key={metric.label} className="rounded-lg border border-border/70 bg-muted/25 p-4">
+                <div className="text-xs font-medium text-muted-foreground">
                   {metric.label}
                 </div>
                 <div
                   className={cn(
-                    "mt-2 font-ibm-plex-mono text-2xl font-bold tracking-[-0.04em]",
+                    "mt-2 font-heading text-2xl font-semibold tracking-tight",
                     metric.tone === "positive" && "text-emerald-700",
                     metric.tone === "negative" && "text-rose-600",
                     !metric.tone && "text-foreground",
@@ -447,7 +502,7 @@ function IhsgIndexSection() {
             ))}
           </div>
 
-          <div className="mt-5 space-y-3 border-t border-[#ece8e1] pt-5 text-sm leading-5 text-foreground/80">
+          <div className="mt-5 space-y-3 border-t border-border/70 pt-5 text-sm leading-5 text-foreground/80">
             <div className="flex gap-3">
               <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-600" />
               Energi memimpin penguatan, didukung saham komoditas.
@@ -498,26 +553,26 @@ function StockWatchlistSection() {
     <section aria-labelledby="stock-watchlist-heading">
       <SectionHeading
         id="stock-watchlist-heading"
-        eyebrow="Pantauan Pribadi"
-        title="stock watchlist"
+        title="Saham pantauan"
         description="Saham yang kamu ikuti, disusun agar perubahan harga, score, dan posisi terhadap tren bisa dipindai dalam sekali lihat."
         aside={(
           <div className="flex flex-wrap gap-2">
             <SummaryPill label="Followed" value={watchlistStocks.length} hint="saham" />
             <SummaryPill label="Alerts On" value={alerts.size} hint="aktif" />
+            <WhatsAppNotificationToggle sectionLabel="stock watchlist" />
           </div>
         )}
       />
 
-      <div className="overflow-hidden rounded-2xl border border-[#d9d5ce] bg-[#fffdf9] shadow-[0_12px_40px_rgba(72,61,48,0.05)]">
-        <div className="flex flex-col gap-3 border-b border-[#e8e3dc] p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-border/70 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="relative w-full sm:max-w-sm">
             <label className="sr-only" htmlFor="portfolio-stock-search">
               Cari ticker atau nama saham
             </label>
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
-              className="h-10 w-full rounded-lg border border-[#d9d5ce] bg-white pl-9 pr-3 text-sm outline-none transition focus:border-[#d07225] focus:ring-2 focus:ring-[#d07225]/10"
+              className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none transition focus:border-[#d07225] focus:ring-2 focus:ring-[#d07225]/10"
               id="portfolio-stock-search"
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Cari ticker atau nama..."
@@ -526,7 +581,7 @@ function StockWatchlistSection() {
             />
           </div>
           <Link
-            className="inline-flex items-center gap-1 self-start font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.13em] text-[#a65b1d] hover:text-[#7d4416] sm:self-auto"
+            className="inline-flex h-9 items-center gap-1 self-start rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground shadow-sm transition hover:border-[#d07225]/50 hover:text-[#a65b1d] sm:self-auto"
             href="/screener"
           >
             Tambah saham
@@ -536,12 +591,12 @@ function StockWatchlistSection() {
 
         <div className="overflow-x-auto">
           <div className="min-w-[900px]">
-            <div className="grid grid-cols-[minmax(250px,1.55fr)_84px_repeat(6,minmax(80px,0.65fr))] items-center border-b border-[#e8e3dc] bg-[#f8f5ef]/80 px-5 py-3">
+            <div className="grid grid-cols-[minmax(250px,1.55fr)_84px_repeat(6,minmax(80px,0.65fr))] items-center border-b border-border/70 bg-muted/45 px-5 py-3">
               {["Saham", "Score", "Price", "1D", "5D", "1M", "MA-20", "52W Low"].map((heading, index) => (
                 <div
                   key={heading}
                   className={cn(
-                    "font-ibm-plex-mono text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground",
+                    "text-[11px] font-medium text-muted-foreground",
                     index > 0 && "text-right",
                   )}
                 >
@@ -554,10 +609,10 @@ function StockWatchlistSection() {
               {filteredStocks.map((stock) => (
                 <div
                   key={stock.ticker}
-                  className="group grid grid-cols-[minmax(250px,1.55fr)_84px_repeat(6,minmax(80px,0.65fr))] items-center border-b border-[#eeeae4] px-5 py-3.5 transition-colors last:border-b-0 hover:bg-[#fbf7f0]"
+                  className="group grid grid-cols-[minmax(250px,1.55fr)_84px_repeat(6,minmax(80px,0.65fr))] items-center border-b border-border/60 px-5 py-3.5 transition-colors last:border-b-0 hover:bg-muted/35"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-[#e1ddd6] bg-white p-1.5">
+                    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-border bg-background p-1.5">
                       <Image
                         alt={`${stock.ticker} logo`}
                         className="object-contain"
@@ -601,7 +656,7 @@ function StockWatchlistSection() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="inline-flex h-8 min-w-10 items-center justify-center rounded-lg border border-[#d9d5ce] bg-white px-2 font-ibm-plex-mono text-xs font-bold">
+                    <span className="inline-flex h-8 min-w-10 items-center justify-center rounded-md bg-muted px-2 font-ibm-plex-mono text-xs font-semibold">
                       {stock.score}
                     </span>
                   </div>
@@ -628,7 +683,7 @@ function StockWatchlistSection() {
           </div>
         ) : null}
 
-        <div className="flex items-center justify-between border-t border-[#e8e3dc] bg-[#f8f5ef]/55 px-5 py-3 text-[11px] text-muted-foreground">
+        <div className="flex items-center justify-between border-t border-border/70 bg-muted/30 px-5 py-3 text-[11px] text-muted-foreground">
           <span>Klik ticker untuk membuka analisis lengkap.</span>
           <span className="font-ibm-plex-mono">{filteredStocks.length} / {watchlistStocks.length} shown</span>
         </div>
@@ -649,22 +704,22 @@ function ScreenerWatchlistSection() {
     <section aria-labelledby="screener-watchlist-heading">
       <SectionHeading
         id="screener-watchlist-heading"
-        eyebrow="Sinyal Tersimpan"
-        title="screener watchlist"
+        title="Screener tersimpan"
         description="Screener yang kamu ikuti diringkas menjadi daftar sinyal, sehingga perubahan penting tidak tenggelam di antara seluruh saham."
         aside={(
           <div className="flex flex-wrap gap-2">
             <SummaryPill label="Followed" value={followedScreeners.length} hint="screeners" />
             <SummaryPill label="Matches" value={totalMatches} hint="saham" />
             <SummaryPill label="New Today" value={totalFreshMatches} hint="sinyal" />
+            <WhatsAppNotificationToggle sectionLabel="screener watchlist" />
           </div>
         )}
       />
 
-      <div className="grid overflow-hidden rounded-2xl border border-[#d9d5ce] bg-[#fffdf9] shadow-[0_12px_40px_rgba(72,61,48,0.05)] lg:grid-cols-[330px_minmax(0,1fr)]">
-        <aside className="border-b border-[#e8e3dc] bg-[#f8f5ef]/70 p-3 lg:border-b-0 lg:border-r">
+      <div className="grid overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm lg:grid-cols-[310px_minmax(0,1fr)]">
+        <aside className="border-b border-border/70 bg-muted/35 p-3 lg:border-b-0 lg:border-r">
           <div className="px-2 pb-3 pt-1">
-            <div className="font-ibm-plex-mono text-[9px] font-semibold uppercase tracking-[0.17em] text-muted-foreground">
+            <div className="text-xs font-medium text-muted-foreground">
               Screener diikuti
             </div>
           </div>
@@ -676,25 +731,25 @@ function ScreenerWatchlistSection() {
                   key={screener.id}
                   aria-pressed={isSelected}
                   className={cn(
-                    "w-full rounded-xl border p-3.5 text-left transition-all",
+                    "w-full rounded-lg border p-3.5 text-left transition-all",
                     isSelected
-                      ? "border-[#d07225]/45 bg-white shadow-[0_5px_18px_rgba(72,61,48,0.07)]"
-                      : "border-transparent hover:border-[#ded9d1] hover:bg-white/70",
+                      ? "border-[#d07225]/40 bg-card shadow-sm"
+                      : "border-transparent hover:border-border hover:bg-card/80",
                   )}
                   onClick={() => setSelectedScreenerId(screener.id)}
                   type="button"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="font-ibm-plex-mono text-sm font-bold text-foreground">
+                      <div className="text-sm font-semibold text-foreground">
                         {screener.name}
                       </div>
-                      <div className="mt-1 font-ibm-plex-mono text-[9px] uppercase tracking-[0.14em] text-[#a65b1d]">
+                      <div className="mt-1 text-xs text-muted-foreground">
                         {screener.category}
                       </div>
                     </div>
                     {screener.freshMatches > 0 ? (
-                      <span className="rounded-full bg-[#f7e3d2] px-2 py-1 font-ibm-plex-mono text-[9px] font-bold text-[#a65b1d]">
+                      <span className="rounded-md bg-[#d07225]/10 px-2 py-1 text-[10px] font-semibold text-[#a65b1d]">
                         +{screener.freshMatches}
                       </span>
                     ) : null}
@@ -712,7 +767,7 @@ function ScreenerWatchlistSection() {
           </div>
 
           <Link
-            className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#cfc8bd] px-3 py-3 font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.13em] text-[#a65b1d] transition hover:border-[#d07225] hover:bg-white"
+            className="mt-3 flex items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-3 py-3 text-sm font-medium text-[#a65b1d] transition hover:border-[#d07225] hover:bg-card"
             href="/screener"
           >
             Ikuti screener baru
@@ -721,10 +776,10 @@ function ScreenerWatchlistSection() {
         </aside>
 
         <div className="min-w-0">
-          <div className="flex flex-col gap-4 border-b border-[#e8e3dc] p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
+          <div className="flex flex-col gap-4 border-b border-border/70 p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md border border-[#d9d5ce] bg-[#f8f5ef] px-2 py-1 font-ibm-plex-mono text-[9px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
+                <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                   {selectedScreener.category}
                 </span>
                 <span className="inline-flex items-center gap-1 font-ibm-plex-mono text-[9px] text-emerald-700">
@@ -732,7 +787,7 @@ function ScreenerWatchlistSection() {
                   Followed
                 </span>
               </div>
-              <h3 className="mt-3 font-ibm-plex-mono text-xl font-bold tracking-[-0.025em]">
+              <h3 className="mt-3 font-heading text-xl font-semibold tracking-tight">
                 {selectedScreener.name}
               </h3>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -742,7 +797,7 @@ function ScreenerWatchlistSection() {
                 {selectedScreener.filters.map((filter) => (
                   <span
                     key={filter}
-                    className="rounded-full border border-[#ddd8d0] bg-white px-2.5 py-1 font-ibm-plex-mono text-[9px] text-foreground/75"
+                    className="rounded-md border border-border bg-muted/35 px-2.5 py-1 font-ibm-plex-mono text-[10px] text-foreground/75"
                   >
                     {filter}
                   </span>
@@ -750,7 +805,7 @@ function ScreenerWatchlistSection() {
               </div>
             </div>
             <Link
-              className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-[#d9d5ce] bg-white px-3 font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground transition hover:border-[#d07225]/60 hover:text-[#a65b1d]"
+              className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground shadow-sm transition hover:border-[#d07225]/60 hover:text-[#a65b1d]"
               href={`/screener?preset=${selectedScreener.id}`}
             >
               <RefreshCw className="h-3.5 w-3.5" />
@@ -773,14 +828,14 @@ function ScreenerWatchlistSection() {
               </div>
             </div>
 
-            <div className="mt-4 overflow-hidden rounded-xl border border-[#e4e0d9]">
+            <div className="mt-4 overflow-hidden rounded-lg border border-border/70">
               {selectedScreener.matches.map((stock) => (
                 <Link
                   key={stock.ticker}
-                  className="group flex items-center gap-3 border-b border-[#eeeae4] bg-white/65 px-4 py-3 transition last:border-b-0 hover:bg-[#fbf7f0]"
+                  className="group flex items-center gap-3 border-b border-border/60 bg-card px-4 py-3 transition last:border-b-0 hover:bg-muted/35"
                   href={`/analyze-v2?ticker=${stock.ticker}`}
                 >
-                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-[#e1ddd6] bg-white p-1.5">
+                  <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-border bg-background p-1.5">
                     <Image
                       alt={`${stock.ticker} logo`}
                       className="object-contain"
@@ -836,7 +891,7 @@ function ScreenerWatchlistSection() {
 
 export function PortfolioMarketSections() {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-16 px-4 pb-4 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-7xl space-y-14 px-4 sm:space-y-16 sm:px-6 lg:px-8">
       <IhsgIndexSection />
       <StockWatchlistSection />
       <ScreenerWatchlistSection />

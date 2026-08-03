@@ -6,7 +6,6 @@ import {
   Clock3,
   Library,
   PanelTop,
-  Sparkles,
   SquarePen,
 } from "lucide-react"
 
@@ -48,7 +47,6 @@ export default function BlogPage() {
   return (
     <PageChrome>
       <PageHeader
-        eyebrow={<span className="inline-flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" /> Editorial hub</span>}
         title="Blog untuk trader yang ingin berpikir lebih rapi."
         description="Bukan feed opini pasar. Fokusnya adalah cara membaca backtest, membangun proses screening, dan mengikuti evolusi produk dengan konteks yang jelas."
         actions={
@@ -102,7 +100,6 @@ export default function BlogPage() {
 
       <PageSection className="pt-4">
           <SectionHeader
-            eyebrow="Latest writing"
             title="Arsip yang siap tumbuh tanpa mengubah pola halaman"
             aside={<div className="hidden rounded-md border border-border bg-card px-3 py-2 text-sm text-muted-foreground md:block">
               {blogPosts.length} artikel awal

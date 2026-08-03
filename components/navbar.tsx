@@ -352,12 +352,12 @@ export function Navbar() {
           <div className="hidden md:flex space-x-2">
             <SignInButton mode="modal">
               <Button variant="outline" size="sm" className="hover:bg-[#487b78] hover:text-white">
-                Sign In
+                Masuk
               </Button>
             </SignInButton>
             <SignUpButton mode="modal">
               <Button size="sm" style={{ backgroundColor: "#d07225", color: "white" }} className="hover:opacity-90">
-                Sign Up
+                Daftar
               </Button>
             </SignUpButton>
           </div>
@@ -418,10 +418,10 @@ export function Navbar() {
               <SignedOut>
                 <div className="flex flex-col gap-3 mt-2 border-t border-border/50 pt-6">
                   <SignInButton mode="modal">
-                    <Button variant="outline" className="w-full justify-center h-10 border-[#487b78]/20 text-[#3b6663] hover:bg-[#eff4f4]">Sign In</Button>
+                    <Button variant="outline" className="h-10 w-full justify-center">Masuk</Button>
                   </SignInButton>
                   <SignUpButton mode="modal">
-                    <Button className="w-full justify-center h-10 bg-[#d07225] hover:bg-[#a65b1d] text-white">Sign Up</Button>
+                    <Button className="h-10 w-full justify-center">Daftar</Button>
                   </SignUpButton>
                 </div>
               </SignedOut>

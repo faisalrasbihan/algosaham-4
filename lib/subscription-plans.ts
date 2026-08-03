@@ -76,7 +76,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
       aiChat: UNLIMITED,
     },
     visuals: {
-      badgeLabel: "Most Popular",
+      badgeLabel: "Pilihan populer",
       badgeTone: "primary",
       featured: true,
     },
@@ -97,7 +97,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
       aiChat: UNLIMITED,
     },
     visuals: {
-      badgeLabel: "Best Value",
+      badgeLabel: "Nilai terbaik",
       badgeTone: "accent",
     },
   },

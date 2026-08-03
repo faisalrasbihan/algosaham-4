@@ -13,7 +13,6 @@ export default function NotFound() {
 
       <main className="flex-1">
         <PageHeader
-          eyebrow="Error 404"
           title="Halaman yang kamu cari tidak ada."
           description="Link mungkin sudah berubah, salah ketik, atau halamannya belum tersedia. Coba kembali ke beranda atau lanjut ke halaman utama produk."
           actions={

@@ -8,7 +8,6 @@ import {
   ChevronRight,
   LineChart,
   Radar,
-  Sparkles,
   Target,
   WalletCards,
 } from "lucide-react"
@@ -127,7 +126,6 @@ export default function FeaturesPage() {
   return (
     <PageChrome>
       <PageHeader
-        eyebrow={<span className="inline-flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" /> Semua fitur inti dalam satu alur kerja</span>}
         title="Satu platform untuk riset, simulasi, dan memantau strategi saham."
         description="Cari ide, uji strategi, ikuti strategi komunitas, dan pantau signal harian dalam workflow yang konsisten."
         actions={
@@ -188,7 +186,6 @@ export default function FeaturesPage() {
 
       <PageSection className="pt-4">
         <SectionHeader
-          eyebrow="Main features"
           title="Bukan sekadar daftar tools. Ini alur kerja yang saling terhubung"
         />
 

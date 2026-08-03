@@ -14,8 +14,10 @@ export default function Home() {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       <div className="flex-1">
-        <HeroSection />
-        <PopularStrategiesShowcase />
+        <div className="home-hero-stage">
+          <HeroSection />
+          <PopularStrategiesShowcase />
+        </div>
         <FeaturesSection />
         {/* <StatsSection /> */}
         <HowItWorksSection />

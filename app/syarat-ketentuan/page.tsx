@@ -6,7 +6,6 @@ export default function SyaratKetentuanPage() {
         <PageChrome>
             <PageHeader
                 compact
-                eyebrow="Legal"
                 title="Ketentuan layanan Algosaham.ai"
                 description="Syarat dan Ketentuan Penggunaan Platform. Terakhir diperbarui: 23 Februari 2026."
             />

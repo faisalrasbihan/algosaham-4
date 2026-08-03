@@ -1,14 +1,14 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Loader2 } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import { useState, useEffect } from "react"
-import { useUser, useClerk } from "@clerk/nextjs"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { CardCarousel } from "@/components/card-carousel"
-import { StrategyCardSkeleton } from "@/components/strategy-card-skeleton"
-import { MarketplaceStrategyCard } from "./cards/marketplace-strategy-card"
+import {
+  StrategyShowcaseCard,
+  StrategyShowcaseCardSkeleton,
+} from "./cards/strategy-showcase-card"
 import { Strategy } from "./cards/types"
 import { PageContainer, SectionHeader } from "@/components/page-layout"
 
@@ -58,25 +58,6 @@ export function PopularStrategiesShowcase() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const { isSignedIn } = useUser();
-  const { openSignIn } = useClerk();
-  const router = useRouter();
-
-  const handleSubscribe = (strategyId: string) => {
-    if (!isSignedIn) {
-      openSignIn();
-      return;
-    }
-
-    // If logged in, redirect to strategies page (as per requirement) or specific strategy page
-    // The requirement says: "if they are subscribed, they should also be redirected to the strategies page"
-    // Since we don't have easy immediate check for specific subscription here without API call, 
-    // and specifically "Subscribe" button click usually intends to subscribe, 
-    // but the prompt says "if they clicked subscribe... if they are subscribed... also redirected"
-    // I will redirect to /strategies for now as a safe bet for "logged in" state flow requested.
-    router.push("/strategies");
-  }
-
   useEffect(() => {
     async function fetchStrategies() {
       try {
@@ -112,22 +93,26 @@ export function PopularStrategiesShowcase() {
   }, [])
 
   return (
-    <section className="py-12">
+    <section className="bg-transparent pb-12 pt-0 sm:pb-16 sm:pt-1">
       {/* Section header */}
       <PageContainer>
         <SectionHeader
-          eyebrow="Strategy showcase"
+          align="left"
+          className="mb-5 [&_h2]:text-xl sm:[&_h2]:text-2xl"
           title="Strategi trading pilihan untuk mulai dieksplorasi"
           description="Dibuat dari analisis data historis dan sudah dicoba komunitas trader. Ikuti langsung atau modifikasi sesuai workflow kamu."
         />
       </PageContainer>
 
       {/* Strategy cards grid */}
-      <div className="mb-8">
+      <PageContainer className="mb-8">
         {isLoading ? (
-          <CardCarousel className="snap-x snap-mandatory">
+          <CardCarousel noPadding indicatorStyle="floating" className="snap-x snap-mandatory py-2">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <StrategyCardSkeleton key={i} />
+              <StrategyShowcaseCardSkeleton
+                key={i}
+                className="w-[280px] sm:w-[300px] lg:w-[292px]"
+              />
             ))}
           </CardCarousel>
         ) : error ? (
@@ -145,29 +130,28 @@ export function PopularStrategiesShowcase() {
             <p className="text-muted-foreground">No strategies found</p>
           </div>
         ) : (
-          <CardCarousel className="snap-x snap-mandatory">
-            {strategies.map((strategy) => (
-              <MarketplaceStrategyCard
+          <CardCarousel noPadding indicatorStyle="floating" className="snap-x snap-mandatory py-2">
+            {strategies.map((strategy, index) => (
+              <StrategyShowcaseCard
                 key={strategy.id}
                 strategy={strategy}
-                className="w-[300px] md:w-[340px]"
-                onSubscribe={() => handleSubscribe(strategy.id)}
-                onCardClick={() => router.push('/strategies')}
+                iconVariant={index}
+                className="w-[280px] sm:w-[300px] lg:w-[292px]"
               />
             ))}
           </CardCarousel>
         )}
-      </div>
+      </PageContainer>
 
       {/* View all button */}
-      <div className="text-center px-6">
-        <Link href="/strategies">
-          <Button size="lg" variant="outline" className="bg-white text-foreground border-border hover:bg-[#487b78] hover:text-white">
-            View All Strategies
+      <PageContainer>
+        <Button asChild size="lg" variant="outline">
+          <Link href="/strategies">
+            Lihat semua strategi
             <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </Link>
-      </div>
+          </Link>
+        </Button>
+      </PageContainer>
     </section>
   )
 }

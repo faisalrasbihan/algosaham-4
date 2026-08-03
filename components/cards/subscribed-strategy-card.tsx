@@ -32,7 +32,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
 
     return (
         <Card
-            className="flex-shrink-0 w-80 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer"
+            className="w-80 flex-shrink-0 cursor-pointer rounded-xl border-border/80 bg-card shadow-sm transition-shadow hover:shadow-md"
             onClick={() => onClick?.(strategy)}
         >
             <CardContent className="p-4">
@@ -40,8 +40,8 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
                     <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                                <h3 className="text-base font-bold text-foreground truncate">{strategy.name}</h3>
-                                <Badge variant="secondary" className="bg-ochre/20 text-ochre-100 border-ochre/30 text-xs font-medium">
+                                <h3 className="truncate font-heading text-base font-semibold text-foreground">{strategy.name}</h3>
+                                <Badge variant="secondary" className="border-border bg-muted text-xs font-medium text-muted-foreground">
                                     <Users className="w-3 h-3 mr-1" />
                                     <span className="font-mono">{strategy.subscribers}</span>
                                 </Badge>
@@ -60,7 +60,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
                     </div>
 
                     <div className="flex items-center justify-between py-2 border-t border-border mt-1">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent Signals</span>
+                        <span className="text-xs font-medium text-muted-foreground">Sinyal terbaru</span>
                         <TooltipProvider delayDuration={200}>
                             <div className="flex -space-x-2 py-1 px-1">
                                 {recommendedStocks.slice(0, 3).map((stock: any, idx: number) => (
@@ -95,23 +95,23 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
                                 ) : (
                                     <TrendingDown className="w-3 h-3 text-red-600" />
                                 )}
-                                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                    Strategy Performance
+                                <span className="text-xs font-medium text-muted-foreground">
+                                    Performa strategi
                                 </span>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="text-center">
-                                    <div className="text-xs text-muted-foreground mb-0.5">Total Return</div>
+                                    <div className="mb-0.5 text-xs text-muted-foreground">Total return</div>
                                     <div
-                                        className={`text-xl font-mono ${strategy.totalReturn >= 0 ? "text-green-600" : "text-red-600"}`}
+                                        className={`font-ibm-plex-mono text-xl ${strategy.totalReturn >= 0 ? "text-green-600" : "text-red-600"}`}
                                     >
                                         {formatPercent(strategy.totalReturn)}
                                     </div>
                                 </div>
                                 <div className="text-center">
-                                    <div className="text-xs text-muted-foreground mb-0.5">Since Subscribed</div>
+                                    <div className="mb-0.5 text-xs text-muted-foreground">Sejak diikuti</div>
                                     <div
-                                        className={`text-xl font-mono ${(strategy.returnSinceSubscription || 0) >= 0 ? "text-green-600" : "text-red-600"}`}
+                                        className={`font-ibm-plex-mono text-xl ${(strategy.returnSinceSubscription || 0) >= 0 ? "text-green-600" : "text-red-600"}`}
                                     >
                                         {formatPercent(strategy.returnSinceSubscription || 0)}
                                     </div>
@@ -120,13 +120,13 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
                         </div>
                     </div>
 
-                    <div className="space-y-2.5 font-mono">
+                    <div className="space-y-2.5">
                         <div className="grid grid-cols-2 gap-3">
                             <div className="text-center">
-                                <div className="text-xs text-muted-foreground mb-0.5">Max. Drawdown</div>
+                                <div className="mb-0.5 text-xs text-muted-foreground">Drawdown maks.</div>
                                 <div className="flex items-center justify-center gap-1">
                                     <span
-                                        className={`text-sm ${Math.abs(strategy.maxDrawdown) <= 10 ? "text-green-600" : Math.abs(strategy.maxDrawdown) <= 20 ? "text-yellow-600" : "text-red-600"}`}
+                                        className={`font-ibm-plex-mono text-sm ${Math.abs(strategy.maxDrawdown) <= 10 ? "text-green-600" : Math.abs(strategy.maxDrawdown) <= 20 ? "text-yellow-600" : "text-red-600"}`}
                                     >
                                         {formatRawPercent(strategy.maxDrawdown)}
                                     </span>
@@ -140,10 +140,10 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
                             </div>
 
                             <div className="text-center">
-                                <div className="text-xs text-muted-foreground mb-0.5">Success Rate</div>
+                                <div className="mb-0.5 text-xs text-muted-foreground">Tingkat sukses</div>
                                 <div className="flex items-center justify-center gap-1">
                                     <span
-                                        className={`text-sm ${strategy.winRate >= 70 ? "text-green-600" : strategy.winRate >= 60 ? "text-yellow-600" : "text-red-600"}`}
+                                        className={`font-ibm-plex-mono text-sm ${strategy.winRate >= 70 ? "text-green-600" : strategy.winRate >= 60 ? "text-yellow-600" : "text-red-600"}`}
                                     >
                                         {strategy.winRate.toFixed(0)}%
                                     </span>
@@ -159,7 +159,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
 
                         <div className="grid grid-cols-3 gap-2 text-center">
                             <div>
-                                <div className="text-xs text-muted-foreground mb-0.5">Quality</div>
+                                <div className="mb-0.5 text-xs text-muted-foreground">Kualitas</div>
                                 <div className="flex items-center justify-center gap-1">
                                     <span
                                         className={`text-xs font-semibold ${strategy.sharpeRatio >= 1.5 ? "text-green-600" : strategy.sharpeRatio >= 1 ? "text-yellow-600" : "text-red-600"}`}
@@ -184,7 +184,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
                             <div>
                                 <div className="text-xs text-muted-foreground mb-0.5">Trades</div>
                                 <div className="flex items-center justify-center gap-1">
-                                    <span className="text-xs text-foreground">{strategy.totalTrades}</span>
+                                    <span className="font-ibm-plex-mono text-xs text-foreground">{strategy.totalTrades}</span>
                                     <div className="relative inline-block group">
                                         <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
@@ -195,9 +195,9 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
                             </div>
 
                             <div>
-                                <div className="text-xs text-muted-foreground mb-0.5">Stocks</div>
+                                <div className="mb-0.5 text-xs text-muted-foreground">Saham</div>
                                 <div className="flex items-center justify-center gap-1">
-                                    <span className="text-xs text-foreground">{strategy.stocksHeld}</span>
+                                    <span className="font-ibm-plex-mono text-xs text-foreground">{strategy.stocksHeld}</span>
                                     <div className="relative inline-block group">
                                         <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
@@ -211,7 +211,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
 
                     <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
                         <Calendar className="w-3 h-3" />
-                        Subscribed: {new Date(strategy.subscriptionDate || strategy.createdDate).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':')}
+                        Diikuti: {new Date(strategy.subscriptionDate || strategy.createdDate).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':')}
                     </div>
 
                     <div className="flex items-center gap-2 pt-1">
@@ -225,7 +225,7 @@ export function SubscribedStrategyCard({ strategy, onUnsubscribe, onClick }: Sub
                             className="w-full text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors"
                         >
                             <HeartOff className="w-3 h-3 mr-1" />
-                            Unsubscribe
+                            Berhenti mengikuti
                         </Button>
                     </div>
                 </div>

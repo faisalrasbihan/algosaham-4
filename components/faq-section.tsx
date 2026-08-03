@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, HelpCircle, ArrowRight } from "lucide-react";
+import { ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SectionHeader } from "@/components/page-layout";
+import { PageSection, SectionHeader } from "@/components/page-layout";
 
 interface FAQItem {
   question: string;
@@ -107,22 +107,21 @@ export function FAQSection() {
   };
 
   return (
-    <section className="py-24 px-4 bg-background border-t border-border/50">
-      <div className="max-w-4xl mx-auto">
+    <PageSection className="border-t border-border/60 bg-background py-12 sm:py-16">
+      <div className="mx-auto max-w-4xl">
         <SectionHeader
-          eyebrow={<span className="inline-flex items-center gap-2"><HelpCircle className="h-3.5 w-3.5" /> Pertanyaan umum</span>}
           title="Pertanyaan yang sering diajukan"
           description="Temukan jawaban untuk pertanyaan umum tentang Algosaham.ai."
-          className="mb-10"
+          className="mb-8"
         />
 
-        <div className="space-y-4 mb-8">
+        <div className="mb-8 space-y-2">
           {faqsToDisplay.map((faq) => {
             const isExpanded = expandedItems.has(faq.question);
             return (
               <div
                 key={faq.question}
-                className="border border-border rounded-lg bg-card hover:border-primary/30 transition-colors"
+                className="rounded-lg border border-border bg-card"
               >
                 <button
                   onClick={() => toggleItem(faq.question)}
@@ -166,7 +165,7 @@ export function FAQSection() {
 
         {showAll && (
           <div className="text-center mt-8">
-            <p className="text-sm text-muted-foreground font-mono mb-4">
+            <p className="mb-4 text-sm text-muted-foreground">
               Masih punya pertanyaan? Hubungi kami di{" "}
               <a href="mailto:algosaham.ai@gmail.com" className="text-primary hover:underline">
                 algosaham.ai@gmail.com
@@ -175,6 +174,6 @@ export function FAQSection() {
           </div>
         )}
       </div>
-    </section>
+    </PageSection>
   );
 }

@@ -7,9 +7,15 @@ interface CardCarouselProps {
   children: React.ReactNode
   className?: string
   noPadding?: boolean
+  indicatorStyle?: "gradient" | "floating"
 }
 
-export function CardCarousel({ children, className = "", noPadding = false }: CardCarouselProps) {
+export function CardCarousel({
+  children,
+  className = "",
+  noPadding = false,
+  indicatorStyle = "gradient",
+}: CardCarouselProps) {
   const [showRightIndicator, setShowRightIndicator] = useState(false)
   const [showLeftIndicator, setShowLeftIndicator] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -68,19 +74,27 @@ export function CardCarousel({ children, className = "", noPadding = false }: Ca
       {showRightIndicator && (
         <button
           onClick={handleScrollRight}
-          className="absolute -right-6 top-1/2 -translate-y-1/2 bg-gradient-to-l from-background via-background/80 to-transparent pl-12 pr-4 py-6 cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-end group z-10"
+          className={
+            indicatorStyle === "floating"
+              ? "group absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-border/80 bg-background/90 shadow-md backdrop-blur-sm transition-all hover:border-primary/30 hover:bg-background hover:shadow-lg"
+              : "group absolute -right-6 top-1/2 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-end bg-gradient-to-l from-background via-background/80 to-transparent py-6 pl-12 pr-4 transition-opacity hover:opacity-80"
+          }
           aria-label="Scroll right"
         >
-          <ChevronRight className="w-6 h-6 text-[#d07225] animate-pulse group-hover:animate-none group-hover:scale-110 transition-transform" />
+          <ChevronRight className="h-5 w-5 text-primary transition-transform group-hover:translate-x-0.5" />
         </button>
       )}
       {showLeftIndicator && (
         <button
           onClick={handleScrollLeft}
-          className="absolute -left-6 top-1/2 -translate-y-1/2 bg-gradient-to-r from-background via-background/80 to-transparent pr-12 pl-4 py-6 cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-start group z-10"
+          className={
+            indicatorStyle === "floating"
+              ? "group absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-border/80 bg-background/90 shadow-md backdrop-blur-sm transition-all hover:border-primary/30 hover:bg-background hover:shadow-lg"
+              : "group absolute -left-6 top-1/2 z-10 flex -translate-y-1/2 cursor-pointer items-center justify-start bg-gradient-to-r from-background via-background/80 to-transparent py-6 pl-4 pr-12 transition-opacity hover:opacity-80"
+          }
           aria-label="Scroll left"
         >
-          <ChevronLeft className="w-6 h-6 text-[#d07225] animate-pulse group-hover:animate-none group-hover:scale-110 transition-transform" />
+          <ChevronLeft className="h-5 w-5 text-primary transition-transform group-hover:-translate-x-0.5" />
         </button>
       )}
     </div>

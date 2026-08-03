@@ -1,6 +1,7 @@
 "use client"
 
 import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
 import { SubscribedStrategyCard } from "@/components/cards/subscribed-strategy-card"
 import { RegularStrategyCard } from "@/components/cards/regular-strategy-card"
 import { useUser, RedirectToSignIn } from "@clerk/nextjs"
@@ -40,7 +41,7 @@ import type { BacktestRequest, BacktestResult } from "@/lib/api"
 import { normalizeBacktestContractConfig } from "@/lib/backtest-contract"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { PortfolioMarketSections } from "@/components/portfolio-market-sections"
+import { PortfolioMarketSections, WhatsAppNotificationToggle } from "@/components/portfolio-market-sections"
 import { PageHeader, SectionHeader } from "@/components/page-layout"
 
 // Dialog states for unsubscribe: 'confirm' | 'loading' | 'success'
@@ -72,17 +73,19 @@ interface Strategy {
 
 function SectionSummary({
     items,
+    action,
 }: {
     items: Array<{ label: string; value: string | number; hint?: string }>
+    action?: React.ReactNode
 }) {
     return (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             {items.map((item) => (
                 <div
                     key={item.label}
-                    className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1.5"
+                    className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-border/70 bg-card px-3 py-2 shadow-sm"
                 >
-                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                         {item.label}
                     </div>
                     <div className="text-sm font-semibold text-foreground leading-none">
@@ -93,6 +96,7 @@ function SectionSummary({
                     ) : null}
                 </div>
             ))}
+            {action}
         </div>
     )
 }
@@ -109,18 +113,14 @@ function PortfolioEmptyState({
     onAction?: () => void
 }) {
     return (
-        <div className="py-3">
-            <div className="w-full rounded-2xl border border-border/60 bg-white/55 px-8 py-12 text-center backdrop-blur-md">
-                <p className="text-2xl font-semibold text-foreground">{title}</p>
-                <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">{description}</p>
+        <div className="py-2">
+            <div className="w-full rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center shadow-sm sm:px-8">
+                <p className="font-heading text-xl font-semibold text-foreground">{title}</p>
+                <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
                 {actionLabel && onAction ? (
-                    <button
-                        type="button"
-                        onClick={onAction}
-                        className="mt-5 font-ibm-plex-mono text-xs font-semibold uppercase tracking-[0.16em] text-[#d07225] hover:text-[#a65b1d]"
-                    >
+                    <Button type="button" onClick={onAction} className="mt-5 bg-[#d07225] hover:bg-[#b9631f]">
                         {actionLabel}
-                    </button>
+                    </Button>
                 ) : null}
             </div>
         </div>
@@ -806,16 +806,23 @@ export default function Portfolio() {
     return (
         <div className="min-h-screen bg-background">
             <Navbar />
-            <div className="flex-1 overflow-y-auto pb-8">
-                <PageHeader
-                    compact
-                    eyebrow="Portfolio"
-                    title="Pasar dan strategi dalam satu tampilan"
-                    description="Pantau konteks pasar, watchlist, screener, dan strategi yang kamu ikuti tanpa berpindah workflow."
-                />
+            <main className="pt-16">
+                <div
+                    className="min-h-[calc(100vh-4rem)] pb-16"
+                    style={{
+                        background:
+                            "radial-gradient(circle at 12% 18%, rgba(72, 123, 120, 0.055), transparent 34%), radial-gradient(circle at 88% 12%, rgba(208, 114, 37, 0.045), transparent 32%), linear-gradient(180deg, #fbfbfa 0%, #f8f8f6 62%, #ffffff 100%)",
+                    }}
+                >
+                    <PageHeader
+                        compact
+                        className="border-b-0 bg-transparent [&>div]:pb-8 [&>div]:pt-10 sm:[&>div]:pb-10 sm:[&>div]:pt-14"
+                        title="Pasar dan strategi dalam satu tampilan"
+                        description="Pantau kondisi pasar, saham pilihan, screener, dan strategi Anda dalam satu alur kerja."
+                    />
 
-                <div className="space-y-12">
-                    <PortfolioMarketSections />
+                    <div className="space-y-14 sm:space-y-16">
+                        <PortfolioMarketSections />
 
                     {/* Subscribed Strategies Section */}
                     <section>
@@ -823,40 +830,45 @@ export default function Portfolio() {
                             <div className="mb-6">
                                 <div>
                                     <SectionHeader
-                                        title="subscribed strategies"
-                                        description={<>Strategi yang kamu ikuti dari komunitas. Kami akan mengirimkan notifikasi setiap ada signal baru yang muncul pada strategi-strategi ini. Performa strategi ini <strong className="font-semibold text-ochre">diperbarui secara otomatis setiap hari</strong>.</>}
+                                        title="Strategi yang diikuti"
+                                        description={<>Strategi komunitas yang Anda pantau. Performa dan sinyal baru <strong className="font-semibold text-foreground">diperbarui otomatis setiap hari</strong>.</>}
                                     />
                                     <SectionSummary
                                         items={[
                                             {
-                                                label: "Subscribed",
+                                                label: "Diikuti",
                                                 value: subscribedCount,
-                                                hint: subscribedCount === 1 ? "strategy" : "strategies",
+                                                hint: "strategi",
                                             },
                                             {
-                                                label: subscriptionLimitReached ? "Slots Full" : "Slots Left",
+                                                label: subscriptionLimitReached ? "Slot penuh" : "Slot tersisa",
                                                 value: subscriptionSlotsValue,
                                                 hint: subscriptionSlotsHint,
                                             },
                                         ]}
+                                        action={(
+                                            <WhatsAppNotificationToggle
+                                                sectionLabel="subscribed strategies"
+                                            />
+                                        )}
                                     />
                                 </div>
                             </div>
                             {isLoadingSubscribed ? (
-                                <div className="flex gap-5 overflow-x-auto pt-4 pb-6 scrollbar-hide pl-6 pr-6 -mx-6">
+                                <div className="flex snap-x gap-5 overflow-x-auto pb-3 pt-2 scrollbar-hide">
                                     {[1, 2, 3].map((i) => (
                                         <StrategyCardSkeleton key={i} type="subscribed" />
                                     ))}
                                 </div>
                             ) : subscribedStrategies.length === 0 ? (
                                 <PortfolioEmptyState
-                                    title="Belum ada strategi yang kamu ikuti"
-                                    description="Mulai isi portofolio dengan mengikuti strategi publik dari komunitas. Update performa dan signal baru akan muncul di sini."
-                                    actionLabel="Eksplor Strategi"
+                                    title="Belum ada strategi yang Anda ikuti"
+                                    description="Ikuti strategi publik dari komunitas untuk melihat pembaruan performa dan sinyal baru di sini."
+                                    actionLabel="Jelajahi strategi"
                                     onAction={() => router.push('/strategies')}
                                 />
                             ) : (
-                                <div className="flex gap-5 overflow-x-auto pt-4 pb-6 scrollbar-hide pl-6 pr-6 -mx-6">
+                                <div className="flex snap-x gap-5 overflow-x-auto pb-3 pt-2 scrollbar-hide [&>*]:snap-start">
                                     {subscribedStrategies.map((strategy) => (
                                         <SubscribedStrategyCard
                                             key={strategy.id}
@@ -876,18 +888,18 @@ export default function Portfolio() {
                             <div className="mb-6">
                                 <div>
                                     <SectionHeader
-                                        title="my strategies"
-                                        description={<>Strategi yang kamu buat dan simpan. Data yang ditampilkan <strong className="font-semibold text-ochre">bersifat statis</strong>, jalankan ulang (<em>rerun</em>) secara berkala untuk melihat hasil <em>backtest</em> terbaru.</>}
+                                        title="Strategi saya"
+                                        description={<>Strategi yang Anda buat dan simpan. Jalankan ulang secara berkala untuk memperbarui hasil <em>backtest</em>.</>}
                                     />
                                     <SectionSummary
                                         items={[
                                             {
-                                                label: "Saved",
+                                                label: "Tersimpan",
                                                 value: myStrategiesCount,
-                                                hint: myStrategiesCount === 1 ? "strategy" : "strategies",
+                                                hint: "strategi",
                                             },
                                             {
-                                                label: backtestLimitReached ? "Rerun Quota" : "Backtests Left",
+                                                label: backtestLimitReached ? "Kuota habis" : "Backtest tersisa",
                                                 value: backtestSlotsValue,
                                                 hint: backtestSlotsHint,
                                             },
@@ -896,7 +908,7 @@ export default function Portfolio() {
                                 </div>
                             </div>
                             {isLoadingStrategies ? (
-                                <div className="flex gap-5 overflow-x-auto pt-4 pb-6 scrollbar-hide pl-6 pr-6 -mx-6">
+                                <div className="flex snap-x gap-5 overflow-x-auto pb-3 pt-2 scrollbar-hide">
                                     {[1, 2, 3].map((i) => (
                                         <StrategyCardSkeleton key={i} type="regular" />
                                     ))}
@@ -904,12 +916,12 @@ export default function Portfolio() {
                             ) : savedStrategies.length === 0 ? (
                                 <PortfolioEmptyState
                                     title="Belum ada strategi tersimpan"
-                                    description="Strategi yang kamu buat di halaman Simulasi akan muncul di sini. Simpan strategi pertamamu untuk mulai membangun library pribadi."
+                                    description="Strategi yang Anda buat di halaman Simulasi akan muncul di sini. Simpan strategi pertama untuk membangun koleksi pribadi."
                                     actionLabel="Buka Simulasi"
                                     onAction={() => router.push('/backtest')}
                                 />
                             ) : (
-                                <div className="flex gap-5 overflow-x-auto pt-4 pb-6 scrollbar-hide pl-6 pr-6 -mx-6">
+                                <div className="flex snap-x gap-5 overflow-x-auto pb-3 pt-2 scrollbar-hide [&>*]:snap-start">
                                     {savedStrategies.map((strategy) => (
                                         <RegularStrategyCard
                                             key={strategy.id}
@@ -946,8 +958,10 @@ export default function Portfolio() {
                             )}
                         </div>
                     </section>
+                    </div>
                 </div>
-            </div>
+                <Footer />
+            </main>
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

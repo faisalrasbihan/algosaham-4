@@ -41,7 +41,6 @@ export default function CareersPage() {
   return (
     <PageChrome>
       <PageHeader
-        eyebrow="Careers"
         title="Saat ini kami belum membuka lowongan."
         description="Kami belum sedang merekrut untuk posisi baru. Namun, halaman ini akan diperbarui secara berkala, jadi silakan cek lagi secara rutin untuk melihat peluang terbaru."
         aside={
@@ -70,7 +69,6 @@ export default function CareersPage() {
 
       <PageSection className="pt-4">
           <SectionHeader
-            eyebrow="Area kontribusi"
             title="Fokus area yang biasanya relevan saat kami membuka peran baru"
           />
 

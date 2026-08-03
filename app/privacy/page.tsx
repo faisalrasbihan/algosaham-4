@@ -17,7 +17,6 @@ export default function PrivacyPage() {
     <PageChrome>
       <PageHeader
         compact
-        eyebrow="Legal"
         title="Kebijakan privasi"
         description="Cara algosaham.ai mengelola dan melindungi Data Pribadi pengguna. Terakhir diperbarui: 23 Februari 2026."
       />

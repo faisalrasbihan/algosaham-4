@@ -24,7 +24,7 @@ export default function BacktestPage() {
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-100">
             <Monitor className="w-8 h-8 text-[#d07225]" />
           </div>
-          <h2 className="text-xl font-bold font-ibm-plex-mono text-foreground tracking-tight">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
             Perlu Akses Desktop
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">

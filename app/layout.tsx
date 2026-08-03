@@ -1,5 +1,5 @@
 import type React from "react"
-import { Inter, JetBrains_Mono, IBM_Plex_Mono } from "next/font/google"
+import { IBM_Plex_Mono, Inter, JetBrains_Mono, Sora } from "next/font/google"
 import { ClerkProvider } from '@clerk/nextjs'
 import { Toaster } from 'sonner'
 import { UserTierProvider } from '@/context/user-tier-context'
@@ -9,6 +9,13 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-inter",
+})
+
+const sora = Sora({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sora",
+  weight: ["400", "500", "600", "700"],
 })
 
 const jetbrainsMono = JetBrains_Mono({
@@ -109,7 +116,7 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider>
-      <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} ${ibmPlexMono.variable} antialiased dark`}>
+      <html lang="en" className={`${inter.variable} ${sora.variable} ${jetbrainsMono.variable} ${ibmPlexMono.variable} antialiased dark`}>
         <body className="min-h-screen bg-background text-foreground">
           <UserTierProvider>
             {children}

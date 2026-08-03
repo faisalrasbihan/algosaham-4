@@ -17,56 +17,70 @@ export function PageContainer({ className, ...props }: PageContainerProps) {
 }
 
 type PageHeaderProps = {
+  /** @deprecated Kept temporarily while older routes migrate to the simpler header. */
   eyebrow?: React.ReactNode
   title: React.ReactNode
   description?: React.ReactNode
   actions?: React.ReactNode
   aside?: React.ReactNode
   compact?: boolean
+  align?: "left" | "center"
   className?: string
 }
 
 export function PageHeader({
-  eyebrow,
   title,
   description,
   actions,
   aside,
   compact = false,
+  align = "center",
   className,
 }: PageHeaderProps) {
   return (
-    <header className={cn("bg-background", className)}>
-      <PageContainer className={cn(compact ? "py-8" : "py-10 sm:py-12")}>
+    <header className={cn("border-b border-border/60 bg-background", className)}>
+      <PageContainer className={cn(compact ? "py-8" : "py-10 sm:py-14")}>
         <div
           className={cn(
             "grid gap-6",
             aside && "lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] lg:items-end",
           )}
         >
-          <div className="max-w-3xl">
-            {eyebrow ? (
-              <div className="mb-3 font-ibm-plex-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-ochre">
-                {eyebrow}
-              </div>
-            ) : null}
+          <div
+            className={cn(
+              "max-w-3xl",
+              align === "center" && "mx-auto w-full text-center",
+            )}
+          >
             <h1
               className={cn(
-                "text-balance font-sans font-bold tracking-[-0.035em] text-foreground",
+                "text-balance font-heading font-semibold tracking-tight text-foreground",
                 compact
-                  ? "text-3xl leading-tight sm:text-4xl"
-                  : "text-3xl leading-tight sm:text-4xl lg:text-[2.75rem]",
+                  ? "text-3xl leading-tight sm:text-[2.5rem]"
+                  : "text-3xl leading-tight sm:text-4xl lg:text-5xl",
               )}
             >
               {title}
             </h1>
             {description ? (
-              <div className="mt-3 max-w-3xl text-base leading-7 text-muted-foreground">
+              <div
+                className={cn(
+                  "mt-3 max-w-3xl text-base leading-7 text-muted-foreground",
+                  align === "center" && "mx-auto",
+                )}
+              >
                 {description}
               </div>
             ) : null}
             {actions ? (
-              <div className="mt-6 flex flex-wrap items-center gap-3">{actions}</div>
+              <div
+                className={cn(
+                  "mt-6 flex flex-wrap items-center gap-3",
+                  align === "center" && "justify-center",
+                )}
+              >
+                {actions}
+              </div>
             ) : null}
           </div>
           {aside ? <div>{aside}</div> : null}
@@ -78,45 +92,47 @@ export function PageHeader({
 
 type SectionHeaderProps = {
   id?: string
+  /** @deprecated Kept temporarily while older routes migrate to the simpler header. */
   eyebrow?: React.ReactNode
   title: React.ReactNode
   description?: React.ReactNode
   aside?: React.ReactNode
+  align?: "left" | "center"
   className?: string
 }
 
 export function SectionHeader({
   id,
-  eyebrow,
   title,
   description,
   aside,
+  align = "center",
   className,
 }: SectionHeaderProps) {
   return (
     <div
       className={cn(
-        "mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-end",
+        "mb-5 flex flex-col gap-4",
+        align === "center"
+          ? "items-center text-center"
+          : "justify-between lg:flex-row lg:items-end",
         className,
       )}
     >
-      <div className="max-w-3xl">
-        {eyebrow ? (
-          <div className="mb-2 font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-ochre">
-            {eyebrow}
-          </div>
-        ) : null}
+      <div className={cn("max-w-3xl", align === "center" && "mx-auto")}>
         <h2
           id={id}
-          className="flex items-start gap-2 font-ibm-plex-mono text-xl font-bold leading-8 tracking-[-0.025em] text-foreground sm:text-2xl"
+          className="font-heading text-2xl font-semibold leading-tight tracking-tight text-foreground first-letter:uppercase sm:text-3xl"
         >
-          <span className="select-none text-ochre" aria-hidden="true">
-            |
-          </span>
-          <span>{title}</span>
+          {title}
         </h2>
         {description ? (
-          <div className="mt-2 text-sm leading-6 text-muted-foreground">
+          <div
+            className={cn(
+              "mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base",
+              align === "center" && "mx-auto",
+            )}
+          >
             {description}
           </div>
         ) : null}

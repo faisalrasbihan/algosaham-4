@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { createPortal } from "react-dom"
 import {
   type ColumnDef,
   flexRender,
@@ -21,10 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip"
 import {
   Table,
@@ -83,6 +81,23 @@ export function DataTable<T>({
   paginationResetKey,
   itemLabel = "results",
 }: DataTableProps<T>) {
+  const [hoveredRow, setHoveredRow] = React.useState<{
+    id: string
+    row: T
+    x: number
+    y: number
+  } | null>(null)
+  const [hoverCardSize, setHoverCardSize] = React.useState({ width: 336, height: 360 })
+  const hoverCardRef = React.useRef<HTMLDivElement | null>(null)
+  const pendingHoverRowRef = React.useRef<{
+    id: string
+    row: T
+    x: number
+    y: number
+  } | null>(null)
+  const openHoverCardTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const closeHoverCardTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: initialPageSize,
@@ -155,12 +170,113 @@ export function DataTable<T>({
     })
   }, [data.length])
 
+  React.useEffect(() => {
+    if (!hoveredRow || !hoverCardRef.current) return
+
+    const bounds = hoverCardRef.current.getBoundingClientRect()
+    setHoverCardSize((current) => {
+      if (current.width === bounds.width && current.height === bounds.height) return current
+      return { width: bounds.width, height: bounds.height }
+    })
+  }, [hoveredRow])
+
+  React.useEffect(() => {
+    if (!hoveredRow) return
+
+    const closeOnScroll = () => setHoveredRow(null)
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setHoveredRow(null)
+    }
+
+    window.addEventListener("scroll", closeOnScroll, true)
+    window.addEventListener("keydown", closeOnEscape)
+
+    return () => {
+      window.removeEventListener("scroll", closeOnScroll, true)
+      window.removeEventListener("keydown", closeOnEscape)
+    }
+  }, [hoveredRow])
+
+  React.useEffect(() => {
+    return () => {
+      if (openHoverCardTimerRef.current) clearTimeout(openHoverCardTimerRef.current)
+      if (closeHoverCardTimerRef.current) clearTimeout(closeHoverCardTimerRef.current)
+    }
+  }, [])
+
+  const cancelHoverCardOpen = () => {
+    if (!openHoverCardTimerRef.current) return
+    clearTimeout(openHoverCardTimerRef.current)
+    openHoverCardTimerRef.current = null
+  }
+
+  const cancelHoverCardClose = () => {
+    if (!closeHoverCardTimerRef.current) return
+    clearTimeout(closeHoverCardTimerRef.current)
+    closeHoverCardTimerRef.current = null
+  }
+
+  const scheduleHoverCardClose = () => {
+    cancelHoverCardClose()
+    closeHoverCardTimerRef.current = setTimeout(() => setHoveredRow(null), 120)
+  }
+
+  const scheduleHoverCardOpen = (row: T, id: string, x: number, y: number) => {
+    cancelHoverCardOpen()
+    pendingHoverRowRef.current = { id, row, x, y }
+    openHoverCardTimerRef.current = setTimeout(() => {
+      if (pendingHoverRowRef.current?.id === id) {
+        setHoveredRow(pendingHoverRowRef.current)
+      }
+      openHoverCardTimerRef.current = null
+    }, 180)
+  }
+
+  const hoverCardPosition = React.useMemo(() => {
+    if (!hoveredRow || typeof window === "undefined") return null
+
+    const viewportPadding = 12
+    const pointerGap = 16
+    const maxLeft = Math.max(viewportPadding, window.innerWidth - hoverCardSize.width - viewportPadding)
+    const maxTop = Math.max(viewportPadding, window.innerHeight - hoverCardSize.height - viewportPadding)
+    const preferredLeft = hoveredRow.x + pointerGap
+    const left = preferredLeft + hoverCardSize.width <= window.innerWidth - viewportPadding
+      ? preferredLeft
+      : hoveredRow.x - hoverCardSize.width - pointerGap
+
+    return {
+      left: Math.min(Math.max(left, viewportPadding), maxLeft),
+      top: Math.min(Math.max(hoveredRow.y - 24, viewportPadding), maxTop),
+    }
+  }, [hoverCardSize, hoveredRow])
+
   const isEmpty = table.getRowModel().rows.length === 0
   const renderDataRow = (row: ReturnType<typeof table.getRowModel>["rows"][number]) => {
     const originalRow = row.original
     const rowNode = (
       <TableRow
         key={row.id}
+        onPointerEnter={rowHoverContent ? (event) => {
+          if (event.pointerType === "touch") return
+          cancelHoverCardClose()
+          scheduleHoverCardOpen(originalRow, row.id, event.clientX, event.clientY)
+        } : undefined}
+        onPointerMove={rowHoverContent ? (event) => {
+          if (event.pointerType === "touch") return
+          if (hoveredRow?.id !== row.id && pendingHoverRowRef.current?.id === row.id) {
+            pendingHoverRowRef.current = {
+              id: row.id,
+              row: originalRow,
+              x: event.clientX,
+              y: event.clientY,
+            }
+          }
+        } : undefined}
+        onPointerLeave={rowHoverContent ? () => {
+          cancelHoverCardOpen()
+          pendingHoverRowRef.current = null
+          scheduleHoverCardClose()
+        } : undefined}
         className={cn(
           "bg-white hover:bg-muted/20",
           rowHoverContent ? "cursor-pointer" : undefined,
@@ -179,18 +295,7 @@ export function DataTable<T>({
       </TableRow>
     )
 
-    if (!rowHoverContent) return rowNode
-
-    return (
-      <Tooltip key={row.id} delayDuration={250}>
-        <TooltipTrigger asChild>
-          {rowNode}
-        </TooltipTrigger>
-        <TooltipContent side="top" align="start" className={cn("p-0 overflow-hidden", rowHoverContentClassName)}>
-          {rowHoverContent(originalRow)}
-        </TooltipContent>
-      </Tooltip>
-    )
+    return rowNode
   }
 
   return (
@@ -306,6 +411,24 @@ export function DataTable<T>({
           </div>
         </div>
       </div>
+
+      {rowHoverContent && hoveredRow && hoverCardPosition && typeof document !== "undefined"
+        ? createPortal(
+          <div
+            ref={hoverCardRef}
+            className={cn(
+              "fixed z-50 max-h-[calc(100vh-1.5rem)] overflow-y-auto rounded-md border border-border bg-popover p-0 text-popover-foreground shadow-xl",
+              rowHoverContentClassName
+            )}
+            style={hoverCardPosition}
+            onPointerEnter={cancelHoverCardClose}
+            onPointerLeave={scheduleHoverCardClose}
+          >
+            {rowHoverContent(hoveredRow.row)}
+          </div>,
+          document.body
+        )
+        : null}
     </div>
   )
 }

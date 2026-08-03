@@ -1,15 +1,15 @@
 "use client"
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, ChevronLeft, ChevronRight, Save, Check, Info, Moon, Rocket, TrendingUp, Zap, Gauge, Gem, Layers } from "lucide-react"
+import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Check, Info, Moon, Rocket, TrendingUp, Zap, Gauge, Gem, Layers, Play, RotateCcw } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
-import { PageHeader, SectionHeader } from "@/components/page-layout"
+import { PageHeader } from "@/components/page-layout"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -737,13 +737,13 @@ function formatCategoryLabel(label: string) {
 type CategoryVisual = { icon: LucideIcon; iconWrap: string }
 
 const PRESET_CATEGORY_VISUALS: Record<string, CategoryVisual> = {
-  setup: { icon: Moon, iconWrap: "bg-blue-50 text-blue-600" },
-  breakout: { icon: Rocket, iconWrap: "bg-orange-50 text-orange-600" },
-  trend: { icon: TrendingUp, iconWrap: "bg-teal-50 text-teal-600" },
-  momentum: { icon: Zap, iconWrap: "bg-violet-50 text-violet-600" },
-  "dip buy": { icon: Gauge, iconWrap: "bg-sky-50 text-sky-600" },
-  value: { icon: Gem, iconWrap: "bg-emerald-50 text-emerald-600" },
-  level: { icon: Layers, iconWrap: "bg-indigo-50 text-indigo-600" },
+  setup: { icon: Moon, iconWrap: "bg-muted text-muted-foreground" },
+  breakout: { icon: Rocket, iconWrap: "bg-muted text-muted-foreground" },
+  trend: { icon: TrendingUp, iconWrap: "bg-muted text-muted-foreground" },
+  momentum: { icon: Zap, iconWrap: "bg-muted text-muted-foreground" },
+  "dip buy": { icon: Gauge, iconWrap: "bg-muted text-muted-foreground" },
+  value: { icon: Gem, iconWrap: "bg-muted text-muted-foreground" },
+  level: { icon: Layers, iconWrap: "bg-muted text-muted-foreground" },
 }
 
 const DEFAULT_CATEGORY_VISUAL: CategoryVisual = {
@@ -757,7 +757,6 @@ function getPresetCategoryVisual(preset: ScreenerPreset): CategoryVisual {
 }
 
 const ALL_CATEGORIES_LABEL = "Semua"
-const PRESETS_PER_PAGE = 8
 
 const defaultAlertDraft: AlertDraft = {
   ticker: "",
@@ -884,28 +883,15 @@ function getRelatedColumnsForRule(ruleKey: FilterKey): ColumnId[] {
   return QUICK_FILTER_RELATED_COLUMNS[ruleKey] ?? []
 }
 
-function formatRuleSummary(rule: ScreenerRule) {
-  const definition = FILTER_LIBRARY[rule.key]
-  const usesPercentageDisplay = ["changePct", "monthChangePct", "ytdChangePct", "ma20GapPct", "ma5GapPct"].includes(rule.key)
-  const appendPercent = (value: string) => (usesPercentageDisplay ? `${value}%` : value)
-
-  if (definition.mode === "params") {
-    const configuredCount = Object.values(rule.params).filter((value) => value.trim() !== "").length
-    return configuredCount > 0 ? `${definition.label} (${configuredCount})` : definition.label
-  }
-
-  if (definition.mode === "select") {
-    const selected = definition.options?.find((option) => option.value === rule.params.value)?.label ?? rule.params.value
-    return `${definition.label}: ${selected || "Any"}`
-  }
-
-  const min = rule.params.min?.trim()
-  const max = rule.params.max?.trim()
-
-  if (min && max) return `${definition.label}: ${appendPercent(min)}-${appendPercent(max)}`
-  if (min) return `${definition.label} ≥ ${appendPercent(min)}`
-  if (max) return `${definition.label} ≤ ${appendPercent(max)}`
-  return definition.label
+function getCompactFilterLabel(label: string) {
+  return label
+    .replace(/Accumulation Distribution/g, "A/D")
+    .replace(/Inverse Head Shoulders/g, "Inverse H&S")
+    .replace(/Relative Strength/g, "RS")
+    .replace(/Moving Average/g, "MA")
+    .replace(/Volatility/g, "Vol")
+    .replace(/Volume/g, "Vol")
+    .replace(/Crossover/g, "Cross")
 }
 
 function getPercentGap(close: number | null, average: number | null) {
@@ -1097,8 +1083,8 @@ function alignmentToneClasses(score: number) {
 }
 
 // At-a-glance score in the table cell. The "why" (breakdown + signal date) lives in the
-// row hover card instead of a nested tooltip, because the whole row is already a Radix
-// Tooltip trigger in DataTable — nesting a second trigger here would double-pop.
+// The detailed breakdown lives in the cursor-anchored row preview so the compact score
+// badge can stay readable without introducing another competing hover target.
 function ScoreBadgeCell({ score }: { score: number | null }) {
   if (score === null) {
     return <span className="text-muted-foreground">—</span>
@@ -1140,12 +1126,10 @@ export function ScreenerPage() {
   const [indicatorSearch, setIndicatorSearch] = useState("")
   const [activePresetId, setActivePresetId] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORIES_LABEL)
-  const [presetPage, setPresetPage] = useState(1)
   const screenerPresets = SCREENER_PRESETS
   const [screenerRows, setScreenerRows] = useState<ScreenerRow[]>([])
   const [latestSnapshotDate, setLatestSnapshotDate] = useState<string | null>(null)
   const [screeningSummary, setScreeningSummary] = useState<ScreenerApiResponse["summary"] | null>(null)
-  const [screeningDateRange, setScreeningDateRange] = useState<ScreenerApiResponse["dateRange"]>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [runElapsedTime, setRunElapsedTime] = useState("0.0")
   const [runError, setRunError] = useState<string | null>(null)
@@ -1202,6 +1186,19 @@ export function ScreenerPage() {
     return () => clearInterval(interval)
   }, [isRunning])
 
+  useEffect(() => {
+    if (!screeningSummary) return
+
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("screener-results")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [screeningSummary])
+
   const presetCategories = useMemo(() => {
     const labels: string[] = []
     for (const preset of screenerPresets) {
@@ -1215,13 +1212,6 @@ export function ScreenerPage() {
     if (activeCategory === ALL_CATEGORIES_LABEL) return screenerPresets
     return screenerPresets.filter((preset) => (preset.groupLabel || preset.group) === activeCategory)
   }, [screenerPresets, activeCategory])
-
-  const totalPresetPages = Math.max(1, Math.ceil(visiblePresets.length / PRESETS_PER_PAGE))
-  const safePresetPage = Math.min(presetPage, totalPresetPages)
-  const paginatedPresets = visiblePresets.slice(
-    (safePresetPage - 1) * PRESETS_PER_PAGE,
-    safePresetPage * PRESETS_PER_PAGE,
-  )
 
   const sectors = useMemo(
     () =>
@@ -1330,6 +1320,9 @@ export function ScreenerPage() {
     signInOpenedRef.current = false
     setIsRunning(true)
     setRunError(null)
+    setScreenerRows([])
+    setLatestSnapshotDate(null)
+    setScreeningSummary(null)
 
     try {
       const response = await fetch("/api/screener", {
@@ -1351,7 +1344,6 @@ export function ScreenerPage() {
       setScreenerRows(result.rows)
       setLatestSnapshotDate(result.latestDate)
       setScreeningSummary(result.summary)
-      setScreeningDateRange(result.dateRange)
       // When the backend ranks by alignment, open the table on that ranking.
       if (result.rows.some((row) => row.alignmentScore !== null)) {
         ensureColumnsVisible(["alignmentScore"])
@@ -1609,8 +1601,6 @@ export function ScreenerPage() {
 
   function handleRunScreener() {
     void runScreener()
-    const table = document.getElementById("screener-results")
-    table?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
   function formatNumericValue(value: number | null, digits = 0) {
@@ -1768,60 +1758,49 @@ export function ScreenerPage() {
       </div>
 
       <main className="h-full overflow-y-auto pt-16">
-        <PageHeader
-          compact
-          eyebrow="Screener"
-          title="Pantau semua saham dalam satu radar"
-          description="Filter, urutkan, dan tandai saham berdasarkan data fundamental dan teknikal. Alert disimpan lokal untuk versi awal halaman ini."
-        />
+        <div
+          className="min-h-[calc(100vh-4rem)]"
+          style={{
+            background:
+              "radial-gradient(circle at 12% 18%, rgba(72, 123, 120, 0.055), transparent 34%), radial-gradient(circle at 88% 12%, rgba(208, 114, 37, 0.045), transparent 32%), linear-gradient(180deg, #fbfbfa 0%, #f8f8f6 62%, #ffffff 100%)",
+          }}
+        >
+          <PageHeader
+            compact
+            className="border-b-0 bg-transparent [&>div]:pb-7 [&>div]:pt-10 sm:[&>div]:pb-8 sm:[&>div]:pt-14"
+            title="Pantau semua saham dalam satu radar"
+            description="Filter, urutkan, dan tandai saham berdasarkan data fundamental dan teknikal."
+          />
 
-        <div className="mx-auto max-w-7xl space-y-6 px-4 pb-12 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl space-y-6 px-4 pb-12 sm:px-6 lg:px-8">
 
           <section>
-            <div className="space-y-5">
-              {/* Strategi Populer — header */}
-              <SectionHeader
-                title="strategi populer"
-                description="Pilih pola pasar yang ingin kamu cari. Tinggal pilih, atur, lalu jalankan."
-                aside={<div className="whitespace-nowrap font-ibm-plex-mono text-sm text-muted-foreground">
-                  <span className="text-[#487b78]">{filteredRows.length} saham cocok</span>
-                  {screeningSummary?.stocksScanned ? <span> dari {screeningSummary.stocksScanned}</span> : null}
-                  {latestSnapshotDate ? <span> · update terakhir {latestSnapshotDate}</span> : null}
-                </div>}
-              />
-
+            <div className="space-y-4">
               {/* Category tabs */}
               {screenerPresets.length > 0 ? (
-                <div className="-mx-1 flex flex-wrap items-center gap-1.5 px-1">
-                  {presetCategories.map((category, index) => {
+                  <div className="flex flex-wrap items-center justify-center gap-1.5">
+                  {presetCategories.map((category) => {
                     const isActive = activeCategory === category
                     return (
-                      <Fragment key={category}>
-                        {index === 1 ? (
-                          <span aria-hidden className="mx-1 h-5 w-px self-center bg-border/70" />
-                        ) : null}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveCategory(category)
-                            setPresetPage(1)
-                          }}
-                          className={`rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#487b78]/30 ${
-                            isActive
-                              ? "border-border bg-background text-foreground shadow-sm"
-                              : "border-transparent text-muted-foreground hover:bg-slate-100 hover:text-foreground"
-                          }`}
-                        >
-                          {formatCategoryLabel(category)}
-                        </button>
-                      </Fragment>
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => setActiveCategory(category)}
+                        className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+                          isActive
+                            ? "border-border bg-muted text-foreground"
+                            : "border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                        }`}
+                      >
+                        {formatCategoryLabel(category)}
+                      </button>
                     )
                   })}
                 </div>
               ) : null}
 
               {/* Strategy grid */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid snap-x grid-flow-col auto-cols-[minmax(220px,260px)] gap-3 overflow-x-auto pb-2">
                 {visiblePresets.length === 0 ? (
                   <div className="col-span-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-muted-foreground">
                     {screenerPresets.length === 0
@@ -1829,7 +1808,7 @@ export function ScreenerPage() {
                       : "Tidak ada strategi pada kategori ini."}
                   </div>
                 ) : (
-                  paginatedPresets.map((preset) => {
+                  visiblePresets.map((preset) => {
                     const isActive = activePresetId === preset.id
                     const visual = getPresetCategoryVisual(preset)
                     const Icon = visual.icon
@@ -1846,34 +1825,34 @@ export function ScreenerPage() {
                             applyPreset(preset)
                           }
                         }}
-                        className={`group relative flex flex-col rounded-2xl border bg-card p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#487b78]/30 ${
+                        className={`group relative flex min-h-36 snap-start flex-col rounded-xl border p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
                           isActive
-                            ? "border-[#d8b08a] shadow-[0_10px_24px_rgba(180,106,44,0.12)]"
-                            : "border-border/70 hover:border-slate-300"
+                            ? "border-primary/45 bg-primary/[0.035] shadow-sm"
+                            : "border-border/80 bg-card hover:border-foreground/20"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${visual.iconWrap}`}>
+                          <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 ${visual.iconWrap}`}>
                             <Icon className="h-3.5 w-3.5" />
-                            <span className="font-ibm-plex-mono text-[10px] font-semibold uppercase tracking-[0.14em]">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.12em]">
                               {getPresetCategoryLabel(preset)}
                             </span>
                           </span>
                           {isActive ? (
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                               <Check className="h-3 w-3" />
                             </span>
                           ) : null}
                         </div>
-                        <h3 className="mt-3 text-sm font-semibold leading-snug tracking-tight text-foreground line-clamp-2">
+                        <h3 className="mt-3 text-sm font-semibold leading-snug tracking-tight text-foreground line-clamp-1">
                           {preset.name}
                         </h3>
-                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground line-clamp-2">
                           {preset.summary}
                         </p>
                         {primaryLabel ? (
                           <div className="mt-3">
-                            <span className="inline-flex rounded-md border border-border/70 bg-background px-2 py-0.5 font-ibm-plex-mono text-[10px] font-medium leading-none text-muted-foreground">
+                            <span className="inline-flex rounded-md border border-border/70 bg-background px-2 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
                               {primaryLabel}
                             </span>
                           </div>
@@ -1884,64 +1863,24 @@ export function ScreenerPage() {
                 )}
               </div>
 
-              {/* Pagination */}
-              {totalPresetPages > 1 ? (
-                <div className="flex items-center justify-center gap-1.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 border-border/70 bg-background text-muted-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50 disabled:opacity-40"
-                    onClick={() => setPresetPage((page) => Math.max(1, page - 1))}
-                    disabled={safePresetPage === 1}
-                    aria-label="Halaman sebelumnya"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  {Array.from({ length: totalPresetPages }).map((_, index) => {
-                    const page = index + 1
-                    const isCurrent = page === safePresetPage
-                    return (
-                      <button
-                        key={page}
-                        type="button"
-                        onClick={() => setPresetPage(page)}
-                        className={`h-8 min-w-8 rounded-md border px-2 font-ibm-plex-mono text-xs font-medium transition-colors ${
-                          isCurrent
-                            ? "border-[#d07225]/40 bg-[#fff7ef] text-[#8d5627] shadow-sm"
-                            : "border-border/70 bg-background text-muted-foreground hover:border-slate-300 hover:bg-slate-50"
-                        }`}
-                        aria-current={isCurrent ? "page" : undefined}
-                      >
-                        {page}
-                      </button>
-                    )
-                  })}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 border-border/70 bg-background text-muted-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50 disabled:opacity-40"
-                    onClick={() => setPresetPage((page) => Math.min(totalPresetPages, page + 1))}
-                    disabled={safePresetPage === totalPresetPages}
-                    aria-label="Halaman berikutnya"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+              <div className="space-y-4 rounded-xl border border-border/80 bg-card p-4 shadow-sm sm:p-5">
+                <div className="grid gap-5 lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)]">
+                  <div className="space-y-4 lg:pr-1">
+                <div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">Susun filter</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">Pilih preset di atas atau buat filter sendiri.</p>
+                  </div>
                 </div>
-              ) : null}
-
-              <div className="space-y-4 border-t border-border/70 pt-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-10 gap-2 border-border/70 bg-background px-3 text-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50"
+                      className="h-10 gap-2 border-border bg-background px-3 text-foreground shadow-none hover:bg-muted"
                     >
                       <Plus className="h-4 w-4" />
-                      Indicator
+                      Tambah filter
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-80 max-h-[32rem] overflow-y-auto">
@@ -1952,7 +1891,7 @@ export function ScreenerPage() {
                         <Input
                           value={indicatorSearch}
                           onChange={(event) => setIndicatorSearch(event.target.value)}
-                          placeholder="Cari indicator..."
+                          placeholder="Cari filter..."
                           className="h-9 border-border/70 bg-background pl-8 text-sm"
                         />
                       </div>
@@ -2009,59 +1948,58 @@ export function ScreenerPage() {
                       })}
                     {filteredTechnicalFilterGroups.length === 0 && filteredFundamentalFilters.length === 0 && (
                       <div className="px-3 py-6 text-sm text-muted-foreground">
-                        Tidak ada indicator yang cocok.
+                        Tidak ada filter yang cocok.
                       </div>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <Button
-                  variant="outline"
-                  className="h-10 gap-2 border-border/70 bg-background px-3 text-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50"
-                  onClick={resetScreenerBuilder}
-                  disabled={!activePreset && activeRules.length === 0 && search === "" && sectorFilter === "all" && marketCapFilter === "all" && syariahFilter === "all" && sortKey === "close" && sortDirection === "desc"}
-                >
-                  Reset
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        onClick={resetScreenerBuilder}
+                        disabled={!activePreset && activeRules.length === 0 && search === "" && sectorFilter === "all" && marketCapFilter === "all" && syariahFilter === "all" && sortKey === "close" && sortDirection === "desc"}
+                        aria-label="Reset filter"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Reset filter</TooltipContent>
+                  </Tooltip>
 
-                <Button
-                  variant="outline"
-                  className="h-10 gap-2 border-border/70 bg-background px-3 text-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50"
-                  onClick={handleOpenSaveStrategy}
-                  disabled={!canSaveStrategy}
-                >
-                  <Save className="h-4 w-4" />
-                  Simpan Preset
-                </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        onClick={handleOpenSaveStrategy}
+                        disabled={!canSaveStrategy}
+                        aria-label="Simpan preset"
+                      >
+                        <Save className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Simpan preset</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                </div>
                   </div>
 
-                  <Button
-                    className={`h-11 gap-2 rounded-md border px-5 shadow-sm transition-all duration-500 disabled:cursor-not-allowed disabled:opacity-100 ${isRunning
-                      ? "border-border bg-secondary text-muted-foreground"
-                      : "border-transparent bg-[#d07225] text-white hover:bg-[#b8641f]"
-                      }`}
-                    onClick={handleRunScreener}
-                    disabled={isRunning || !isLoaded}
-                  >
-                    {isRunning ? (
-                      <>
-                        <span>Running... ({runElapsedTime}s)</span>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-                      </>
-                    ) : (
-                      <>
-                        <Search className="h-4 w-4" />
-                        Jalankan Screener
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <div className="lg:border-l lg:border-border/70 lg:pl-5">
+                  <h3 className="mb-2.5 text-sm font-medium text-foreground">Active Filters</h3>
 
                 <div className="flex flex-wrap gap-2">
                   {activeRules.length === 0 ? (
-                    <span className="text-sm text-muted-foreground">
-                      Pilih preset atau tambah indicator.
-                    </span>
+                    <div className="w-full rounded-md border border-dashed border-border/70 bg-muted/20 px-3 py-3 text-sm text-muted-foreground">
+                      Belum ada filter. Pilih preset atau tambahkan filter.
+                    </div>
                   ) : (
                     activeRules.map((rule) => {
                       const definition = FILTER_LIBRARY[rule.key]
@@ -2075,20 +2013,20 @@ export function ScreenerPage() {
                           open={editingRuleId === rule.id}
                           onOpenChange={(open) => setEditingRuleId(open ? rule.id : null)}
                         >
-                          <div className="inline-flex items-center">
+                          <div className="group inline-flex h-9 w-fit items-center rounded-md border border-border/70 bg-muted/25 transition-colors hover:border-border hover:bg-muted/45">
                             <PopoverTrigger asChild>
                               <button
                                 type="button"
-                                className="inline-flex h-9 items-center gap-2 rounded-l-md border border-r-0 border-slate-400 bg-slate-100 px-2.5 font-ibm-plex-mono text-[11px] font-medium text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition-colors hover:border-slate-500 hover:bg-slate-200 hover:text-slate-900"
+                                className="h-full whitespace-nowrap px-3 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
                                 title={`Edit ${definition.label}`}
                               >
-                                <span>{formatRuleSummary(rule)}</span>
+                                {getCompactFilterLabel(definition.label)}
                               </button>
                             </PopoverTrigger>
                             <button
                               type="button"
                               onClick={() => removeRule(rule.id)}
-                              className="inline-flex h-9 items-center justify-center rounded-r-md border border-slate-400 bg-slate-100 px-2 text-slate-500 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                              className="mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
                               aria-label={`Hapus ${definition.label}`}
                               title={`Hapus ${definition.label}`}
                             >
@@ -2178,7 +2116,7 @@ export function ScreenerPage() {
                               </div>
                             ) : (
                               <div className="text-xs text-muted-foreground">
-                                Indicator ini tidak memiliki parameter tambahan.
+                                Filter ini tidak memiliki parameter tambahan.
                               </div>
                             )}
                           </PopoverContent>
@@ -2187,7 +2125,70 @@ export function ScreenerPage() {
                     })
                   )}
                 </div>
+                </div>
+                </div>
 
+                <div
+                  className="-mx-4 -mb-4 flex flex-col gap-4 border-t border-border/70 bg-muted/20 px-4 py-4 sm:-mx-5 sm:-mb-5 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                  aria-live="polite"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <span
+                        className={`h-2 w-2 rounded-full ${activeRules.length > 0 ? "bg-[#d07225]" : "bg-muted-foreground/30"}`}
+                        aria-hidden="true"
+                      />
+                      {isRunning ? "Screener sedang berjalan" : activeRules.length > 0 ? "Siap dijalankan" : "Screener belum siap"}
+                    </div>
+                    <p className={`mt-1 text-xs ${runError ? "text-destructive" : "text-muted-foreground"}`}>
+                      {isRunning
+                        ? `Memindai saham yang sesuai · ${runElapsedTime} detik`
+                        : runError
+                          ? runError
+                          : activeRules.length > 0
+                            ? `${activeRules.length} filter akan diterapkan ke seluruh saham IDX.`
+                            : "Tambahkan setidaknya satu filter untuk menjalankan screener."}
+                    </p>
+                  </div>
+
+                  <Button
+                    className={`h-11 shrink-0 gap-2 rounded-md border px-5 shadow-sm transition-colors disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 ${isRunning
+                      ? "border-border bg-secondary text-muted-foreground"
+                      : "border-transparent bg-[#d07225] text-white hover:bg-[#b8641f]"
+                      }`}
+                    onClick={handleRunScreener}
+                    disabled={isRunning || !isLoaded || activeRules.length === 0}
+                  >
+                    {isRunning ? (
+                      <>
+                        <span>Menjalankan...</span>
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 fill-current" />
+                        Jalankan Screener
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+              </div>
+
+              {screeningSummary ? (
+                <>
+              <div className="flex flex-col gap-2 border-t border-border/70 pt-5 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Hasil screener</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Cari, urutkan, dan sesuaikan kolom setelah screener dijalankan.</p>
+                </div>
+                <div className="text-sm font-medium text-muted-foreground">
+                  <span>
+                    <span className="text-foreground">{filteredRows.length} saham cocok</span>
+                    {screeningSummary.stocksScanned ? ` dari ${screeningSummary.stocksScanned}` : ""}
+                    {latestSnapshotDate ? ` · ${latestSnapshotDate}` : ""}
+                  </span>
+                </div>
               </div>
 
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
@@ -2297,7 +2298,7 @@ export function ScreenerPage() {
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  <div className="flex flex-wrap items-center gap-2 font-ibm-plex-mono text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                     <span>{activeRules.length} filter aktif</span>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -2336,78 +2337,48 @@ export function ScreenerPage() {
                 </div>
               </div>
 
+                </>
+              ) : null}
+
             </div>
           </section>
 
-          {/*
-          {(screeningSummary || runError) && (
-            <section className="rounded-xl border border-border/70 bg-card shadow-sm">
-              <div className="grid gap-3 p-5 text-sm sm:grid-cols-2 xl:grid-cols-5">
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Rows Returned</div>
-                  <div className="mt-1 font-ibm-plex-mono text-lg">{screeningSummary?.totalSignals ?? 0}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Unique Stocks</div>
-                  <div className="mt-1 font-ibm-plex-mono text-lg">{screeningSummary?.uniqueStocks ?? 0}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Stocks Scanned</div>
-                  <div className="mt-1 font-ibm-plex-mono text-lg">{screeningSummary?.stocksScanned ?? 0}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Matched Universe</div>
-                  <div className="mt-1 font-ibm-plex-mono text-lg">{screeningSummary?.passedFundamentals ?? 0}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Snapshot Date</div>
-                  <div className="mt-1 font-ibm-plex-mono text-sm">
-                    {screeningDateRange?.from && screeningDateRange?.to ? `${screeningDateRange.from} → ${screeningDateRange.to}` : "—"}
-                  </div>
-                </div>
-                {runError ? (
-                  <div className="sm:col-span-2 xl:col-span-5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700">
-                    {runError}
-                  </div>
+          {screeningSummary ? (
+            <div id="screener-results" className="scroll-mt-24 space-y-2">
+                {visibleColumns.length > 10 ? (
+                  <TooltipProvider>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Geser tabel ke samping untuk melihat semua kolom.</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className="inline-flex text-muted-foreground hover:text-foreground" aria-label="Informasi scroll tabel">
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Tabel akan melebar otomatis saat kolom yang dipilih semakin banyak.
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TooltipProvider>
                 ) : null}
-              </div>
-            </section>
-          )}
-          */}
+                <DataTable
+                  columns={visibleColumns}
+                  data={filteredRows}
+                  getRowId={(row) => row.stockCode}
+                  emptyMessage="Tidak ada saham yang cocok dengan filter ini."
+                  tableClassName={screenerTableClassName}
+                  rowClassName="hover:bg-slate-50"
+                  rowHoverContent={(row) => <ScreenerRowHoverCard row={row} />}
+                  rowHoverContentClassName="min-w-[336px] max-w-[336px] border-border/70"
+                  initialPageSize={20}
+                  pageSizeOptions={[20, 40, 60, 80]}
+                  paginationResetKey={`${search}|${sectorFilter}|${marketCapFilter}|${syariahFilter}|${sortKey}|${sortDirection}|${activeRules.map((rule) => `${rule.key}:${JSON.stringify(rule.params)}`).join("|")}`}
+                />
+            </div>
+          ) : null}
 
-          <div id="screener-results" className="space-y-2">
-            {visibleColumns.length > 10 ? (
-              <TooltipProvider>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>Geser tabel ke samping untuk melihat semua kolom.</span>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button type="button" className="inline-flex text-muted-foreground hover:text-foreground" aria-label="Informasi scroll tabel">
-                        <Info className="h-3.5 w-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Tabel akan melebar otomatis saat kolom yang dipilih semakin banyak.
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              </TooltipProvider>
-            ) : null}
-            <DataTable
-              columns={visibleColumns}
-              data={filteredRows}
-              getRowId={(row) => row.stockCode}
-              emptyMessage=""
-              tableClassName={screenerTableClassName}
-              rowClassName="hover:bg-slate-50"
-              rowHoverContent={(row) => <ScreenerRowHoverCard row={row} />}
-              rowHoverContentClassName="min-w-[336px] max-w-[336px] border-border/70"
-              initialPageSize={20}
-              pageSizeOptions={[20, 40, 60, 80]}
-              paginationResetKey={`${search}|${sectorFilter}|${marketCapFilter}|${syariahFilter}|${sortKey}|${sortDirection}|${activeRules.map((rule) => `${rule.key}:${JSON.stringify(rule.params)}`).join("|")}`}
-            />
           </div>
-
         </div>
 
         <Footer />
@@ -2416,9 +2387,9 @@ export function ScreenerPage() {
       <Dialog open={saveStrategyOpen} onOpenChange={setSaveStrategyOpen}>
         <DialogContent className="border-border/70 bg-card shadow-xl">
           <DialogHeader>
-            <DialogTitle className="font-ibm-plex-mono">Create New Strategy</DialogTitle>
+            <DialogTitle>Simpan preset screener</DialogTitle>
             <DialogDescription>
-              Simpan preset screener ini sebagai strategy baru.
+              Simpan kombinasi filter ini agar bisa digunakan kembali.
             </DialogDescription>
           </DialogHeader>
 

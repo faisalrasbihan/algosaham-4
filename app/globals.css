@@ -4,35 +4,25 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Warm, low-contrast application canvas. Cards remain pure white. */
-  --background: oklch(0.985 0.005 90);
-  --foreground: #363537;
-  /* jet.DEFAULT */
+  --background: #ffffff;
+  --foreground: #17181d;
   --card: #ffffff;
-  --card-foreground: #363537;
-  /* jet.DEFAULT */
+  --card-foreground: #17181d;
   --popover: #ffffff;
-  --popover-foreground: #363537;
-  /* jet.DEFAULT */
+  --popover-foreground: #17181d;
   --primary: #d07225;
   /* ochre.DEFAULT - main brand color */
   --primary-foreground: #ffffff;
-  --secondary: oklch(0.96 0.008 85);
-  /* french_gray.900 */
-  --secondary-foreground: #363537;
-  /* jet.DEFAULT */
-  --muted: oklch(0.955 0.008 85);
-  /* french_gray.800 */
-  --muted-foreground: #46505d;
-  /* french_gray.200 */
-  --accent: #d1e4e3;
-  /* cambridge_blue.800 - visible hover/highlight surface */
-  --accent-foreground: #305250;
+  --secondary: #f7f7f6;
+  --secondary-foreground: #30323a;
+  --muted: #f7f7f6;
+  --muted-foreground: #696c76;
+  --accent: #f3f1ef;
+  --accent-foreground: #17181d;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: oklch(0.9 0.01 80);
-  /* french_gray.600 */
-  --input: oklch(0.9 0.01 80);
+  --border: #e6e3df;
+  --input: #d8d5d1;
   --ring: #d07225;
   /* ochre.DEFAULT */
   --chart-1: #8cbcb9;
@@ -45,18 +35,15 @@
   /* french_gray.DEFAULT */
   --chart-5: #363537;
   /* jet.DEFAULT */
-  --radius: 0.5rem;
+  --radius: 0.75rem;
   --sidebar: #ffffff;
-  --sidebar-foreground: #363537;
-  /* jet.DEFAULT */
+  --sidebar-foreground: #17181d;
   --sidebar-primary: #d07225;
   /* ochre.DEFAULT */
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #d1e4e3;
-  /* cambridge_blue.800 */
-  --sidebar-accent-foreground: #305250;
-  --sidebar-border: #d0d5dc;
-  /* french_gray.600 */
+  --sidebar-accent: #f7f7f6;
+  --sidebar-accent-foreground: #17181d;
+  --sidebar-border: #e6e3df;
   --sidebar-ring: #d07225;
   /* ochre.DEFAULT */
 }
@@ -64,6 +51,7 @@
 /* Added custom color classes for the new palette */
 @theme inline {
   --font-sans: var(--font-inter);
+  --font-heading: var(--font-sora);
   --font-mono: var(--font-jetbrains-mono);
   --font-ibm-plex-mono: var(--font-ibm-plex-mono);
   --color-background: var(--background);
@@ -168,6 +156,14 @@
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: "cv02", "cv11";
+    min-height: 100vh;
+    position: relative;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-sora), ui-sans-serif, sans-serif;
   }
 }
 
@@ -192,6 +188,93 @@
  */
 .dotted-background {
   background-image: none;
+}
+
+/* Homepage opening: hero copy and strategy showcase share one atmosphere. */
+.home-hero-stage {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 100vh;
+  background: linear-gradient(
+    180deg,
+    #faf6f1 0%,
+    #f7f2ec 52%,
+    #f2ebe4 100%
+  );
+}
+
+.home-hero-stage::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: -20%;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 22% 28%,
+      rgba(91, 156, 255, 0.18) 0%,
+      rgba(91, 156, 255, 0.08) 24%,
+      transparent 48%
+    ),
+    radial-gradient(
+      circle at 68% 18%,
+      rgba(170, 125, 255, 0.16) 0%,
+      rgba(170, 125, 255, 0.07) 25%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 76% 72%,
+      rgba(227, 107, 69, 0.14) 0%,
+      rgba(227, 107, 69, 0.06) 26%,
+      transparent 52%
+    );
+  filter: blur(70px);
+  transform: scale(1.08);
+  opacity: 0.95;
+}
+
+.home-hero-stage::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 50% -10%,
+      rgba(255, 255, 255, 0.92),
+      rgba(255, 255, 255, 0.35) 35%,
+      transparent 65%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(246, 239, 231, 0.48)
+    );
+}
+
+/* Analyze landing: a quieter atmospheric field for the search workspace. */
+.analyze-landing-stage {
+  position: relative;
+  min-height: calc(100vh - 4rem);
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfaf8 58%, #f8f5f1 100%);
+}
+
+.analyze-landing-stage::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -20%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 22% 20%, rgba(91, 156, 255, 0.08), transparent 38%),
+    radial-gradient(circle at 72% 18%, rgba(170, 125, 255, 0.065), transparent 40%),
+    radial-gradient(circle at 68% 72%, rgba(227, 107, 69, 0.07), transparent 42%);
+  filter: blur(90px);
+  transform: scale(1.1);
 }
 
 /* Grainy texture and gradient button */

@@ -18,13 +18,13 @@ interface RegularStrategyCardProps {
 
 export function RegularStrategyCard({ strategy, onEdit, onDelete, onRerun, onSubscribe, isRerunning, isSubscribing }: RegularStrategyCardProps) {
     return (
-        <Card className="flex-shrink-0 w-80 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer">
+        <Card className="w-80 flex-shrink-0 rounded-xl border-border/80 bg-card shadow-sm transition-shadow hover:shadow-md">
             <CardContent className="p-4">
                 <div className="space-y-3">
                     <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                                <h3 className="text-base font-bold text-foreground truncate">{strategy.name}</h3>
+                                <h3 className="truncate font-heading text-base font-semibold text-foreground">{strategy.name}</h3>
                             </div>
 
                             {strategy.description && (
@@ -35,23 +35,23 @@ export function RegularStrategyCard({ strategy, onEdit, onDelete, onRerun, onSub
 
                     <div className="border-t border-b border-border py-3">
                         <div className="text-center">
-                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
-                                Return
+                            <span className="mb-2 block text-xs font-medium text-muted-foreground">
+                                Total return
                             </span>
-                            <div className={`text-3xl font-mono ${strategy.totalReturn >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            <div className={`font-ibm-plex-mono text-3xl ${strategy.totalReturn >= 0 ? "text-green-600" : "text-red-600"}`}>
                                 {strategy.totalReturn > 0 ? "+" : ""}
                                 {strategy.totalReturn}%
                             </div>
                         </div>
                     </div>
 
-                    <div className="space-y-2.5 font-mono">
+                    <div className="space-y-2.5">
                         <div className="grid grid-cols-2 gap-3">
                             <div className="text-center">
-                                <div className="text-xs text-muted-foreground mb-0.5">Max. Drawdown</div>
+                                <div className="mb-0.5 text-xs text-muted-foreground">Drawdown maks.</div>
                                 <div className="flex items-center justify-center gap-1">
                                     <span
-                                        className={`text-sm ${Math.abs(strategy.maxDrawdown) <= 10 ? "text-green-600" : Math.abs(strategy.maxDrawdown) <= 20 ? "text-yellow-600" : "text-red-600"}`}
+                                        className={`font-ibm-plex-mono text-sm ${Math.abs(strategy.maxDrawdown) <= 10 ? "text-green-600" : Math.abs(strategy.maxDrawdown) <= 20 ? "text-yellow-600" : "text-red-600"}`}
                                     >
                                         {strategy.maxDrawdown}%
                                     </span>
@@ -65,10 +65,10 @@ export function RegularStrategyCard({ strategy, onEdit, onDelete, onRerun, onSub
                             </div>
 
                             <div className="text-center">
-                                <div className="text-xs text-muted-foreground mb-0.5">Success Rate</div>
+                                <div className="mb-0.5 text-xs text-muted-foreground">Tingkat sukses</div>
                                 <div className="flex items-center justify-center gap-1">
                                     <span
-                                        className={`text-sm ${strategy.winRate >= 70 ? "text-green-600" : strategy.winRate >= 60 ? "text-yellow-600" : "text-red-600"}`}
+                                        className={`font-ibm-plex-mono text-sm ${strategy.winRate >= 70 ? "text-green-600" : strategy.winRate >= 60 ? "text-yellow-600" : "text-red-600"}`}
                                     >
                                         {strategy.winRate.toFixed(0)}%
                                     </span>
@@ -84,7 +84,7 @@ export function RegularStrategyCard({ strategy, onEdit, onDelete, onRerun, onSub
 
                         <div className="grid grid-cols-3 gap-2 text-center">
                             <div>
-                                <div className="text-xs text-muted-foreground mb-0.5">Quality</div>
+                                <div className="mb-0.5 text-xs text-muted-foreground">Kualitas</div>
                                 <div className="flex items-center justify-center gap-1">
                                     <span
                                         className={`text-xs font-semibold ${strategy.qualityScore === 'Excellent' ? "text-green-600" :
@@ -106,7 +106,7 @@ export function RegularStrategyCard({ strategy, onEdit, onDelete, onRerun, onSub
                             <div>
                                 <div className="text-xs text-muted-foreground mb-0.5">Trades</div>
                                 <div className="flex items-center justify-center gap-1">
-                                    <span className="text-xs text-foreground">{strategy.totalTrades}</span>
+                                    <span className="font-ibm-plex-mono text-xs text-foreground">{strategy.totalTrades}</span>
                                     <div className="relative inline-block group">
                                         <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
@@ -117,9 +117,9 @@ export function RegularStrategyCard({ strategy, onEdit, onDelete, onRerun, onSub
                             </div>
 
                             <div>
-                                <div className="text-xs text-muted-foreground mb-0.5">Stocks</div>
+                                <div className="mb-0.5 text-xs text-muted-foreground">Saham</div>
                                 <div className="flex items-center justify-center gap-1">
-                                    <span className="text-xs text-foreground">{strategy.stocksHeld}</span>
+                                    <span className="font-ibm-plex-mono text-xs text-foreground">{strategy.stocksHeld}</span>
                                     <div className="relative inline-block group">
                                         <Info className="w-3 h-3 text-muted-foreground/60 hover:text-muted-foreground" />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
@@ -134,7 +134,7 @@ export function RegularStrategyCard({ strategy, onEdit, onDelete, onRerun, onSub
                     {strategy.lastRunDate && (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
                             <Clock className="w-3 h-3" />
-                            Last Run: {strategy.lastRunDate}
+                            Dijalankan: {strategy.lastRunDate}
                         </div>
                     )}
 
@@ -149,10 +149,10 @@ export function RegularStrategyCard({ strategy, onEdit, onDelete, onRerun, onSub
                                             if (!isSubscribing) onSubscribe?.(strategy.id);
                                         }}
                                         disabled={isSubscribing}
-                                        className="group w-full bg-white hover:bg-[#d07225] text-foreground hover:text-white border border-[#e6d8ca] hover:border-[#d07225] transition-colors h-9 shadow-sm"
+                                        className="group h-9 w-full border-[#d07225] bg-[#d07225] text-white shadow-sm transition-colors hover:bg-[#b9631f] hover:text-white"
                                     >
                                         {isSubscribing ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-[#b46a2c] group-hover:text-white" /> : <Heart className="w-4 h-4 mr-2 text-[#b46a2c] group-hover:text-white" />}
-                                        <span className="text-sm font-medium">Subscribe</span>
+                                        <span className="text-sm font-medium">Ikuti strategi</span>
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>Berlangganan strategi ini</TooltipContent>

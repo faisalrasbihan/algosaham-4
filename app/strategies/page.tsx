@@ -263,7 +263,6 @@ export default function Strategies() {
       <div className="h-full overflow-y-auto pt-16">
         <PageHeader
           compact
-          eyebrow="Strategi"
           title="Jelajahi strategi yang sudah diuji"
           description="Bandingkan strategi resmi dan komunitas berdasarkan pendekatan, performa, serta profil risikonya."
         />

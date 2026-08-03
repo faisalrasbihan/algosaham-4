@@ -34,14 +34,12 @@ export default function AboutPage() {
   return (
     <PageChrome>
       <PageHeader
-        eyebrow="About us"
         title="algosaham.ai dibangun untuk membuat analisis trading lebih disiplin."
         description="Kami membantu trader dan investor di Indonesia menyusun, menguji, dan menjalankan strategi dengan proses yang lebih sistematis. Fokus kami bukan memberi janji hasil, tetapi memberi alat yang membuat pengambilan keputusan lebih jelas."
       />
 
       <PageSection className="pt-4">
           <SectionHeader
-            eyebrow="Prinsip kami"
             title="Tiga hal yang kami jaga saat membangun produk"
           />
 

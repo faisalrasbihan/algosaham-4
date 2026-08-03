@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react"
-import { SectionHeader } from "@/components/page-layout"
+
+import { PageSection, SectionHeader } from "@/components/page-layout"
 
 export function HowItWorksSection() {
   const steps = [
@@ -30,30 +31,29 @@ export function HowItWorksSection() {
   ]
 
   return (
-    <section className="py-24 px-4 bg-muted/30">
-      <div className="max-w-7xl mx-auto">
-        <SectionHeader
-          eyebrow="Workflow"
-          title="Cara Algosaham.ai bekerja"
-          description="Bangun, uji, evaluasi, lalu jalankan strategi dalam satu alur yang mudah dipahami."
-          className="mb-10"
-        />
+    <PageSection className="border-t border-border/60 bg-muted/30 py-12 sm:py-16">
+      <SectionHeader
+        title="Cara Algosaham.ai bekerja"
+        description="Bangun, uji, evaluasi, lalu jalankan strategi dalam satu alur yang mudah dipahami."
+        className="mb-8"
+      />
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {steps.map((step, index) => (
-            <div key={index} className="relative">
-              <div className="flex flex-col">
-                <div className="text-6xl font-bold text-primary/20 mb-4">{step.number}</div>
-                <h3 className="text-xl font-semibold font-mono text-foreground mb-3">{step.title}</h3>
-                <p className="text-muted-foreground text-sm">{step.description}</p>
+      <div className="grid gap-7 md:grid-cols-2 lg:grid-cols-4">
+        {steps.map((step, index) => (
+          <div key={step.number} className="relative">
+            <div className="flex flex-col">
+              <div className="mb-3 font-heading text-4xl font-semibold tracking-[-0.05em] text-foreground/15">
+                {step.number}
               </div>
-              {index < steps.length - 1 && (
-                <ArrowRight className="hidden lg:block absolute top-12 -right-4 w-8 h-8 text-primary/30" />
-              )}
+              <h3 className="mb-2 text-base font-semibold text-foreground">{step.title}</h3>
+              <p className="text-sm leading-6 text-muted-foreground">{step.description}</p>
             </div>
-          ))}
-        </div>
+            {index < steps.length - 1 && (
+              <ArrowRight className="absolute -right-4 top-6 hidden h-5 w-5 text-foreground/15 lg:block" />
+            )}
+          </div>
+        ))}
       </div>
-    </section>
+    </PageSection>
   )
 }

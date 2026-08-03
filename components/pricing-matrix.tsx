@@ -47,7 +47,7 @@ const pricingData: FeatureCategory[] = PRICING_MATRIX_SECTIONS.map((section, ind
 
 type PaidPlanType = PaidSubscriptionTier
 
-function PricingMatrixInner() {
+function PricingMatrixInner({ showHeader = true }: { showHeader?: boolean }) {
   const [isYearly, setIsYearly] = useState(false)
   const [loadingPlan] = useState<string | null>(null)
   const { isSignedIn } = useUser()
@@ -236,47 +236,58 @@ function PricingMatrixInner() {
   }
 
   const isPaidUser = isSignedIn && (userTier === "suhu" || userTier === "bandar")
+  const billingToggle = !isPaidUser ? (
+    <div
+      className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-muted p-1 text-muted-foreground"
+      aria-label="Periode tagihan"
+    >
+      <button
+        type="button"
+        onClick={() => setIsYearly(false)}
+        aria-pressed={!isYearly}
+        className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-4 py-1.5 text-xs font-medium transition-colors ${
+          !isYearly ? "bg-background text-foreground shadow-sm" : "hover:text-foreground"
+        }`}
+      >
+        Bulanan
+      </button>
+      <button
+        type="button"
+        onClick={() => setIsYearly(true)}
+        aria-pressed={isYearly}
+        className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-4 py-1.5 text-xs font-medium transition-colors ${
+          isYearly ? "bg-background text-foreground shadow-sm" : "hover:text-foreground"
+        }`}
+      >
+        Tahunan
+      </button>
+    </div>
+  ) : null
 
   return (
     <TooltipProvider>
-      <section className="px-4 py-12">
+      <section className={showHeader ? "px-4 py-12" : "px-4 pb-12 pt-2 sm:pt-4"}>
         <div className="mx-auto max-w-7xl">
-          <SectionHeader
-            eyebrow="Paket"
-            title="Harga transparan, fitur lengkap, dan fleksibel"
-            description="Pilih level sesuai gaya trading kamu. Naik level kapan saja."
-            aside={!isPaidUser ? (
-              <div className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200/60 bg-slate-100 p-1 text-muted-foreground">
-                <button
-                  onClick={() => setIsYearly(false)}
-                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-mono font-semibold transition-all ${
-                    !isYearly ? "bg-slate-600 text-white shadow-sm" : "hover:text-foreground"
-                  }`}
-                >
-                  Bulanan
-                </button>
-                <button
-                  onClick={() => setIsYearly(true)}
-                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-xs font-mono font-semibold transition-all ${
-                    isYearly ? "bg-slate-600 text-white shadow-sm" : "hover:text-foreground"
-                  }`}
-                >
-                  Tahunan
-                </button>
-              </div>
-            ) : null}
-          />
+          {showHeader ? (
+            <SectionHeader
+              title="Harga transparan, fitur lengkap, dan fleksibel"
+              description="Pilih level sesuai gaya trading kamu. Naik level kapan saja."
+              aside={billingToggle}
+            />
+          ) : billingToggle ? (
+            <div className="mb-5 flex justify-center sm:justify-end">{billingToggle}</div>
+          ) : null}
 
           <div className="grid gap-6 md:grid-cols-3">
             {plans.map((plan, index) => {
               const showHighlight = !isPaidUser && plan.highlighted
-              const showBadge = !isPaidUser && plan.badge
+              const showBadge = showHighlight && plan.badge
 
               return (
                 <div
                   key={index}
-                  className={`relative flex flex-col rounded-xl border transition-all duration-300 ${
-                    showHighlight ? "z-10 scale-[1.02] border-primary bg-card shadow-xl" : "border-border bg-card"
+                  className={`relative flex flex-col rounded-lg border bg-card ${
+                    showHighlight ? "border-primary" : "border-border"
                   }`}
                 >
                   {showBadge && (
@@ -289,17 +300,17 @@ function PricingMatrixInner() {
 
                   <div className="border-b border-border p-6">
                     <div className="mb-4 text-center">
-                      <h3 className="mb-1 text-xl font-bold text-foreground">{plan.name}</h3>
-                      <p className="text-xs text-muted-foreground font-mono">{plan.description}</p>
+                      <h3 className="mb-1 text-xl font-semibold text-foreground">{plan.name}</h3>
+                      <p className="text-xs text-muted-foreground">{plan.description}</p>
                     </div>
 
                     <div className="mb-4 text-center">
                       <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-3xl font-bold text-foreground">
+                        <span className="text-3xl font-semibold tracking-tight text-foreground">
                           {plan.monthlyPrice === 0 ? "Gratis" : formatPlanPrice(getDisplayedPrice(plan))}
                         </span>
                       </div>
-                      <span className="text-xs text-muted-foreground font-mono">
+                      <span className="text-xs text-muted-foreground">
                         {plan.monthlyPrice === 0
                             ? "selamanya"
                             : isYearly
@@ -335,9 +346,9 @@ function PricingMatrixInner() {
                             Memproses...
                           </>
                         ) : plan.key === userTier ? (
-                          plan.key === "ritel" ? "Paket Saat Ini" : "Manage Subscriptions"
+                          plan.key === "ritel" ? "Paket Saat Ini" : "Kelola langganan"
                         ) : userTier === "suhu" && plan.key === "bandar" ? (
-                          "Upgrade Plan"
+                          "Upgrade paket"
                         ) : (
                           "Pilih Paket"
                         )}
@@ -401,7 +412,7 @@ function PricingMatrixInner() {
           </div>
 
           <div className="mt-16 text-center">
-            <p className="text-sm font-mono text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Punya pertanyaan? Hubungi kami di{" "}
               <a href="mailto:support@algosaham.ai" className="text-primary hover:underline">
                 support@algosaham.ai
@@ -435,16 +446,18 @@ function PricingMatrixInner() {
   )
 }
 
-export function PricingMatrix() {
+export function PricingMatrix({ showHeader = true }: { showHeader?: boolean }) {
   return (
     <Suspense
       fallback={
-        <section className="px-4 py-16">
+        <section className={showHeader ? "px-4 py-16" : "px-4 pb-12 pt-2 sm:pt-4"}>
           <div className="mx-auto max-w-7xl">
-            <div className="mb-12 text-center">
-              <div className="mx-auto h-10 w-3/4 rounded bg-muted animate-pulse" />
-              <div className="mx-auto mt-4 h-6 w-1/2 rounded bg-muted animate-pulse" />
-            </div>
+            {showHeader ? (
+              <div className="mb-12 text-center">
+                <div className="mx-auto h-10 w-3/4 animate-pulse rounded bg-muted" />
+                <div className="mx-auto mt-4 h-6 w-1/2 animate-pulse rounded bg-muted" />
+              </div>
+            ) : null}
             <div className="grid gap-6 md:grid-cols-3">
               {[1, 2, 3].map((item) => (
                 <div key={item} className="rounded-xl border border-border bg-card p-6">
@@ -458,7 +471,7 @@ export function PricingMatrix() {
         </section>
       }
     >
-      <PricingMatrixInner />
+      <PricingMatrixInner showHeader={showHeader} />
     </Suspense>
   )
 }

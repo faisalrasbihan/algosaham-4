@@ -1,5 +1,5 @@
 import { LineChart, Zap, Shield, Code2, TrendingUp, Users } from "lucide-react";
-import { SectionHeader } from "@/components/page-layout";
+import { PageSection, SectionHeader } from "@/components/page-layout";
 
 export function FeaturesSection() {
   const features = [
@@ -36,27 +36,27 @@ export function FeaturesSection() {
   ];
 
   return (
-    <section className="py-24 px-4 border-t border-border/50">
-      <div className="max-w-7xl mx-auto">
-        <SectionHeader
-          eyebrow="Platform"
-          title="Semua yang Anda butuhkan untuk bekerja lebih sistematis"
-          description="Tools profesional untuk riset, simulasi, evaluasi risiko, dan monitoring strategi."
-          className="mb-10"
-        />
+    <PageSection className="border-t border-border/60 py-12 sm:py-16">
+      <SectionHeader
+        title="Semua yang Anda butuhkan untuk bekerja lebih sistematis"
+        description="Tools profesional untuk riset, simulasi, evaluasi risiko, dan monitoring strategi."
+        className="mb-8"
+      />
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <div key={index} className="p-6 rounded-lg border border-border bg-card hover:border-primary/50 transition-colors">
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                <feature.icon className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">{feature.title}</h3>
-              <p className="text-sm leading-6 text-muted-foreground">{feature.description}</p>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {features.map((feature) => (
+          <div
+            key={feature.title}
+            className="rounded-xl border border-border bg-card p-5 transition-colors hover:border-foreground/20"
+          >
+            <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-lg bg-[#f3f3f3]">
+              <feature.icon className="h-5 w-5 text-foreground" strokeWidth={1.8} />
             </div>
-          ))}
-        </div>
+            <h3 className="mb-2 text-base font-semibold text-foreground">{feature.title}</h3>
+            <p className="text-sm leading-6 text-muted-foreground">{feature.description}</p>
+          </div>
+        ))}
       </div>
-    </section>
+    </PageSection>
   );
 }
