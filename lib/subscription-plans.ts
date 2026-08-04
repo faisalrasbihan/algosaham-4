@@ -292,10 +292,14 @@ export function isUnlimited(value: number) {
 export function formatPlanPrice(price: number) {
   if (price === 0) return "Gratis";
 
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
+  // Format as a plain grouped number and prepend "Rp" ourselves. The currency
+  // style's symbol spacing differs between the server's Node ICU (non-breaking
+  // space) and the browser's ICU (no space), which causes a hydration mismatch.
+  // Decimal grouping is stable across ICU versions, so this stays deterministic.
+  const formatted = new Intl.NumberFormat("id-ID", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(price);
+
+  return `Rp ${formatted}`;
 }

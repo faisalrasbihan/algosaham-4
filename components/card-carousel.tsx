@@ -62,11 +62,22 @@ export function CardCarousel({
 
   const paddingClasses = noPadding ? "" : "pl-6 pr-6"
 
+  // Fade the edge that still has cards to scroll toward, so the row dissolves
+  // into "there's more" instead of ending on a hard clip. Left fades once
+  // scrolled; right fades while more remains — driven by the same state as the
+  // chevrons above.
+  const leftStop = showLeftIndicator ? "transparent 0, black 40px" : "black 0"
+  const rightStop = showRightIndicator
+    ? "black calc(100% - 120px), transparent 100%"
+    : "black 100%"
+  const edgeFade = `linear-gradient(to right, ${leftStop}, ${rightStop})`
+
   return (
     <div className="relative">
       <div
         ref={scrollRef}
         className={`flex gap-4 overflow-x-auto pb-4 py-1 scrollbar-hide ${paddingClasses} ${className}`}
+        style={{ maskImage: edgeFade, WebkitMaskImage: edgeFade }}
       >
         {children}
         <div className="w-6 flex-shrink-0" />

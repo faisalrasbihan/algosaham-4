@@ -190,51 +190,69 @@
   background-image: none;
 }
 
-/* Homepage opening: hero copy and strategy showcase share one atmosphere. */
+/*
+ * Homepage layout layers. The atmospheric field itself now comes from the
+ * shared `.page-shell` (via <PageShell>); these just shape the hero height and
+ * keep the lower content on an opaque surface above the field.
+ */
 .home-hero-stage {
   position: relative;
-  overflow: hidden;
+  min-height: calc(100svh - 5rem);
+}
+
+.home-lower-surface {
+  position: relative;
+  z-index: 1;
+  background: var(--background);
+}
+
+/*
+ * Shared app shell. The canvas belongs to the full page—not an inner hero—so
+ * it begins behind the floating navbar and continues through long content and
+ * the footer without a hard horizontal seam.
+ */
+.page-shell {
+  position: relative;
+  overflow-x: clip;
   isolation: isolate;
-  min-height: 100vh;
   background: linear-gradient(
     180deg,
-    #faf6f1 0%,
-    #f7f2ec 52%,
-    #f2ebe4 100%
+    #f8faff 0%,
+    #fbfbfa 48%,
+    #fff9f5 100%
   );
 }
 
-.home-hero-stage::before {
+.page-shell::before {
   content: "";
   position: absolute;
   z-index: -2;
-  inset: -20%;
+  inset: -8rem -10rem;
   pointer-events: none;
   background:
     radial-gradient(
-      circle at 22% 28%,
-      rgba(91, 156, 255, 0.18) 0%,
-      rgba(91, 156, 255, 0.08) 24%,
-      transparent 48%
+      circle 38rem at 22% 12rem,
+      rgba(91, 156, 255, 0.16) 0%,
+      rgba(91, 156, 255, 0.07) 24%,
+      transparent 70%
     ),
     radial-gradient(
-      circle at 68% 18%,
-      rgba(170, 125, 255, 0.16) 0%,
-      rgba(170, 125, 255, 0.07) 25%,
-      transparent 50%
+      circle 34rem at 72% 10rem,
+      rgba(170, 125, 255, 0.14) 0%,
+      rgba(170, 125, 255, 0.06) 25%,
+      transparent 72%
     ),
     radial-gradient(
-      circle at 76% 72%,
-      rgba(227, 107, 69, 0.14) 0%,
-      rgba(227, 107, 69, 0.06) 26%,
-      transparent 52%
+      circle 40rem at 78% 76%,
+      rgba(227, 107, 69, 0.12) 0%,
+      rgba(227, 107, 69, 0.05) 26%,
+      transparent 74%
     );
-  filter: blur(70px);
-  transform: scale(1.08);
-  opacity: 0.95;
+  filter: blur(64px);
+  opacity: 0.9;
 }
 
-.home-hero-stage::after {
+.page-shell::after {
   content: "";
   position: absolute;
   z-index: -1;
@@ -249,32 +267,15 @@
     ),
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.1),
-      rgba(246, 239, 231, 0.48)
+      rgba(255, 255, 255, 0.18),
+      rgba(255, 255, 255, 0.02) 42%,
+      rgba(255, 255, 255, 0.08)
     );
 }
 
-/* Analyze landing: a quieter atmospheric field for the search workspace. */
-.analyze-landing-stage {
-  position: relative;
-  min-height: calc(100vh - 4rem);
-  overflow: hidden;
-  isolation: isolate;
-  background: linear-gradient(180deg, #ffffff 0%, #fbfaf8 58%, #f8f5f1 100%);
-}
-
-.analyze-landing-stage::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: -20%;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 22% 20%, rgba(91, 156, 255, 0.08), transparent 38%),
-    radial-gradient(circle at 72% 18%, rgba(170, 125, 255, 0.065), transparent 40%),
-    radial-gradient(circle at 68% 72%, rgba(227, 107, 69, 0.07), transparent 42%);
-  filter: blur(90px);
-  transform: scale(1.1);
+/* Let the shared canvas remain visible beneath the footer as well. */
+.page-shell footer {
+  background: transparent;
 }
 
 /* Grainy texture and gradient button */

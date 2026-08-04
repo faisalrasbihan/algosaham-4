@@ -1,5 +1,5 @@
-import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
+import { PageShell } from "@/components/page-shell"
 import { HeroSection } from "@/components/hero-section"
 import { PopularStrategiesShowcase } from "@/components/popular-strategies-showcase"
 import { StatsSection } from "@/components/stats-section"
@@ -11,21 +11,22 @@ import { CTASection } from "@/components/cta-section"
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
+    <PageShell>
       <div className="flex-1">
         <div className="home-hero-stage">
           <HeroSection />
           <PopularStrategiesShowcase />
         </div>
-        <FeaturesSection />
-        {/* <StatsSection /> */}
-        <HowItWorksSection />
-        <PricingMatrix />
-        <FAQSection />
-        <CTASection />
+        <div className="home-lower-surface">
+          <FeaturesSection />
+          {/* <StatsSection /> */}
+          <HowItWorksSection />
+          <PricingMatrix />
+          <FAQSection />
+          <CTASection />
+        </div>
       </div>
       <Footer />
-    </div>
+    </PageShell>
   )
 }

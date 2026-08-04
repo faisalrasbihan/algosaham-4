@@ -2,13 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import Image from "next/image";
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { WalletCards, Zap, Heart, Search, LineChart, ArrowUpRight, Loader2, Settings, Menu, MessageSquareText } from "lucide-react";
 import { AccountManagementPage } from "@/components/account-management-page";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { useRouter } from "next/navigation";
+import { NavbarBrand } from "@/components/navbar-brand";
+import { pageContainerClassName } from "@/components/page-layout";
 
 import { useUserTier } from "@/context/user-tier-context";
 import { getTierDisplayName } from "@/lib/subscription-plans";
@@ -96,25 +97,12 @@ export function Navbar() {
   };
 
   return (
-    <nav className="h-16 bg-card/50 backdrop-blur-sm border-b border-border px-6 flex items-center justify-between relative z-50">
-      <Link href="/" className="text-xl font-medium font-ibm-plex-mono flex items-center gap-2">
-        <div className="relative w-8 h-8">
-          <Image
-            src="/icons/logo.svg"
-            alt="Algosaham Logo"
-            fill
-            className="object-contain"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-black">algosaham.ai</span>
-          <span className="px-1.5 py-0.5 rounded-md bg-[#d07225]/10 border border-[#d07225]/20 text-[#d07225] text-xs font-bold leading-none tracking-wider">
-            BETA
-          </span>
-        </div>
-      </Link>
+    <nav className="sticky top-0 z-50 py-3">
+      <div className={pageContainerClassName}>
+        <div className="-mx-1 grid h-14 grid-cols-[minmax(0,1fr)_auto] items-center rounded-2xl border border-black/[0.07] bg-white/[0.8] px-1 shadow-[0_8px_32px_rgba(34,26,17,0.09)] backdrop-blur-xl transform-gpu [backface-visibility:hidden] supports-[backdrop-filter]:bg-white/[0.7] sm:-mx-3 sm:px-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:-mx-4 lg:px-4">
+      <NavbarBrand className="justify-self-start" />
 
-      <div className="hidden md:flex items-center space-x-2 text-sm text-muted-foreground">
+      <div className="hidden md:flex items-center space-x-1 text-sm text-muted-foreground">
         <Link href="/screener" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
           Screener
         </Link>
@@ -337,7 +325,7 @@ export function Navbar() {
         </SignedIn>
       </div >
 
-      <div className="flex items-center space-x-2 md:space-x-3">
+      <div className="flex items-center justify-self-end space-x-2 md:space-x-3">
         <Link href="/help" className="hidden md:block">
           <Button
             variant="ghost"
@@ -399,11 +387,8 @@ export function Navbar() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[85vw] sm:w-[350px] p-6 flex flex-col gap-6">
               <SheetHeader className="text-left mt-2 border-b border-border/50 pb-4">
-                <SheetTitle className="font-ibm-plex-mono text-xl tracking-tight text-foreground flex items-center gap-2">
-                  <div className="relative w-6 h-6">
-                    <Image src="/icons/logo.svg" alt="Logo" fill className="object-contain" />
-                  </div>
-                  algosaham.ai
+                <SheetTitle>
+                  <NavbarBrand showBeta={false} className="text-lg" />
                 </SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-1.5">
@@ -441,6 +426,8 @@ export function Navbar() {
           </Sheet>
         </div>
       </div>
-    </nav >
+      </div>
+      </div>
+    </nav>
   );
 }

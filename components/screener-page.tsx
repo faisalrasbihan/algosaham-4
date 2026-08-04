@@ -7,8 +7,8 @@ import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, Search, SlidersHorizontal, S
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
-import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
+import { PageShell } from "@/components/page-shell"
 import { PageHeader } from "@/components/page-layout"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -1929,19 +1929,8 @@ export function ScreenerPage() {
         : "w-full min-w-[1500px] md:min-w-[2200px]"
 
   return (
-    <div className="h-screen overflow-hidden bg-background">
-      <div className="fixed inset-x-0 top-0 z-40">
-        <Navbar />
-      </div>
-
-      <main className="h-full overflow-y-auto pt-16">
-        <div
-          className="min-h-[calc(100vh-4rem)]"
-          style={{
-            background:
-              "radial-gradient(circle at 12% 18%, rgba(72, 123, 120, 0.055), transparent 34%), radial-gradient(circle at 88% 12%, rgba(208, 114, 37, 0.045), transparent 32%), linear-gradient(180deg, #fbfbfa 0%, #f8f8f6 62%, #ffffff 100%)",
-          }}
-        >
+    <PageShell>
+      <main className="flex-1">
           <PageHeader
             compact
             className="border-b-0 bg-transparent [&>div]:pb-7 [&>div]:pt-10 sm:[&>div]:pb-8 sm:[&>div]:pt-14"
@@ -2556,7 +2545,6 @@ export function ScreenerPage() {
           ) : null}
 
           </div>
-        </div>
 
         <Footer />
       </main>
@@ -2657,6 +2645,6 @@ export function ScreenerPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   )
 }

@@ -18,7 +18,7 @@ import {
     TrendingDown,
     TrendingUp,
 } from "lucide-react"
-import { Navbar } from "@/components/navbar"
+import { PageShell } from "@/components/page-shell"
 import { StockSearch } from "@/components/stock-search"
 import { AdvancedMultiChart } from "@/components/advanced-multi-chart"
 import { TradingViewSingleTickerCard } from "@/components/tradingview-single-ticker-card"
@@ -557,19 +557,17 @@ function AnalyzeV2Content() {
 
     if (!urlTicker || (loading && !data)) {
         return (
-            <div className="min-h-screen bg-background flex flex-col">
-                <Navbar />
+            <PageShell>
                 <div className="flex-1">
                     <StockSearch onSearch={handleSearch} loading={loading} />
                 </div>
-            </div>
+            </PageShell>
         )
     }
 
     if (error || !data) {
         return (
-            <div className="min-h-screen bg-background flex flex-col">
-                <Navbar />
+            <PageShell>
                 <div className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
                     <button
                         onClick={() => router.push("/analyze-v2")}
@@ -589,7 +587,7 @@ function AnalyzeV2Content() {
                         </div>
                     </Card>
                 </div>
-            </div>
+            </PageShell>
         )
     }
 
@@ -608,8 +606,7 @@ function AnalyzeV2Content() {
     ]).slice(0, 7)
 
     return (
-        <div className="min-h-screen bg-background flex flex-col">
-            <Navbar />
+        <PageShell>
             <div className="flex-1 pb-12">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-5 md:mt-7 space-y-5">
                     <button
@@ -980,13 +977,21 @@ function AnalyzeV2Content() {
                     </div>
                 </div>
             </div>
-        </div>
+        </PageShell>
     )
 }
 
 export default function AnalyzeV2Page() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+        <Suspense
+            fallback={(
+                <PageShell>
+                    <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+                        Loading...
+                    </div>
+                </PageShell>
+            )}
+        >
             <AnalyzeV2Content />
         </Suspense>
     )

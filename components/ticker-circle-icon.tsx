@@ -17,7 +17,7 @@ export function TickerCircleIcon({ ticker, className }: TickerCircleIconProps) {
   return (
     <span
       className={cn(
-        "relative flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-white",
+        "relative flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full",
         className,
       )}
       aria-hidden="true"
@@ -32,7 +32,7 @@ export function TickerCircleIcon({ ticker, className }: TickerCircleIconProps) {
           alt=""
           fill
           sizes="24px"
-          className="object-contain p-0.5"
+          className="object-cover"
           onError={() => setHasError(true)}
         />
       )}

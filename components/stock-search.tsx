@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Activity, Brain, Building2, Flame, Search } from "lucide-react"
 import { PageContainer, PageHeader } from "@/components/page-layout"
 import { TickerCircleIcon } from "@/components/ticker-circle-icon"
+import { cn } from "@/lib/utils"
 
 interface StockSearchProps {
   onSearch: (ticker: string) => void
@@ -85,7 +86,7 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
   }
 
   return (
-    <div className="analyze-landing-stage w-full">
+    <div className="w-full">
       <PageHeader
         compact
         className="border-b-0 bg-transparent pt-6 sm:pt-10"
@@ -158,7 +159,12 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
                       key={item.code}
                       type="button"
                       onClick={() => handleQuickTicker(item.code)}
-                      className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/80 bg-background px-2.5 pr-3 text-sm font-medium transition-colors hover:border-foreground/20 hover:bg-muted"
+                      className={cn(
+                        "inline-flex h-9 items-center gap-2 rounded-lg border px-2.5 pr-3 text-sm font-medium transition-colors",
+                        item.hot
+                          ? "border-[#d07225]/25 bg-[#d07225]/[0.06] hover:border-[#d07225]/35 hover:bg-[#d07225]/10"
+                          : "border-border/80 bg-background hover:border-foreground/20 hover:bg-muted",
+                      )}
                       disabled={loading}
                     >
                       <TickerCircleIcon ticker={item.code} />
