@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Bell, BellPlus, ArrowUpDown, ArrowUpRight, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Check, Info, Moon, Rocket, TrendingUp, Zap, Gauge, Gem, Layers, Play, RotateCcw } from "lucide-react"
+import { Bell, BellPlus, ArrowUpDown, ArrowRight, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Check, Info, Moon, Rocket, TrendingUp, Zap, Gauge, Gem, Layers, Play, RotateCcw } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
@@ -1042,43 +1042,50 @@ function ScreenerRowHoverCard({ row }: { row: ScreenerRow }) {
   const alignmentScore = hasAlignment ? Math.round(row.alignmentScore as number) : null
 
   return (
-    <div className="w-[336px] overflow-hidden rounded-md bg-white p-3">
-      <div className="h-[178px] overflow-hidden rounded-lg border border-slate-200 bg-white">
-        <TradingViewMiniChart ticker={row.stockCode} />
+    <div className="w-[336px] overflow-hidden bg-white">
+      <div className="p-2.5 pb-0">
+        <div className="h-[178px] overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <TradingViewMiniChart ticker={row.stockCode} />
+        </div>
       </div>
 
       {hasAlignment ? (
-        <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">AI Score</span>
-            <span className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 font-ibm-plex-mono text-xs font-semibold ${alignmentToneClasses(alignmentScore as number)}`}>
+        <dl className="px-4 py-3">
+          <div className="flex items-center justify-between gap-4 py-2 text-xs">
+            <dt className="text-muted-foreground">AI score</dt>
+            <dd className="font-ibm-plex-mono font-semibold text-foreground">
               {alignmentScore}/100
-            </span>
+            </dd>
           </div>
-          {row.alignmentBreakdown.length > 0 ? (
-            <ul className="mt-2 space-y-1">
-              {row.alignmentBreakdown.map((item, index) => (
-                <li key={`${item.indicator}-${index}`} className="flex items-center justify-between gap-3 text-xs">
-                  <span className="text-slate-600">{formatAlignmentIndicator(item.indicator)}</span>
-                  <span className="font-ibm-plex-mono font-medium text-slate-700">{item.score ?? "—"}</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          {row.alignmentBreakdown.map((item, index) => (
+            <div
+              key={`${item.indicator}-${index}`}
+              className="flex items-center justify-between gap-4 border-t border-border/70 py-2 text-xs"
+            >
+              <dt className="min-w-0 truncate text-muted-foreground">
+                {formatAlignmentIndicator(item.indicator)}
+              </dt>
+              <dd className="shrink-0 font-ibm-plex-mono font-medium text-foreground">
+                {item.score ?? "—"}
+              </dd>
+            </div>
+          ))}
           {row.signalDate ? (
-            <p className="mt-2 border-t border-slate-200 pt-2 text-[11px] text-slate-500">
-              Sinyal terbaru: {row.signalDate}
-            </p>
+            <div className="flex items-center justify-between gap-4 border-t border-border/70 py-2 text-xs">
+              <dt className="text-muted-foreground">Sinyal terbaru</dt>
+              <dd className="font-medium text-foreground">{formatSignalDate(row.signalDate)}</dd>
+            </div>
           ) : null}
-        </div>
+        </dl>
       ) : null}
 
-      <Button asChild className="mt-3 h-9 w-full gap-2 bg-[#d07225] text-white hover:bg-[#a65b1d]">
-        <Link href={`/analyze-v2?ticker=${row.stockCode}`}>
-          Analyze now
-          <ArrowUpRight className="h-3.5 w-3.5" />
-        </Link>
-      </Button>
+      <Link
+        href={`/analyze-v2?ticker=${row.stockCode}`}
+        className="group flex h-11 items-center justify-between border-t border-border/70 px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
+      >
+        <span>Deep dive {row.stockCode}</span>
+        <ArrowRight className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-[#d07225]" />
+      </Link>
     </div>
   )
 }
@@ -1089,13 +1096,27 @@ function formatAlignmentIndicator(indicator: string) {
   return normalized
 }
 
+function formatSignalDate(value: string) {
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? new Date(`${value}T00:00:00Z`)
+    : new Date(value)
+
+  if (Number.isNaN(parsed.getTime())) return value
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(parsed)
+}
+
 function alignmentToneClasses(score: number) {
   if (score >= 67) return "border-emerald-200 bg-emerald-50 text-emerald-700"
   if (score >= 34) return "border-amber-200 bg-amber-50 text-amber-700"
   return "border-slate-200 bg-slate-50 text-slate-600"
 }
 
-// At-a-glance score in the table cell. The "why" (breakdown + signal date) lives in the
 // The detailed breakdown lives in the cursor-anchored row preview so the compact score
 // badge can stay readable without introducing another competing hover target.
 function ScoreBadgeCell({ score }: { score: number | null }) {
@@ -1930,7 +1951,7 @@ export function ScreenerPage() {
 
   return (
     <PageShell>
-      <main className="flex-1">
+      <main className="flex min-h-[calc(100svh-5rem)] min-w-0 flex-1 flex-col">
           <PageHeader
             compact
             className="border-b-0 bg-transparent [&>div]:pb-7 [&>div]:pt-10 sm:[&>div]:pb-8 sm:[&>div]:pt-14"
@@ -1938,35 +1959,37 @@ export function ScreenerPage() {
             description="Filter, urutkan, dan tandai saham berdasarkan data fundamental dan teknikal."
           />
 
-          <div className="mx-auto max-w-7xl space-y-6 px-4 pb-12 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full min-w-0 max-w-7xl space-y-6 px-4 pb-12 sm:px-6 lg:px-8">
 
-          <section>
-            <div className="space-y-4">
+          <section className="min-w-0">
+            <div className="w-full min-w-0 space-y-4">
               {/* Category tabs */}
               {screenerPresets.length > 0 ? (
-                  <div className="flex flex-wrap items-center justify-center gap-1.5">
-                  {presetCategories.map((category) => {
-                    const isActive = activeCategory === category
-                    return (
-                      <button
-                        key={category}
-                        type="button"
-                        onClick={() => setActiveCategory(category)}
-                        className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
-                          isActive
-                            ? "border-border bg-muted text-foreground"
-                            : "border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                        }`}
-                      >
-                        {formatCategoryLabel(category)}
-                      </button>
-                    )
-                  })}
+                <div className="-mx-4 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 md:mx-0 md:px-0">
+                  <div className="flex w-max items-center gap-1.5 md:mx-auto">
+                    {presetCategories.map((category) => {
+                      const isActive = activeCategory === category
+                      return (
+                        <button
+                          key={category}
+                          type="button"
+                          onClick={() => setActiveCategory(category)}
+                          className={`shrink-0 whitespace-nowrap rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+                            isActive
+                              ? "border-border bg-muted text-foreground"
+                              : "border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                          }`}
+                        >
+                          {formatCategoryLabel(category)}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               ) : null}
 
               {/* Strategy grid */}
-              <div className="grid snap-x grid-flow-col auto-cols-[minmax(220px,260px)] gap-3 overflow-x-auto pb-2">
+              <div className="grid w-full min-w-0 max-w-full snap-x grid-flow-col auto-cols-[minmax(220px,260px)] gap-3 overflow-x-auto overscroll-x-contain pb-2">
                 {visiblePresets.length === 0 ? (
                   <div className="col-span-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-muted-foreground">
                     {screenerPresets.length === 0
@@ -2029,9 +2052,9 @@ export function ScreenerPage() {
                 )}
               </div>
 
-              <div className="space-y-4 rounded-xl border border-border/80 bg-card p-4 shadow-sm sm:p-5">
-                <div className="grid gap-5 lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)]">
-                  <div className="space-y-4 lg:pr-1">
+              <div className="w-full min-w-0 space-y-4 rounded-xl border border-border/80 bg-card p-4 shadow-sm sm:p-5">
+                <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)]">
+                  <div className="min-w-0 space-y-4 lg:pr-1">
                 <div>
                   <div>
                     <h2 className="text-lg font-semibold text-foreground">Susun filter</h2>
@@ -2158,10 +2181,10 @@ export function ScreenerPage() {
                 </div>
                   </div>
 
-                <div className="lg:border-l lg:border-border/70 lg:pl-5">
+                <div className="min-w-0 lg:border-l lg:border-border/70 lg:pl-5">
                   <h3 className="mb-2.5 text-sm font-medium text-foreground">Active Filters</h3>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex min-w-0 flex-wrap gap-2">
                   {activeRules.length === 0 ? (
                     <div className="w-full rounded-md border border-dashed border-border/70 bg-muted/20 px-3 py-3 text-sm text-muted-foreground">
                       Belum ada filter. Pilih preset atau tambahkan filter.
@@ -2295,7 +2318,7 @@ export function ScreenerPage() {
                 </div>
 
                 <div
-                  className="-mx-4 -mb-4 flex flex-col gap-4 border-t border-border/70 bg-muted/20 px-4 py-4 sm:-mx-5 sm:-mb-5 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                  className="-mx-4 -mb-4 flex min-w-0 flex-col gap-4 border-t border-border/70 bg-muted/20 px-4 py-4 sm:-mx-5 sm:-mb-5 sm:flex-row sm:items-center sm:justify-between sm:px-5"
                   aria-live="polite"
                 >
                   <div className="min-w-0">
@@ -2318,7 +2341,7 @@ export function ScreenerPage() {
                   </div>
 
                   <Button
-                    className={`h-11 shrink-0 gap-2 rounded-md border px-5 shadow-sm transition-colors disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 ${isRunning
+                    className={`h-11 w-full shrink-0 gap-2 rounded-md border px-5 shadow-sm transition-colors disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 sm:w-auto ${isRunning
                       ? "border-border bg-secondary text-muted-foreground"
                       : "border-transparent bg-[#d07225] text-white hover:bg-[#b8641f]"
                       }`}
@@ -2536,7 +2559,7 @@ export function ScreenerPage() {
                   tableClassName={screenerTableClassName}
                   rowClassName="hover:bg-slate-50"
                   rowHoverContent={(row) => <ScreenerRowHoverCard row={row} />}
-                  rowHoverContentClassName="min-w-[336px] max-w-[336px] border-border/70"
+                  rowHoverContentClassName="min-w-[336px] max-w-[336px] rounded-xl border-border/70"
                   initialPageSize={20}
                   pageSizeOptions={[20, 40, 60, 80]}
                   paginationResetKey={`${search}|${sectorFilter}|${marketCapFilter}|${syariahFilter}|${sortKey}|${sortDirection}|${activeRules.map((rule) => `${rule.key}:${JSON.stringify(rule.params)}`).join("|")}`}
@@ -2546,8 +2569,9 @@ export function ScreenerPage() {
 
           </div>
 
-        <Footer />
       </main>
+
+      <Footer />
 
       <Dialog open={saveScreenerOpen} onOpenChange={setSaveScreenerOpen}>
         <DialogContent className="border-border/70 bg-card shadow-xl">

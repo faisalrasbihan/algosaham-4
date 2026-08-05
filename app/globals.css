@@ -182,6 +182,29 @@
   animation: scroll 30s linear infinite;
 }
 
+@keyframes analysis-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(310%);
+  }
+}
+
+.analysis-progress-indicator {
+  animation: analysis-progress 1.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analysis-progress-indicator {
+    width: 100%;
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
 /*
  * Kept as a compatibility hook while legacy routes are migrated. The design
  * system now uses a clear warm canvas instead of a decorative dot pattern.
@@ -207,13 +230,29 @@
 }
 
 /*
+ * Keep the showcase copy on the shared content grid while allowing its card
+ * rail to use the otherwise empty space to the right of wide viewports.
+ */
+.showcase-carousel-bleed-right {
+  --showcase-rail-fade: 64px;
+  width: 100%;
+}
+
+@media (min-width: 1440px) {
+  .showcase-carousel-bleed-right {
+    --showcase-rail-fade: min(144px, calc((100vw - 76rem) / 4));
+    width: calc(100% + var(--showcase-rail-fade));
+  }
+}
+
+/*
  * Shared app shell. The canvas belongs to the full page—not an inner hero—so
  * it begins behind the floating navbar and continues through long content and
  * the footer without a hard horizontal seam.
  */
 .page-shell {
   position: relative;
-  overflow-x: clip;
+  overflow: clip;
   isolation: isolate;
   background: linear-gradient(
     180deg,
@@ -273,9 +312,18 @@
     );
 }
 
-/* Let the shared canvas remain visible beneath the footer as well. */
-.page-shell footer {
-  background: transparent;
+/* A restrained market-grid gives the footer a technical closing cadence. */
+.site-footer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 88%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 88%);
 }
 
 /* Grainy texture and gradient button */

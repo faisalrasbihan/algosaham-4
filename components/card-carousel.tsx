@@ -8,6 +8,7 @@ interface CardCarouselProps {
   className?: string
   noPadding?: boolean
   indicatorStyle?: "gradient" | "floating"
+  rightFadeWidth?: number | string
 }
 
 export function CardCarousel({
@@ -15,6 +16,7 @@ export function CardCarousel({
   className = "",
   noPadding = false,
   indicatorStyle = "gradient",
+  rightFadeWidth = 120,
 }: CardCarouselProps) {
   const [showRightIndicator, setShowRightIndicator] = useState(false)
   const [showLeftIndicator, setShowLeftIndicator] = useState(false)
@@ -67,8 +69,10 @@ export function CardCarousel({
   // scrolled; right fades while more remains — driven by the same state as the
   // chevrons above.
   const leftStop = showLeftIndicator ? "transparent 0, black 40px" : "black 0"
+  const resolvedRightFadeWidth =
+    typeof rightFadeWidth === "number" ? `${rightFadeWidth}px` : rightFadeWidth
   const rightStop = showRightIndicator
-    ? "black calc(100% - 120px), transparent 100%"
+    ? `black calc(100% - ${resolvedRightFadeWidth}), transparent 100%`
     : "black 100%"
   const edgeFade = `linear-gradient(to right, ${leftStop}, ${rightStop})`
 

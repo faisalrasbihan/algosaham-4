@@ -100,7 +100,7 @@ export function StrategyShowcaseCard({
     <Link
       href={href}
       className={cn(
-        "group block h-[348px] shrink-0 rounded-xl outline-none transition-transform duration-200 hover:scale-[1.02] focus-visible:scale-[1.02] focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2",
+        "group block h-[336px] shrink-0 rounded-xl outline-none transition-transform duration-200 hover:scale-[1.02] focus-visible:scale-[1.02] focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2",
         className,
       )}
       aria-label={`Lihat strategi ${strategy.name}`}
@@ -118,7 +118,7 @@ export function StrategyShowcaseCard({
           <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
         </div>
 
-        <div className="h-[116px] w-full overflow-hidden bg-gradient-to-b from-muted/20 via-muted/10 to-card">
+        <div className="h-[108px] w-full overflow-hidden bg-gradient-to-b from-muted/20 via-muted/10 to-card">
           <svg
             viewBox="0 0 320 120"
             preserveAspectRatio="none"
@@ -188,7 +188,7 @@ export function StrategyShowcaseCardSkeleton({ className }: StrategyShowcaseCard
   return (
     <Card
       className={cn(
-        "h-[348px] shrink-0 animate-pulse overflow-hidden rounded-xl border-border/80 bg-card",
+        "h-[336px] shrink-0 animate-pulse overflow-hidden rounded-xl border-border/80 bg-card",
         className,
       )}
       aria-hidden="true"
@@ -197,7 +197,7 @@ export function StrategyShowcaseCardSkeleton({ className }: StrategyShowcaseCard
         <div className="h-9 w-9 shrink-0 rounded-[10px] bg-muted" />
         <div className="h-4 w-3/4 rounded bg-muted" />
       </div>
-      <div className="h-[116px] bg-gradient-to-b from-muted/50 to-card" />
+      <div className="h-[108px] bg-gradient-to-b from-muted/50 to-card" />
       <div className="flex flex-col items-center gap-2 px-4 py-3">
         <div className="h-3 w-24 rounded bg-muted" />
         <div className="h-7 w-28 rounded bg-muted" />

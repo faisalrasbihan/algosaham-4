@@ -1,9 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { ArrowRight } from "lucide-react"
 import { useState, useEffect } from "react"
-import Link from "next/link"
 import { CardCarousel } from "@/components/card-carousel"
 import {
   StrategyShowcaseCard,
@@ -106,52 +104,55 @@ export function PopularStrategiesShowcase() {
 
       {/* Strategy cards grid */}
       <PageContainer className="mb-8">
-        {isLoading ? (
-          <CardCarousel noPadding indicatorStyle="floating" className="snap-x snap-mandatory py-2">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <StrategyShowcaseCardSkeleton
-                key={i}
-                className="w-[280px] sm:w-[300px] lg:w-[292px]"
-              />
-            ))}
-          </CardCarousel>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-red-600 mb-4">{error}</p>
-            <Button
-              onClick={() => window.location.reload()}
-              variant="outline"
+        <div className="showcase-carousel-bleed-right">
+          {isLoading ? (
+            <CardCarousel
+              noPadding
+              indicatorStyle="floating"
+              rightFadeWidth="var(--showcase-rail-fade)"
+              className="snap-x snap-mandatory py-2"
             >
-              Try Again
-            </Button>
-          </div>
-        ) : strategies.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-muted-foreground">No strategies found</p>
-          </div>
-        ) : (
-          <CardCarousel noPadding indicatorStyle="floating" className="snap-x snap-mandatory py-2">
-            {strategies.map((strategy, index) => (
-              <StrategyShowcaseCard
-                key={strategy.id}
-                strategy={strategy}
-                iconVariant={index}
-                className="w-[280px] sm:w-[300px] lg:w-[292px]"
-              />
-            ))}
-          </CardCarousel>
-        )}
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <StrategyShowcaseCardSkeleton
+                  key={i}
+                  className="w-[280px] sm:w-[300px] lg:w-[280px]"
+                />
+              ))}
+            </CardCarousel>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <p className="text-red-600 mb-4">{error}</p>
+              <Button
+                onClick={() => window.location.reload()}
+                variant="outline"
+              >
+                Try Again
+              </Button>
+            </div>
+          ) : strategies.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">No strategies found</p>
+            </div>
+          ) : (
+            <CardCarousel
+              noPadding
+              indicatorStyle="floating"
+              rightFadeWidth="var(--showcase-rail-fade)"
+              className="snap-x snap-mandatory py-2"
+            >
+              {strategies.map((strategy, index) => (
+                <StrategyShowcaseCard
+                  key={strategy.id}
+                  strategy={strategy}
+                  iconVariant={index}
+                  className="w-[280px] sm:w-[300px] lg:w-[280px]"
+                />
+              ))}
+            </CardCarousel>
+          )}
+        </div>
       </PageContainer>
 
-      {/* View all button */}
-      <PageContainer>
-        <Button asChild size="lg" variant="outline">
-          <Link href="/strategies">
-            Lihat semua strategi
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Link>
-        </Button>
-      </PageContainer>
     </section>
   )
 }

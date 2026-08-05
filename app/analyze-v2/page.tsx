@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useRef, useState } from "react"
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useClerk, useUser } from "@clerk/nextjs"
 import {
@@ -18,6 +18,7 @@ import {
     TrendingDown,
     TrendingUp,
 } from "lucide-react"
+import { Footer } from "@/components/footer"
 import { PageShell } from "@/components/page-shell"
 import { StockSearch } from "@/components/stock-search"
 import { AdvancedMultiChart } from "@/components/advanced-multi-chart"
@@ -138,6 +139,17 @@ type NewsStory = {
     snippet?: string
     imageUrl?: string
     faviconUrl?: string
+}
+
+function AnalyzePageFrame({ children }: { children: ReactNode }) {
+    return (
+        <PageShell>
+            <main className="flex min-h-[calc(100svh-5rem)] flex-1 flex-col">
+                {children}
+            </main>
+            <Footer />
+        </PageShell>
+    )
 }
 
 function getScoreBarColor(score: number) {
@@ -557,17 +569,17 @@ function AnalyzeV2Content() {
 
     if (!urlTicker || (loading && !data)) {
         return (
-            <PageShell>
+            <AnalyzePageFrame>
                 <div className="flex-1">
                     <StockSearch onSearch={handleSearch} loading={loading} />
                 </div>
-            </PageShell>
+            </AnalyzePageFrame>
         )
     }
 
     if (error || !data) {
         return (
-            <PageShell>
+            <AnalyzePageFrame>
                 <div className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
                     <button
                         onClick={() => router.push("/analyze-v2")}
@@ -587,7 +599,7 @@ function AnalyzeV2Content() {
                         </div>
                     </Card>
                 </div>
-            </PageShell>
+            </AnalyzePageFrame>
         )
     }
 
@@ -606,7 +618,7 @@ function AnalyzeV2Content() {
     ]).slice(0, 7)
 
     return (
-        <PageShell>
+        <AnalyzePageFrame>
             <div className="flex-1 pb-12">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-5 md:mt-7 space-y-5">
                     <button
@@ -977,7 +989,7 @@ function AnalyzeV2Content() {
                     </div>
                 </div>
             </div>
-        </PageShell>
+        </AnalyzePageFrame>
     )
 }
 
@@ -985,11 +997,11 @@ export default function AnalyzeV2Page() {
     return (
         <Suspense
             fallback={(
-                <PageShell>
+                <AnalyzePageFrame>
                     <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
                         Loading...
                     </div>
-                </PageShell>
+                </AnalyzePageFrame>
             )}
         >
             <AnalyzeV2Content />

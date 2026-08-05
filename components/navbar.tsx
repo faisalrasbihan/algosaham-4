@@ -2,23 +2,35 @@
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
-import { WalletCards, Zap, Heart, Search, LineChart, ArrowUpRight, Loader2, Settings, Menu, MessageSquareText } from "lucide-react";
+import { Gift, Zap, Heart, Search, LineChart, ArrowUpRight, Loader2, Settings, Menu, Lightbulb } from "lucide-react";
 import { AccountManagementPage } from "@/components/account-management-page";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
-import { useRouter } from "next/navigation";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
+import { usePathname, useRouter } from "next/navigation";
 import { NavbarBrand } from "@/components/navbar-brand";
 import { pageContainerClassName } from "@/components/page-layout";
+import { cn } from "@/lib/utils";
 
 import { useUserTier } from "@/context/user-tier-context";
 import { getTierDisplayName } from "@/lib/subscription-plans";
 
+const primaryNavigation = [
+  { href: "/screener", label: "Screener" },
+  { href: "/analyze-v2", label: "Analisis" },
+  { href: "/backtest", label: "Simulasi" },
+  { href: "/harga", label: "Harga" },
+  { href: "/features", label: "Pelajari" },
+  { href: "/portfolio", label: "Portfolio" },
+] as const;
+
 export function Navbar() {
-  const { isSignedIn } = useUser();
   const [showCredits, setShowCredits] = useState(false);
+  const [showReferralNotice, setShowReferralNotice] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { tier, credits, limits, usage, isLoading, isRefreshing, refreshTier, subscriptionPeriodEnd } = useUserTier();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const routesToPrefetch = [
@@ -26,7 +38,7 @@ export function Navbar() {
       "/screener",
       "/analyze-v2",
       "/backtest",
-      // "/strategies",
+      "/portfolio",
       "/harga",
       "/features",
       "/help",
@@ -37,8 +49,10 @@ export function Navbar() {
     });
   }, [router]);
 
-  // Display tier name in uppercase
   const userPlan = getTierDisplayName(tier).toUpperCase();
+
+  const isActiveRoute = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`);
 
   // Tier colors — coherent color scheme with consistent saturation
   const getTierColor = (tier: string) => {
@@ -99,37 +113,66 @@ export function Navbar() {
   return (
     <nav className="sticky top-0 z-50 py-3">
       <div className={pageContainerClassName}>
-        <div className="-mx-1 grid h-14 grid-cols-[minmax(0,1fr)_auto] items-center rounded-2xl border border-black/[0.07] bg-white/[0.8] px-1 shadow-[0_8px_32px_rgba(34,26,17,0.09)] backdrop-blur-xl transform-gpu [backface-visibility:hidden] supports-[backdrop-filter]:bg-white/[0.7] sm:-mx-3 sm:px-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:-mx-4 lg:px-4">
+        <div className="-mx-1 flex h-16 items-center rounded-2xl border border-black/[0.07] bg-white/[0.88] px-1 shadow-[0_10px_30px_rgba(34,26,17,0.07)] backdrop-blur-xl transform-gpu [backface-visibility:hidden] supports-[backdrop-filter]:bg-white/[0.78] sm:-mx-3 sm:px-3 lg:-mx-4 lg:px-4">
       <NavbarBrand className="justify-self-start" />
 
-      <div className="hidden md:flex items-center space-x-1 text-sm text-muted-foreground">
-        <Link href="/screener" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
-          Screener
-        </Link>
-        <Link href="/analyze-v2" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
-          Analisis
-        </Link>
-        <Link href="/backtest" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
-          Simulasi
-        </Link>
-        {/* <Link href="/strategies" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
-          Strategi
-        </Link> */}
-        {/* <SignedIn>
-          <Link href="/portfolio" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
-            Portfolio
-          </Link>
-        </SignedIn> */}
-        <Link href="/harga" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
-          Harga
-        </Link>
-        <Link href="/features" className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out">
-          Pelajari
+      <div className="ml-8 hidden items-center gap-1 text-sm text-muted-foreground lg:flex">
+        {primaryNavigation.map((item) => {
+          const active = isActiveRoute(item.href);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "relative px-2.5 py-2 font-medium transition-colors duration-150 hover:text-foreground",
+                item.href === "/portfolio" &&
+                  "ml-2 pl-4 text-foreground/90 before:absolute before:left-0 before:top-1/2 before:h-4 before:w-px before:-translate-y-1/2 before:bg-black/[0.10]",
+                active && "text-foreground after:absolute after:inset-x-2.5 after:-bottom-0.5 after:h-px after:bg-[#d07225]",
+              )}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </div >
+
+      <div className="ml-auto flex items-center gap-1.5">
+        <div className="relative hidden lg:block">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Referral"
+            aria-expanded={showReferralNotice}
+            title="Referral"
+            className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-black/[0.04] hover:text-foreground"
+            onClick={() => setShowReferralNotice((current) => !current)}
+            onBlur={() => setShowReferralNotice(false)}
+          >
+            <Gift className="h-[18px] w-[18px]" />
+          </Button>
+          {showReferralNotice ? (
+            <div className="absolute right-0 top-full z-[100] mt-2 whitespace-nowrap rounded-lg border border-black/[0.07] bg-white px-3 py-2 text-xs font-medium text-muted-foreground shadow-lg">
+              Referral segera hadir
+            </div>
+          ) : null}
+        </div>
+        <Link href="/help" className="hidden lg:block">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Feedback"
+            title="Feedback"
+            className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-black/[0.04] hover:text-foreground"
+          >
+            <Lightbulb className="h-[18px] w-[18px]" />
+          </Button>
         </Link>
         <SignedIn>
           {!isLoading && (
             <div
-              className="relative"
+              className="relative hidden lg:block"
               onMouseEnter={() => {
                 setShowCredits(true);
                 if (!isRefreshing) {
@@ -137,20 +180,23 @@ export function Navbar() {
                 }
               }}
               onMouseLeave={() => setShowCredits(false)}
+              onFocus={() => setShowCredits(true)}
+              onBlur={() => setShowCredits(false)}
             >
-              <div
-                className="px-3 py-1 text-[11px] font-semibold cursor-default transition-all duration-200 select-none"
+              <button
+                type="button"
+                className="cursor-default select-none rounded-[3px] px-3 py-1 text-[11px] font-semibold tracking-[0.1em] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d07225]/30"
                 style={{
                   backgroundColor: tierColors.badgeBg,
                   color: tierColors.badgeText,
                   border: `1px solid ${tierColors.badgeBorder}`,
                   fontFamily: "'IBM Plex Mono', monospace",
-                  borderRadius: '3px',
-                  letterSpacing: '0.1em',
                 }}
+                aria-label={`${userPlan} plan usage`}
+                aria-expanded={showCredits}
               >
                 {userPlan}
-              </div>
+              </button>
 
               {/* Credit tooltip with hover bridge */}
               {showCredits && (
@@ -323,23 +369,10 @@ export function Navbar() {
             </div>
           )}
         </SignedIn>
-      </div >
-
-      <div className="flex items-center justify-self-end space-x-2 md:space-x-3">
-        <Link href="/help" className="hidden md:block">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Feedback"
-            className="h-9 w-9"
-          >
-            <MessageSquareText className="h-4 w-4" />
-          </Button>
-        </Link>
         <SignedOut>
-          <div className="hidden md:flex space-x-2">
+          <div className="hidden items-center gap-2 lg:flex">
             <SignInButton mode="modal">
-              <Button variant="outline" size="sm" className="hover:bg-[#487b78] hover:text-white">
+              <Button variant="ghost" size="sm" className="hover:bg-black/[0.04]">
                 Masuk
               </Button>
             </SignInButton>
@@ -351,54 +384,71 @@ export function Navbar() {
           </div>
         </SignedOut>
         <SignedIn>
-          <div className="hidden md:flex items-center gap-3 mr-3">
-            <Link href="/portfolio">
-              <button
-                className="px-3 py-1.5 rounded-md border flex items-center gap-2 text-sm font-medium transition-colors hover:bg-muted cursor-pointer"
-                style={{
-                  borderColor: "#e5e7eb",
-                  backgroundColor: "rgba(245, 245, 245, 0.5)",
-                  color: "#1f2937",
-                }}
+          <div className="ml-1.5 flex items-center">
+            <UserButton>
+              <UserButton.UserProfilePage
+                label="Subscriptions"
+                url="account"
+                labelIcon={<Settings size={16} />}
               >
-                <WalletCards size={16} />
-                Portfolio
-              </button>
-            </Link>
+                <AccountManagementPage />
+              </UserButton.UserProfilePage>
+            </UserButton>
           </div>
-          <UserButton>
-            <UserButton.UserProfilePage
-              label="Subscriptions"
-              url="account"
-              labelIcon={<Settings size={16} />}
-            >
-              <AccountManagementPage />
-            </UserButton.UserProfilePage>
-          </UserButton>
         </SignedIn>
 
         {/* Mobile Burger Menu */}
-        <div className="md:hidden flex items-center ml-2">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 p-0 hover:bg-muted rounded-md" aria-label="Menu">
-                <Menu className="h-5 w-5 text-foreground" />
-              </Button>
-            </SheetTrigger>
+        <div className="ml-1 flex items-center lg:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-md p-0 hover:bg-muted"
+            aria-label="Menu"
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            <Menu className="h-5 w-5 text-foreground" />
+          </Button>
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetContent side="right" className="w-[85vw] sm:w-[350px] p-6 flex flex-col gap-6">
               <SheetHeader className="text-left mt-2 border-b border-border/50 pb-4">
                 <SheetTitle>
-                  <NavbarBrand showBeta={false} className="text-lg" />
+                  <NavbarBrand />
                 </SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-1.5">
-                <SheetClose asChild><Link href="/screener" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Screener</Link></SheetClose>
-                <SheetClose asChild><Link href="/analyze-v2" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Analisis</Link></SheetClose>
-                <SheetClose asChild><Link href="/backtest" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Simulasi</Link></SheetClose>
-                {/* <SheetClose asChild><Link href="/strategies" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Strategi</Link></SheetClose> */}
-                <SheetClose asChild><Link href="/harga" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Harga</Link></SheetClose>
-                <SheetClose asChild><Link href="/features" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Pelajari</Link></SheetClose>
-                <SheetClose asChild><Link href="/help" className="px-3 py-3 text-base font-medium text-foreground hover:bg-muted hover:text-[#d07225] rounded-md transition-colors">Feedback</Link></SheetClose>
+                {primaryNavigation.map((item) => {
+                  const active = isActiveRoute(item.href);
+
+                  return (
+                    <SheetClose asChild key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "rounded-md px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted hover:text-[#d07225]",
+                          item.href === "/portfolio" && "mt-1 border-t border-border/60 pt-4 text-foreground",
+                          active && "bg-muted text-[#b85f19]",
+                        )}
+                      >
+                        {item.label}
+                      </Link>
+                    </SheetClose>
+                  );
+                })}
+                <div
+                  className="flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium text-muted-foreground"
+                  aria-label="Referral segera hadir"
+                >
+                  <Gift className="h-4 w-4" />
+                  Referral <span className="ml-auto text-xs font-normal">Segera hadir</span>
+                </div>
+                <SheetClose asChild>
+                  <Link href="/help" className="flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted hover:text-[#d07225]">
+                    <Lightbulb className="h-4 w-4" />
+                    Feedback
+                  </Link>
+                </SheetClose>
               </div>
               <SignedOut>
                 <div className="flex flex-col gap-3 mt-2 border-t border-border/50 pt-6">
@@ -410,18 +460,6 @@ export function Navbar() {
                   </SignUpButton>
                 </div>
               </SignedOut>
-              <SignedIn>
-                <div className="flex flex-col gap-3 mt-2 border-t border-border/50 pt-6">
-                  <SheetClose asChild>
-                    <Link href="/portfolio" className="w-full">
-                      <Button variant="outline" className="w-full justify-center gap-2 h-10">
-                        <WalletCards size={16} />
-                        Portfolio
-                      </Button>
-                    </Link>
-                  </SheetClose>
-                </div>
-              </SignedIn>
             </SheetContent>
           </Sheet>
         </div>

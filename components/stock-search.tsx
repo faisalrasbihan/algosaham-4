@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,20 +17,6 @@ interface StockSearchProps {
 export function StockSearch({ onSearch, loading }: StockSearchProps) {
   const searchParams = useSearchParams()
   const [ticker, setTicker] = useState(() => searchParams?.get("ticker") || "")
-  const [elapsedTime, setElapsedTime] = useState("0.0")
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout
-    if (loading) {
-      const startTime = Date.now()
-      setElapsedTime("0.0")
-      interval = setInterval(() => {
-        const ms = Date.now() - startTime
-        setElapsedTime((ms / 1000).toFixed(1))
-      }, 100)
-    }
-    return () => clearInterval(interval)
-  }, [loading])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,7 +25,6 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
     }
   }
 
-  const currentTickerDisplay = ticker.trim().toUpperCase()
   const validationMessage = ticker.trim() && !/^[A-Za-z0-9.-]{2,12}$/.test(ticker.trim())
     ? "Gunakan kode ticker yang valid, misalnya BBCA."
     : ""
@@ -137,51 +122,54 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
                 </Button>
               </div>
 
-              {loading ? (
-                <p className="mt-3 text-center text-xs text-muted-foreground" aria-live="polite">
-                  Menyiapkan analisis {currentTickerDisplay} · {elapsedTime} detik
-                </p>
-              ) : null}
             </form>
 
-            <div
-              className="mt-4 flex flex-col items-center gap-2 border-t border-border/70 pt-4"
-              role="group"
-              aria-label="Pilihan saham populer"
-            >
-              {exampleTickerRows.map((row) => (
+            <div className="relative mt-4 border-t border-border/70 pt-4">
+              {loading ? (
                 <div
-                  key={row.map((item) => item.code).join("-")}
-                  className="flex flex-wrap items-center justify-center gap-1.5"
+                  className="absolute inset-x-0 -top-px h-px overflow-hidden bg-border"
+                  role="progressbar"
+                  aria-label={`Menganalisis ${ticker.trim().toUpperCase()}`}
                 >
-                  {row.map((item) => (
-                    <button
-                      key={item.code}
-                      type="button"
-                      onClick={() => handleQuickTicker(item.code)}
-                      className={cn(
-                        "inline-flex h-9 items-center gap-2 rounded-lg border px-2.5 pr-3 text-sm font-medium transition-colors",
-                        item.hot
-                          ? "border-[#d07225]/25 bg-[#d07225]/[0.06] hover:border-[#d07225]/35 hover:bg-[#d07225]/10"
-                          : "border-border/80 bg-background hover:border-foreground/20 hover:bg-muted",
-                      )}
-                      disabled={loading}
-                    >
-                      <TickerCircleIcon ticker={item.code} />
-                      {item.code}
-                      {item.hot ? (
-                        <span className="-ml-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-[#c56824]">
-                          <Flame
-                            className="h-3 w-3 fill-[#d07225]/15 text-[#d07225] motion-safe:animate-pulse motion-safe:[animation-duration:2.4s]"
-                            aria-hidden="true"
-                          />
-                          Hot
-                        </span>
-                      ) : null}
-                    </button>
-                  ))}
+                  <div className="analysis-progress-indicator h-full w-1/3 bg-primary" />
                 </div>
-              ))}
+              ) : null}
+
+              <div className="flex w-full flex-col items-center gap-2" role="group" aria-label="Pilihan saham populer">
+                {exampleTickerRows.map((row) => (
+                  <div
+                    key={row.map((item) => item.code).join("-")}
+                    className="flex flex-wrap items-center justify-center gap-1.5"
+                  >
+                    {row.map((item) => (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => handleQuickTicker(item.code)}
+                        disabled={loading}
+                        className={cn(
+                          "inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border px-2.5 pr-3 text-sm font-medium transition-colors disabled:cursor-wait",
+                          item.hot
+                            ? "border-[#d07225]/25 bg-[#d07225]/[0.06] hover:border-[#d07225]/35 hover:bg-[#d07225]/10"
+                            : "border-border/80 bg-background hover:border-foreground/20 hover:bg-muted",
+                        )}
+                      >
+                        <TickerCircleIcon ticker={item.code} />
+                        {item.code}
+                        {item.hot ? (
+                          <span className="-ml-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-[#c56824]">
+                            <Flame
+                              className="h-3 w-3 fill-[#d07225]/15 text-[#d07225] motion-safe:animate-pulse motion-safe:[animation-duration:2.4s]"
+                              aria-hidden="true"
+                            />
+                            Hot
+                          </span>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
 
           </section>
