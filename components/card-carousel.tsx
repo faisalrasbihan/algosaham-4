@@ -9,6 +9,7 @@ interface CardCarouselProps {
   noPadding?: boolean
   indicatorStyle?: "gradient" | "floating"
   rightFadeWidth?: number | string
+  showControls?: boolean
 }
 
 export function CardCarousel({
@@ -17,6 +18,7 @@ export function CardCarousel({
   noPadding = false,
   indicatorStyle = "gradient",
   rightFadeWidth = 120,
+  showControls = true,
 }: CardCarouselProps) {
   const [showRightIndicator, setShowRightIndicator] = useState(false)
   const [showLeftIndicator, setShowLeftIndicator] = useState(false)
@@ -77,16 +79,16 @@ export function CardCarousel({
   const edgeFade = `linear-gradient(to right, ${leftStop}, ${rightStop})`
 
   return (
-    <div className="relative">
+    <div className="relative w-full min-w-0">
       <div
         ref={scrollRef}
-        className={`flex gap-4 overflow-x-auto pb-4 py-1 scrollbar-hide ${paddingClasses} ${className}`}
+        className={`flex w-full min-w-0 max-w-full gap-4 overflow-x-auto pb-4 py-1 scrollbar-hide ${paddingClasses} ${className}`}
         style={{ maskImage: edgeFade, WebkitMaskImage: edgeFade }}
       >
         {children}
         <div className="w-6 flex-shrink-0" />
       </div>
-      {showRightIndicator && (
+      {showControls && showRightIndicator && (
         <button
           onClick={handleScrollRight}
           className={
@@ -99,7 +101,7 @@ export function CardCarousel({
           <ChevronRight className="h-5 w-5 text-primary transition-transform group-hover:translate-x-0.5" />
         </button>
       )}
-      {showLeftIndicator && (
+      {showControls && showLeftIndicator && (
         <button
           onClick={handleScrollLeft}
           className={

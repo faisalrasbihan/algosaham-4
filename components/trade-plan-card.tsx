@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { AlertTriangle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
@@ -158,24 +157,31 @@ function normalizeLevels(kind: PriceLevel["kind"], levels: ApiPriceLevel[] | und
         .slice(0, 3)
 }
 
-// Opacity per rank: farthest levels are intentionally darkest.
-const RANK_OPACITY = [0.42, 0.68, 1]
-const LABEL_LANE_TOPS = [58, 82, 106, 130]
-const MIN_LABEL_GAP_PCT = 13
+// Nearest levels carry the most visual weight; more distant levels recede.
+const RANK_OPACITY = [1, 0.68, 0.42]
+const LABEL_LANE_TOPS = {
+    resistance: [4, 28],
+    support: [98, 122],
+} as const
+const MIN_LABEL_GAP_PCT = 15
 
 function placeLevelLabels(levels: PriceLevel[], toPct: (value: number) => number) {
-    const laneLastPct = LABEL_LANE_TOPS.map(() => Number.NEGATIVE_INFINITY)
+    const laneLastPct: Record<PriceLevel["kind"], number[]> = {
+        support: LABEL_LANE_TOPS.support.map(() => Number.NEGATIVE_INFINITY),
+        resistance: LABEL_LANE_TOPS.resistance.map(() => Number.NEGATIVE_INFINITY),
+    }
     const placedByIndex = new Map<number, PlacedPriceLevel>()
 
     levels
         .map((level, index) => ({ level, index, pct: toPct(level.price) }))
         .sort((a, b) => a.pct - b.pct)
         .forEach((item) => {
-            const availableLane = laneLastPct.findIndex((lastPct) => item.pct - lastPct >= MIN_LABEL_GAP_PCT)
-            const fallbackLane = laneLastPct.indexOf(Math.min(...laneLastPct))
+            const lanes = laneLastPct[item.level.kind]
+            const availableLane = lanes.findIndex((lastPct) => item.pct - lastPct >= MIN_LABEL_GAP_PCT)
+            const fallbackLane = lanes.indexOf(Math.min(...lanes))
             const labelLane = availableLane >= 0 ? availableLane : fallbackLane
 
-            laneLastPct[labelLane] = item.pct
+            lanes[labelLane] = item.pct
             placedByIndex.set(item.index, {
                 level: item.level,
                 pct: item.pct,
@@ -189,12 +195,37 @@ function placeLevelLabels(levels: PriceLevel[], toPct: (value: number) => number
         .filter((item): item is PlacedPriceLevel => Boolean(item))
 }
 
-export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanCardProps) {
-    // The card-level "complete" tooltip and the per-line tooltips overlap, so we
-    // suppress the card one while a support/resistance line is hovered.
-    const [planOpen, setPlanOpen] = useState(false)
-    const [lineHovered, setLineHovered] = useState(false)
+function PriceLevelDetails({
+    level,
+    current,
+    color,
+    opacity,
+}: {
+    level: PriceLevel
+    current: number
+    color: string
+    opacity: number
+}) {
+    const isSupport = level.kind === "support"
+    const levelName = `${isSupport ? "Support" : "Resistance"} ${level.rank + 1}`
+    const distancePct = level.distancePct ?? ((level.price - current) / current) * 100
 
+    return (
+        <div className="text-xs">
+            <div className="flex items-center gap-1.5 font-medium">
+                <span className="inline-block h-2 w-2 rounded-[1px]" style={{ backgroundColor: color, opacity }} />
+                {levelName}
+            </div>
+            <div className="mt-0.5 font-semibold tabular-nums">{formatRupiah(level.price)}</div>
+            {level.basis ? <div className="text-[11px] text-muted-foreground">{level.basis}</div> : null}
+            <div className="text-[11px] tabular-nums" style={{ color }}>
+                {formatSignedPercent(distancePct)} dari harga
+            </div>
+        </div>
+    )
+}
+
+export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanCardProps) {
     const { stopLoss, entryPrice, takeProfit } = riskPlan
     const potentialLoss = entryPrice ? ((entryPrice - stopLoss) / entryPrice) * 100 : null
     const potentialGain = entryPrice ? ((takeProfit - entryPrice) / entryPrice) * 100 : null
@@ -222,176 +253,168 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
 
     return (
         <TooltipProvider delayDuration={80}>
-            <Tooltip open={planOpen && !lineHovered} onOpenChange={setPlanOpen}>
-                <TooltipTrigger asChild>
-                    <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 min-h-[184px] h-full flex flex-col cursor-help">
-                        <div className="flex items-center justify-between gap-2 pt-1">
-                            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Trade Plan</div>
-                            <span className="text-[10px] font-medium text-muted-foreground">R:R {riskPlan.riskReward.toFixed(1)}x</span>
+            <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/90">
+                <div className="grid grid-cols-2 gap-px border-b border-border/70 bg-border/70 sm:grid-cols-5">
+                    <div className="bg-card/95 px-4 py-3.5">
+                        <div className="text-xs text-muted-foreground">Harga masuk</div>
+                        <div className="mt-1 text-sm font-semibold tabular-nums text-foreground">{formatRupiah(entryPrice)}</div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">{formatEntryReference(riskPlan.entryReference)}</div>
+                    </div>
+                    <div className="bg-card/95 px-4 py-3.5">
+                        <div className="text-xs text-muted-foreground">Batas rugi</div>
+                        <div className="mt-1 text-sm font-semibold tabular-nums text-foreground">{formatRupiah(stopLoss)}</div>
+                        <div className="mt-0.5 text-[11px] tabular-nums text-red-700">{formatPercentValue(potentialLoss, "loss")}</div>
+                    </div>
+                    <div className="bg-card/95 px-4 py-3.5">
+                        <div className="text-xs text-muted-foreground">Target</div>
+                        <div className="mt-1 text-sm font-semibold tabular-nums text-foreground">{formatRupiah(takeProfit)}</div>
+                        <div className="mt-0.5 text-[11px] tabular-nums text-green-700">{formatPercentValue(potentialGain, "gain")}</div>
+                    </div>
+                    <div className="bg-card/95 px-4 py-3.5">
+                        <div className="text-xs text-muted-foreground">Risiko/imbal hasil</div>
+                        <div className="mt-1 text-sm font-semibold tabular-nums text-foreground">1 : {riskPlan.riskReward.toFixed(1)}</div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">Potensi relatif</div>
+                    </div>
+                    <div className="col-span-2 bg-card/95 px-4 py-3.5 sm:col-span-1">
+                        <div className="text-xs text-muted-foreground">Jangka waktu</div>
+                        <div className="mt-1 text-sm font-semibold text-foreground">{formatHoldingTerm(riskPlan.holdingTerm)}</div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">Perkiraan posisi</div>
+                    </div>
+                </div>
+
+                <div className="px-4 py-5 sm:px-6">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h3 className="text-sm font-semibold text-foreground">Level harga</h3>
+                            <p className="mt-0.5 text-xs text-muted-foreground">Area support dan resistance relatif terhadap harga saat ini.</p>
+                        </div>
+                        {hasCurrent ? (
+                            <div className="text-right text-xs text-muted-foreground">
+                                Harga saat ini
+                                <span className="ml-2 font-semibold tabular-nums text-foreground">{formatRupiah(currentPrice)}</span>
+                            </div>
+                        ) : null}
+                    </div>
+
+                    <div className="relative mt-6 w-full pt-7" aria-label={`Level harga saat ini ${formatRupiah(current)}`}>
+                        <div
+                            className="absolute top-0 flex -translate-x-1/2 flex-col items-center"
+                            style={{ left: `${markerLeft}%` }}
+                        >
+                            <span className="whitespace-nowrap text-[11px] font-semibold tabular-nums leading-none text-foreground">
+                                {formatRupiah(current)}
+                            </span>
+                            <svg width="9" height="6" viewBox="0 0 9 6" className="mt-1 text-foreground" aria-hidden="true">
+                                <path d="M0 0 L9 0 L4.5 6 Z" fill="currentColor" />
+                            </svg>
                         </div>
 
-                        <div className="relative flex flex-1 flex-col justify-center">
-                          <div className="relative w-full pt-7 pb-2">
-                            {/* current price flag */}
-                            <div
-                                className="absolute top-0 flex -translate-x-1/2 flex-col items-center"
-                                style={{ left: `${markerLeft}%` }}
-                            >
-                                <span className="whitespace-nowrap text-[10px] font-semibold font-ibm-plex-mono leading-none text-foreground">
-                                    {formatRupiah(current)}
-                                </span>
-                                <svg width="9" height="6" viewBox="0 0 9 6" className="mt-1 text-foreground" aria-hidden="true">
-                                    <path d="M0 0 L9 0 L4.5 6 Z" fill="currentColor" />
-                                </svg>
-                            </div>
-
-                            <div className="relative h-[144px]">
-                                {/* track with a soft support→resistance wash */}
-                                <div className="absolute inset-x-0 top-7 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-border">
-                                    <div
-                                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500/25 to-transparent"
-                                        style={{ width: `${currentPct}%` }}
-                                    />
-                                    <div
-                                        className="absolute inset-y-0 right-0 bg-gradient-to-l from-green-600/25 to-transparent"
-                                        style={{ left: `${currentPct}%` }}
-                                    />
-                                </div>
-
-                                {/* support / resistance lines */}
-                                {placedLevels.map(({ level, pct }) => {
-                                    const isSupport = level.kind === "support"
-                                    const color = isSupport ? "#dc2626" : "#16a34a"
-                                    const opacity = RANK_OPACITY[level.rank] ?? 0.3
-                                    const distancePct = level.distancePct ?? ((level.price - current) / current) * 100
-                                    return (
-                                        <Tooltip key={level.label}>
-                                            <TooltipTrigger asChild>
-                                                <button
-                                                    type="button"
-                                                    className="group absolute top-7 flex h-10 -translate-x-1/2 -translate-y-1/2 items-center px-1.5"
-                                                    style={{ left: `${pct}%` }}
-                                                    onMouseEnter={() => setLineHovered(true)}
-                                                    onMouseLeave={() => setLineHovered(false)}
-                                                    aria-label={`${level.label}: ${formatRupiah(level.price)}`}
-                                                >
-                                                    <span
-                                                        className="h-5 w-[3px] rounded-[1px] transition-transform group-hover:scale-y-110"
-                                                        style={{ backgroundColor: color, opacity }}
-                                                    />
-                                                </button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <div className="text-xs">
-                                                    <div className="flex items-center gap-1.5 font-medium">
-                                                        <span
-                                                            className="inline-block h-2 w-2 rounded-[1px]"
-                                                            style={{ backgroundColor: color, opacity }}
-                                                        />
-                                                        {level.label}
-                                                    </div>
-                                                    <div className="mt-0.5 font-ibm-plex-mono font-semibold">{formatRupiah(level.price)}</div>
-                                                    {level.basis ? <div className="text-[11px] text-muted-foreground">{level.basis}</div> : null}
-                                                    <div className="text-[11px] font-ibm-plex-mono" style={{ color }}>
-                                                        {formatSignedPercent(distancePct)} dari harga
-                                                    </div>
-                                                </div>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    )
-                                })}
-
-                                {/* current price line */}
-                                <span
-                                    className="absolute top-7 h-6 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-[1px] bg-foreground"
+                        <div className="relative h-[144px]">
+                            <div className="absolute inset-x-0 top-7 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-border">
+                                <div
+                                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500/25 to-transparent"
+                                    style={{ width: `${currentPct}%` }}
+                                />
+                                <div
+                                    className="absolute inset-y-0 right-0 bg-gradient-to-l from-green-600/25 to-transparent"
                                     style={{ left: `${currentPct}%` }}
                                 />
-
-                                {/* placed labels use lanes so nearby levels do not collide */}
-                                {placedLevels.map(({ level, labelLeft, labelLane }) => {
-                                    const isSupport = level.kind === "support"
-                                    const opacity = RANK_OPACITY[level.rank] ?? 0.3
-                                    const levelCode = `${isSupport ? "S" : "R"}${level.rank + 1}`
-                                    return (
-                                        <span
-                                            key={`${level.label}-label`}
-                                            className={`pointer-events-none absolute flex -translate-x-1/2 flex-col items-center rounded bg-background/90 px-1.5 py-1 font-ibm-plex-mono leading-none tracking-normal ring-1 ring-border/40 ${
-                                                isSupport ? "text-red-700" : "text-green-700"
-                                            }`}
-                                            style={{
-                                                left: `${labelLeft}%`,
-                                                top: LABEL_LANE_TOPS[labelLane],
-                                                opacity: Math.max(opacity, 0.76),
-                                            }}
-                                        >
-                                            <span className="whitespace-nowrap text-[9px] font-semibold">
-                                                {formatRupiah(level.price).replace("Rp ", "")}
-                                            </span>
-                                            <span className="mt-1 text-[8px] font-bold opacity-70">
-                                                {levelCode}
-                                            </span>
-                                        </span>
-                                    )
-                                })}
                             </div>
-                          </div>
+
+                            {placedLevels.map(({ level, pct }) => {
+                                const isSupport = level.kind === "support"
+                                const color = isSupport ? "#dc2626" : "#16a34a"
+                                const opacity = RANK_OPACITY[level.rank] ?? 0.3
+                                const levelName = `${isSupport ? "Support" : "Resistance"} ${level.rank + 1}`
+                                return (
+                                    <Tooltip key={`${level.kind}-${level.label}`}>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                type="button"
+                                                className="group absolute top-7 flex h-10 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                style={{ left: `${pct}%` }}
+                                                aria-label={`${levelName}: ${formatRupiah(level.price)}`}
+                                            >
+                                                <span
+                                                    className="h-5 w-[3px] rounded-[1px] transition-transform group-hover:scale-y-110 group-focus-visible:scale-y-110"
+                                                    style={{ backgroundColor: color, opacity }}
+                                                />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <PriceLevelDetails level={level} current={current} color={color} opacity={opacity} />
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )
+                            })}
+
+                            <span
+                                className="absolute top-7 h-6 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-[1px] bg-foreground"
+                                style={{ left: `${currentPct}%` }}
+                            />
+
+                            {placedLevels.map(({ level, labelLeft, labelLane }) => {
+                                const isSupport = level.kind === "support"
+                                const color = isSupport ? "#dc2626" : "#16a34a"
+                                const opacity = RANK_OPACITY[level.rank] ?? 0.3
+                                const levelName = `${isSupport ? "Support" : "Resistance"} ${level.rank + 1}`
+                                return (
+                                    <Tooltip key={`${level.kind}-${level.label}-label`}>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                type="button"
+                                                className={`absolute flex -translate-x-1/2 flex-col items-center rounded-md px-2 py-1 leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                                                    isSupport ? "bg-red-500/[0.06] text-red-700" : "bg-green-600/[0.06] text-green-700"
+                                                }`}
+                                                style={{
+                                                    left: `${labelLeft}%`,
+                                                    top: LABEL_LANE_TOPS[labelLane],
+                                                    opacity: Math.max(opacity, 0.76),
+                                                }}
+                                                aria-label={`${levelName}: ${formatRupiah(level.price)}`}
+                                            >
+                                                <span className="whitespace-nowrap text-[9px] font-semibold tabular-nums">
+                                                    {formatRupiah(level.price).replace("Rp ", "")}
+                                                </span>
+                                                <span className="mt-1 whitespace-nowrap text-[8px] font-medium opacity-70">{levelName}</span>
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <PriceLevelDetails level={level} current={current} color={color} opacity={opacity} />
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )
+                            })}
                         </div>
                     </div>
-                </TooltipTrigger>
+                </div>
 
-                <TooltipContent side="bottom" align="end" className="w-[300px] max-w-[90vw] p-0 text-popover-foreground">
-                    <div className="p-4">
-                        <div className="mb-3 flex items-center justify-between gap-2">
-                            <div className="text-sm font-semibold">Trade Plan</div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2 text-center">
-                            <div className="rounded-lg border border-border/70 bg-background/60 px-2 py-2">
-                                <div className="text-[9px] uppercase tracking-widest text-muted-foreground">Entry</div>
-                                <div className="mt-1 text-xs font-semibold font-ibm-plex-mono">{formatRupiah(entryPrice)}</div>
-                                <div className="mt-0.5 text-[9px] text-muted-foreground">{formatEntryReference(riskPlan.entryReference)}</div>
-                            </div>
-                            <div className="rounded-lg border border-border/70 bg-background/60 px-2 py-2">
-                                <div className="text-[9px] uppercase tracking-widest text-muted-foreground">Stop</div>
-                                <div className="mt-1 text-xs font-semibold font-ibm-plex-mono">{formatRupiah(stopLoss)}</div>
-                                <div className="mt-0.5 text-[9px] text-red-700">{formatPercentValue(potentialLoss, "loss")}</div>
-                            </div>
-                            <div className="rounded-lg border border-border/70 bg-background/60 px-2 py-2">
-                                <div className="text-[9px] uppercase tracking-widest text-muted-foreground">Target</div>
-                                <div className="mt-1 text-xs font-semibold font-ibm-plex-mono">{formatRupiah(takeProfit)}</div>
-                                <div className="mt-0.5 text-[9px] text-green-700">{formatPercentValue(potentialGain, "gain")}</div>
-                            </div>
-                        </div>
-
-                        {hasCurrent ? (
-                            <div className="mt-2.5 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                                <span>Harga sekarang</span>
-                                <span className="font-semibold font-ibm-plex-mono text-foreground">{formatRupiah(currentPrice)}</span>
-                            </div>
-                        ) : null}
-
-                        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                            Upside sekitar {riskPlan.riskReward.toFixed(1)}x downside risk · Hold {formatHoldingTerm(riskPlan.holdingTerm)}. {riskPlan.summary || "Gunakan level stop sebagai invalidation utama, bukan sekadar angka administratif."}
+                <div className="grid gap-5 border-t border-border/70 px-4 py-5 sm:px-6 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                    <div>
+                        <h3 className="text-sm font-semibold text-foreground">Ringkasan rencana</h3>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                            {riskPlan.summary || "Gunakan level stop loss sebagai batas invalidasi utama dan sesuaikan ukuran posisi dengan toleransi risiko Anda."}
                         </p>
-
-                        {watchItems.length > 0 ? (
-                            <div className="mt-3">
-                                <div className="mb-2 flex items-center gap-1.5">
-                                    <AlertTriangle className="w-3 h-3 text-muted-foreground" />
-                                    <span className="text-[11px] font-semibold text-muted-foreground">Things To Watch</span>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {watchItems.map((item, i) => (
-                                        <span key={`${item}-${i}`} className="rounded-full border border-border/70 bg-background/60 px-2 py-1 text-[10px] leading-snug text-muted-foreground">
-                                            {item}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : null}
                     </div>
-                </TooltipContent>
-            </Tooltip>
+
+                    {watchItems.length > 0 ? (
+                        <div className="md:border-l md:border-border/70 md:pl-5">
+                            <div className="flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                                <h3 className="text-sm font-semibold text-foreground">Hal yang perlu dipantau</h3>
+                            </div>
+                            <ul className="mt-2 space-y-1.5 text-sm leading-5 text-muted-foreground">
+                                {watchItems.map((item, index) => (
+                                    <li key={`${item}-${index}`} className="flex gap-2">
+                                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" aria-hidden="true" />
+                                        <span>{item}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : null}
+                </div>
+            </div>
         </TooltipProvider>
     )
 }

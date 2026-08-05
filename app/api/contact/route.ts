@@ -4,7 +4,6 @@ import { NextResponse } from "next/server"
 const contactFormSchema = z.object({
   name: z.string().trim().min(2, "Nama lengkap wajib diisi."),
   email: z.string().trim().email("Alamat email tidak valid."),
-  subject: z.string().trim().min(3, "Subjek pesan wajib diisi."),
   message: z.string().trim().min(10, "Pesan terlalu singkat."),
   consent: z.boolean().refine((value) => value, {
     message: "Persetujuan wajib diberikan.",
@@ -28,7 +27,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: message }, { status: 400 })
     }
 
-    const { name, email, subject, message, consent, marketingOptIn, website } = parsed.data
+    const { name, email, message, consent, marketingOptIn, website } = parsed.data
 
     if (website && website.trim().length > 0) {
       return NextResponse.json({ success: true })
@@ -50,7 +49,6 @@ export async function POST(request: Request) {
       <h2>Pesan Baru dari Form Contact Us</h2>
       <p><strong>Nama Lengkap:</strong> ${escapeHtml(name)}</p>
       <p><strong>Alamat Email:</strong> ${escapeHtml(email)}</p>
-      <p><strong>Subjek Pesan:</strong> ${escapeHtml(subject)}</p>
       <p><strong>Persetujuan Kebijakan Privasi:</strong> ${consent ? "Ya" : "Tidak"}</p>
       <p><strong>Opt-in informasi dan pembaruan:</strong> ${marketingOptIn ? "Ya" : "Tidak"}</p>
       <hr />
@@ -68,7 +66,7 @@ export async function POST(request: Request) {
         from: CONTACT_FORM_FROM,
         to: [CONTACT_FORM_TO],
         reply_to: email,
-        subject: `[Contact Us] ${subject}`,
+        subject: `[Hubungi Kami] Pesan dari ${name}`,
         html,
       }),
     })

@@ -4,17 +4,13 @@ import { Suspense, useEffect, useRef, useState, type ReactNode } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useClerk, useUser } from "@clerk/nextjs"
 import {
-    Activity,
     AlertTriangle,
     ArrowLeft,
-    Brain,
     CircleDot,
     Clock,
-    ExternalLink,
     Info,
     Layers,
     Newspaper,
-    PieChart,
     TrendingDown,
     TrendingUp,
 } from "lucide-react"
@@ -22,10 +18,9 @@ import { Footer } from "@/components/footer"
 import { PageShell } from "@/components/page-shell"
 import { StockSearch } from "@/components/stock-search"
 import { AdvancedMultiChart } from "@/components/advanced-multi-chart"
-import { TradingViewSingleTickerCard } from "@/components/tradingview-single-ticker-card"
 import { TradePlanCard } from "@/components/trade-plan-card"
+import { TickerCircleIcon } from "@/components/ticker-circle-icon"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -152,27 +147,6 @@ function AnalyzePageFrame({ children }: { children: ReactNode }) {
     )
 }
 
-function getScoreBarColor(score: number) {
-    const clamped = Math.min(Math.max(score, 0), 100)
-
-    if (clamped < 40) return "#dc2626"
-    if (clamped < 60) return "#ea580c"
-    if (clamped < 75) return "#d97706"
-    return "#16a34a"
-}
-
-function ScoreBar({ score, color }: { score: number; color?: string }) {
-    const pct = Math.min(Math.max(score, 0), 100)
-    return (
-        <div className="h-1.5 w-full rounded-full bg-border overflow-hidden">
-            <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${pct}%`, backgroundColor: color || "#d07225" }}
-            />
-        </div>
-    )
-}
-
 function SignalItem({ text }: { text: string }) {
     return (
         <li className="text-sm text-muted-foreground flex items-start gap-2.5 py-1">
@@ -187,11 +161,106 @@ function StatRow({ label, value, sub }: { label: string; value: string; sub?: st
         <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0 gap-3">
             <span className="text-sm text-muted-foreground">{label}</span>
             <div className="text-right">
-                <span className="text-sm font-semibold font-ibm-plex-mono">{value}</span>
+                <span className="text-sm font-semibold tabular-nums">{value}</span>
                 {sub ? <div className="text-[11px] text-muted-foreground/60">{sub}</div> : null}
             </div>
         </div>
     )
+}
+
+function ResultSectionHeading({ title }: { title: string }) {
+    return (
+        <div className="mb-2.5">
+            <h2 className="font-heading text-lg font-semibold tracking-tight text-foreground sm:text-xl">{title}</h2>
+        </div>
+    )
+}
+
+function AnalysisSurface({ children, className }: { children: ReactNode; className?: string }) {
+    return (
+        <div className={cn("overflow-hidden rounded-2xl border border-border/70 bg-card/90", className)}>
+            {children}
+        </div>
+    )
+}
+
+function SummaryMetric({
+    label,
+    value,
+    detail,
+}: {
+    label: string
+    value: ReactNode
+    detail: string
+}) {
+    return (
+        <div className="min-h-24 bg-card px-4 py-3.5 sm:px-5 sm:py-4">
+            <div className="text-xs font-medium text-muted-foreground">{label}</div>
+            <div className="mt-1.5 text-xl font-semibold tracking-tight text-foreground tabular-nums sm:text-2xl">{value}</div>
+            <div className="mt-1 text-[11px] leading-4 text-muted-foreground">{detail}</div>
+        </div>
+    )
+}
+
+function ScoreMetric({ label, score }: { label: string; score: number }) {
+    const pct = Math.min(Math.max(score, 0), 100)
+    const markerPct = Math.min(Math.max(pct, 2), 98)
+
+    return (
+        <div className="bg-card px-4 py-3.5 sm:px-5 sm:py-4" aria-label={`${label}: ${score} dari 100`}>
+            <div className="text-xs font-medium text-muted-foreground">{label}</div>
+            <div className="mt-1.5 flex items-baseline justify-between gap-3">
+                <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">{score}</span>
+                    <span className="text-[11px] text-muted-foreground">/100</span>
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground">{getScoreLabel(score)}</span>
+            </div>
+            <div className="relative mt-3 h-1.5 overflow-visible rounded-full bg-muted">
+                <div className="absolute inset-y-0 left-0 rounded-full bg-[#d07225]" style={{ width: `${pct}%` }} />
+                {[40, 60, 75].map((threshold) => (
+                    <span key={threshold} className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-card/80" style={{ left: `${threshold}%` }} />
+                ))}
+                <span className="absolute top-1/2 h-2.5 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground" style={{ left: `${markerPct}%` }} />
+            </div>
+        </div>
+    )
+}
+
+function BiasMetric({ bias, confidence }: { bias: MarketBias; confidence: Confidence }) {
+    const positive = bias === "bullish"
+    const negative = bias === "bearish"
+
+    return (
+        <div className="bg-card px-4 py-3.5 sm:px-5 sm:py-4">
+            <div className="text-xs font-medium text-muted-foreground">Bias pasar</div>
+            <div className={cn("mt-2 flex items-center gap-2 text-xl font-semibold tracking-tight", positive && "text-emerald-700", negative && "text-red-600")}>
+                {positive ? <TrendingUp className="h-4 w-4" /> : negative ? <TrendingDown className="h-4 w-4" /> : <CircleDot className="h-4 w-4" />}
+                {formatMarketBias(bias)}
+            </div>
+            <div className="mt-2 text-[11px] leading-4 text-muted-foreground">{formatConfidence(confidence)}</div>
+        </div>
+    )
+}
+
+function getScoreLabel(score: number) {
+    if (score >= 85) return "Sangat kuat"
+    if (score >= 70) return "Kuat"
+    if (score >= 55) return "Moderat"
+    if (score >= 40) return "Lemah"
+    return "Sangat lemah"
+}
+
+function formatMarketBias(value: MarketBias) {
+    if (value === "bullish") return "Bullish"
+    if (value === "bearish") return "Bearish"
+    return "Netral"
+}
+
+function formatConfidence(value: Confidence) {
+    if (value === "high") return "Keyakinan tinggi"
+    if (value === "medium") return "Keyakinan sedang"
+    return "Keyakinan rendah"
 }
 
 function QuarterlyMetricRow({
@@ -616,377 +685,271 @@ function AnalyzeV2Content() {
         `Entry ${formatEntryReference(d.riskPlan.entryReference)}`,
         ...d.riskPlan.notes,
     ]).slice(0, 7)
+    const coreThesis = d.aiView?.coreThesis || d.llmSummary
+    const isPositiveChange = d.changePct >= 0
 
     return (
         <AnalyzePageFrame>
-            <div className="flex-1 pb-12">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-5 md:mt-7 space-y-5">
+            <div className="flex-1 pb-16">
+                <div className="mx-auto mt-6 w-full max-w-6xl px-4 sm:px-6 lg:mt-9 lg:px-8">
                     <button
                         onClick={() => router.push("/analyze-v2")}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card/70 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-[#d07225]/30 hover:bg-card transition-colors group shadow-sm"
+                        className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
                     >
                         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
                         Kembali ke Pencarian
                     </button>
 
-                    <Card className="p-6 sm:p-8 border-border/70 bg-card shadow-sm overflow-hidden">
-                        <div className="mb-7 space-y-5">
-                            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <header className="mt-8 lg:mt-10">
+                        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                            <div className="flex min-w-0 items-center gap-4">
+                                <TickerCircleIcon ticker={d.ticker} className="h-12 w-12" />
                                 <div className="min-w-0">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <h1 className="text-2xl font-bold font-ibm-plex-mono tracking-tight leading-none">{d.ticker}</h1>
-                                        {d.syariah ? <Badge variant="outline" className="text-[10px]">Syariah</Badge> : null}
-                                        <Badge variant="outline" className="text-[10px]">{d.dataMode}</Badge>
+                                    <div className="flex flex-wrap items-center gap-2.5">
+                                        <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{d.ticker}</h1>
+                                        {d.syariah ? <Badge variant="outline">Syariah</Badge> : null}
+                                        <Badge variant="outline">{d.dataMode}</Badge>
                                     </div>
-                                    <p className="mt-1 truncate text-sm text-muted-foreground">{d.companyName}</p>
-                                </div>
-
-                                <div className="flex items-center gap-x-3 gap-y-1 text-xs text-muted-foreground flex-wrap lg:justify-end">
-                                    <span className="flex items-center gap-1"><Layers className="w-3 h-3" />{d.sector}</span>
-                                    <span className="text-border">·</span>
-                                    <span className="capitalize">{d.marketCapGroup} Cap</span>
-                                    <span className="text-border">·</span>
-                                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" />Per {d.asOf}</span>
+                                    <p className="mt-1 truncate text-sm text-muted-foreground sm:text-base">{d.companyName}</p>
                                 </div>
                             </div>
 
-                            <div className="w-full grid grid-cols-1 lg:grid-cols-[minmax(320px,1.25fr)_minmax(220px,1fr)_minmax(220px,1fr)] gap-3 items-stretch min-w-0">
-                                <TradingViewSingleTickerCard
-                                    ticker={d.ticker}
-                                    price={d.price}
-                                    changePct={d.changePct}
-                                    volumeLabel={formatCompactVolume(d.volume)}
-                                    high52w={d.high52w}
-                                    low52w={d.low52w}
-                                />
-
-                                <div className="rounded-xl border border-border/70 bg-background/70 px-4 py-3 min-h-[136px] h-full flex flex-col justify-center gap-5">
-                                    <div>
-                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Technical Score</div>
-                                        <div className="mt-2 flex items-end justify-between gap-4">
-                                            <div className="flex items-baseline gap-0.5 leading-none">
-                                                <span className="text-3xl font-bold font-ibm-plex-mono text-foreground">{d.technical.score}</span>
-                                                <span className="text-xs font-ibm-plex-mono text-muted-foreground/60">/100</span>
-                                            </div>
-                                            <div className="w-24 pb-1"><ScoreBar score={d.technical.score} color={getScoreBarColor(d.technical.score)} /></div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Fundamental Score</div>
-                                        <div className="mt-2 flex items-end justify-between gap-4">
-                                            <div className="flex items-baseline gap-0.5 leading-none">
-                                                <span className="text-3xl font-bold font-ibm-plex-mono text-foreground">{d.fundamental.score}</span>
-                                                <span className="text-xs font-ibm-plex-mono text-muted-foreground/60">/100</span>
-                                            </div>
-                                            <div className="w-24 pb-1"><ScoreBar score={d.fundamental.score} color={getScoreBarColor(d.fundamental.score)} /></div>
-                                        </div>
-                                    </div>
+                            <div className="lg:text-right">
+                                <div className="text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:text-4xl">{formatRupiah(d.price)}</div>
+                                <div className={cn("mt-1 text-sm font-medium tabular-nums", isPositiveChange ? "text-emerald-700" : "text-red-600")}>
+                                    {isPositiveChange ? "+" : ""}{formatNumber(d.changePct, 2)}%
                                 </div>
-
-                                <TradePlanCard riskPlan={d.riskPlan} watchItems={watchItems} currentPrice={d.price} />
                             </div>
                         </div>
 
-                        <div className="mb-8 pt-2">
-                            <AdvancedMultiChart
-                                data={{ dates: [], close: [], ma20: [], ma50: [], foreignFlowCumulative: [] }}
-                                symbol={d.ticker}
-                            />
+                        <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
+                            <span className="inline-flex items-center gap-1.5"><Layers className="h-4 w-4" />{d.sector}</span>
+                            <span className="capitalize">{d.marketCapGroup} cap</span>
+                            <span className="inline-flex items-center gap-1.5"><Clock className="h-4 w-4" />Per {d.asOf}</span>
                         </div>
-                    </Card>
 
-                    <Card className="overflow-hidden border-border/70 bg-card shadow-sm">
+                        <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border/70 bg-border/70 lg:grid-cols-4">
+                            <ScoreMetric label="Skor keseluruhan" score={d.overallScore} />
+                            <ScoreMetric label="Teknikal" score={d.technical.score} />
+                            <ScoreMetric label="Fundamental" score={d.fundamental.score} />
+                            <BiasMetric bias={d.marketBias} confidence={d.confidence} />
+                        </div>
+                    </header>
+
+                    <main className="mt-8 space-y-8 sm:space-y-10">
                         <section>
-                            <div className="p-6 sm:p-7">
-                                <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Brain className="w-4 h-4 text-muted-foreground" />
-                                        <span className="text-base font-semibold">AI View</span>
-                                    </div>
+                            <ResultSectionHeading title="Pergerakan harga" />
+                            <AnalysisSurface>
+                                <AdvancedMultiChart
+                                    data={{ dates: [], close: [], ma20: [], ma50: [], foreignFlowCumulative: [] }}
+                                    symbol={d.ticker}
+                                />
+                                <div className="grid grid-cols-2 gap-px border-t border-border/70 bg-border/70 lg:grid-cols-4">
+                                    <SummaryMetric label="Volume" value={formatCompactVolume(d.volume)} detail="Volume sesi terakhir" />
+                                    <SummaryMetric label="Terendah 52 minggu" value={formatRupiah(d.low52w)} detail="Batas bawah tahunan" />
+                                    <SummaryMetric label="Tertinggi 52 minggu" value={formatRupiah(d.high52w)} detail="Batas atas tahunan" />
+                                    <SummaryMetric label="Kapitalisasi pasar" value={formatTrillionValue(d.fundamental.metrics.market_cap_t)} detail={`${d.marketCapGroup} cap`} />
                                 </div>
-
-                                <div className="space-y-5">
-                                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-0 md:divide-x md:divide-border/70">
-                                        <div className="md:pr-6">
-                                            <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Ringkasan Singkat</div>
-                                            <p className="text-sm leading-relaxed text-muted-foreground">{d.llmSummary}</p>
-                                        </div>
-
-                                        <div className="md:pl-6">
-                                            <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Driver Utama</div>
-                                            <ul className="grid grid-cols-1 gap-y-2">
-                                                {summaryDrivers.map((driver, i) => (
-                                                    <li key={`${driver}-${i}`} className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
-                                                        <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#d07225]" />
-                                                        <span>{driver}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 gap-5 border-t border-border/70 pt-5 md:grid-cols-2 md:gap-0 md:divide-x md:divide-border/70">
-                                        <div className="md:pr-6">
-                                            <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-xl border border-red-600/20 bg-red-600/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-red-700">
-                                                <TrendingDown className="h-3.5 w-3.5" />
-                                                Bearish View
-                                            </div>
-                                            <p className="text-sm leading-relaxed text-muted-foreground">{bearCase}</p>
-                                        </div>
-
-                                        <div className="md:pl-6">
-                                            <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-xl border border-green-600/20 bg-green-600/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-green-700">
-                                                <TrendingUp className="h-3.5 w-3.5" />
-                                                Bullish View
-                                            </div>
-                                            <p className="text-sm leading-relaxed text-muted-foreground">{bullCase}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            </AnalysisSurface>
                         </section>
-                    </Card>
 
-                    <Card className="p-6 sm:p-7 border-border/70 bg-card shadow-sm overflow-hidden">
-                        <div className="-mx-6 sm:-mx-7 -mt-6 sm:-mt-7 mb-5 h-px bg-border" />
-                        <div className="flex items-center gap-2 mb-4">
-                            <Newspaper className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm font-semibold">Berita Terkait</span>
-                        </div>
-
-                        {newsLoading ? (
-                            <div className="grid gap-x-8 md:grid-cols-2">
-                                {Array.from({ length: 4 }).map((_, i) => (
-                                    <div key={i} className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 border-t border-border/70 py-4 sm:grid-cols-[112px_minmax(0,1fr)]">
-                                        <div className="h-16 w-[88px] bg-muted animate-pulse sm:h-20 sm:w-28" />
-                                        <div className="min-w-0 pt-0.5">
-                                            <div className="mb-3 h-3 w-32 bg-muted animate-pulse" />
-                                            <div className="mb-2 h-4 w-full bg-muted animate-pulse" />
-                                            <div className="h-4 w-3/4 bg-muted animate-pulse" />
-                                        </div>
+                        <section>
+                            <ResultSectionHeading title="Pandangan AI" />
+                            <AnalysisSurface>
+                                <div className="grid lg:grid-cols-[1.15fr_0.85fr]">
+                                    <div className="p-5 sm:p-6 lg:border-r lg:border-border/70">
+                                        <p className="max-w-3xl text-base font-semibold leading-7 text-foreground">{coreThesis}</p>
+                                        {coreThesis !== d.llmSummary ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{d.llmSummary}</p> : null}
                                     </div>
-                                ))}
-                            </div>
-                        ) : newsStories.length > 0 ? (
-                            <div className="grid gap-x-8 md:grid-cols-2">
-                                {newsStories.map((story) => {
-                                    const publishedLabel = formatNewsTime(story.publishedAt)
+                                    <div className="border-t border-border/70 p-5 sm:p-6 lg:border-t-0">
+                                        <h3 className="text-sm font-semibold text-foreground">Driver utama</h3>
+                                        <ul className="mt-3 space-y-2">
+                                            {summaryDrivers.map((driver, i) => (
+                                                <li key={`${driver}-${i}`} className="flex items-start gap-3 text-sm leading-6 text-muted-foreground">
+                                                    <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#d07225]" />
+                                                    <span>{driver}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div className="grid border-t border-border/70 md:grid-cols-2">
+                                    <div className="bg-emerald-50/35 p-5 sm:p-6 md:border-r md:border-border/70">
+                                        <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800"><TrendingUp className="h-4 w-4" />Skenario bullish</div>
+                                        <p className="mt-2 text-sm leading-6 text-muted-foreground">{bullCase}</p>
+                                    </div>
+                                    <div className="border-t border-border/70 bg-red-50/30 p-5 sm:p-6 md:border-t-0">
+                                        <div className="flex items-center gap-2 text-sm font-semibold text-red-700"><TrendingDown className="h-4 w-4" />Skenario bearish</div>
+                                        <p className="mt-2 text-sm leading-6 text-muted-foreground">{bearCase}</p>
+                                    </div>
+                                </div>
+                            </AnalysisSurface>
+                        </section>
 
-                                    return (
-                                        <a
-                                            key={story.url}
-                                            href={story.url}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="group grid grid-cols-[88px_minmax(0,1fr)] gap-3 border-t border-border/70 py-4 transition-colors hover:bg-muted/20 sm:grid-cols-[112px_minmax(0,1fr)]"
-                                        >
-                                            <div className="relative h-16 w-[88px] overflow-hidden bg-muted sm:h-20 sm:w-28">
-                                                {story.imageUrl ? (
-                                                    <img
-                                                        src={story.imageUrl}
-                                                        alt=""
-                                                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                                        loading="lazy"
-                                                        onError={(event) => {
-                                                            event.currentTarget.style.display = "none"
-                                                        }}
-                                                    />
-                                                ) : story.faviconUrl ? (
-                                                    <div className="flex h-full w-full items-center justify-center bg-muted">
-                                                        <img
-                                                            src={story.faviconUrl}
-                                                            alt=""
-                                                            className="h-7 w-7 opacity-70"
-                                                            loading="lazy"
-                                                            onError={(event) => {
-                                                                event.currentTarget.style.display = "none"
-                                                            }}
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex h-full w-full items-center justify-center bg-muted">
-                                                        <Newspaper className="h-5 w-5 text-muted-foreground/60" />
-                                                    </div>
-                                                )}
+                        <section>
+                            <ResultSectionHeading title="Rencana perdagangan" />
+                            <TradePlanCard riskPlan={d.riskPlan} watchItems={watchItems} currentPrice={d.price} />
+                        </section>
+
+                        <section>
+                            <ResultSectionHeading title="Analisis teknikal" />
+                            <AnalysisSurface>
+                                {d.technical.summary ? (
+                                    <div className="border-b border-border/70 bg-muted/20 px-5 py-3.5 text-sm leading-6 text-muted-foreground sm:px-6">
+                                        <span className="mr-2 font-semibold text-foreground">Interpretasi</span>
+                                        {d.technical.summary}
+                                    </div>
+                                ) : null}
+                                <div className="grid gap-px bg-border/70 sm:grid-cols-3">
+                                    {[
+                                        ["Tren", d.technical.trend],
+                                        ["Momentum", d.technical.momentum],
+                                        ["Volatilitas", d.technical.volatility],
+                                    ].map(([label, value]) => (
+                                        <div key={label} className="bg-card px-5 py-4">
+                                            <div className="text-xs text-muted-foreground">{label}</div>
+                                            <div className="mt-1 text-sm font-semibold capitalize text-foreground">{value}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="grid lg:grid-cols-[1.1fr_0.9fr]">
+                                    <div className="p-5 sm:p-6 lg:border-r lg:border-border/70">
+                                        <Tabs defaultValue="overview">
+                                            <TabsList variant="line" className="mb-5">
+                                                <TabsTrigger value="overview">Level utama</TabsTrigger>
+                                                <TabsTrigger value="indicators">Indikator</TabsTrigger>
+                                            </TabsList>
+                                            <TabsContent value="overview">
+                                                <StatRow label="Support terdekat" value={formatRupiah(d.technical.indicators.support1)} sub={`Support berikutnya ${formatRupiah(d.technical.indicators.support2)}`} />
+                                                <StatRow label="Resisten terdekat" value={formatRupiah(d.technical.indicators.resistance1)} sub={`Resisten berikutnya ${formatRupiah(d.technical.indicators.resistance2)}`} />
+                                                <StatRow label="Rata-rata volume" value={formatCompactVolume(d.technical.indicators.volumeAvg)} sub={d.technical.indicatorNotes?.volumeAvg} />
+                                                <StatRow label="ATR" value={formatRupiah(d.technical.indicators.atr)} sub={d.technical.indicatorNotes?.atr} />
+                                            </TabsContent>
+                                            <TabsContent value="indicators">
+                                                <StatRow label="MA20" value={formatRupiah(d.technical.indicators.ma20)} sub={d.technical.indicatorNotes?.ma20} />
+                                                <StatRow label="MA50" value={formatRupiah(d.technical.indicators.ma50)} sub={d.technical.indicatorNotes?.ma50} />
+                                                <StatRow label="MA200" value={formatRupiah(d.technical.indicators.ma200)} sub={d.technical.indicatorNotes?.ma200} />
+                                                <StatRow label="RSI (14)" value={formatNumber(d.technical.indicators.rsi14, 2)} sub={d.technical.indicatorNotes?.rsi14} />
+                                                <StatRow label="MACD" value={d.technical.indicators.macd.value} sub={`${d.technical.indicators.macd.text}${d.technical.indicatorNotes?.macd ? ` · ${d.technical.indicatorNotes.macd}` : ""}`} />
+                                                <StatRow label="Stochastic" value={d.technical.indicators.stochastic.value} sub={`${d.technical.indicators.stochastic.text}${d.technical.indicatorNotes?.stochastic ? ` · ${d.technical.indicatorNotes.stochastic}` : ""}`} />
+                                                <StatRow label="Bollinger Bands" value={d.technical.indicators.bollingerBands} sub={d.technical.indicatorNotes?.bollingerBands} />
+                                            </TabsContent>
+                                        </Tabs>
+                                    </div>
+                                    <div className="border-t border-border/70 p-5 sm:p-6 lg:border-t-0">
+                                        <h3 className="text-sm font-semibold text-foreground">Sinyal teknikal</h3>
+                                        <ul className="mt-3 space-y-1">
+                                            {d.technical.signals.map((signal, i) => <SignalItem key={i} text={signal} />)}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </AnalysisSurface>
+                        </section>
+
+                        <section>
+                            <ResultSectionHeading title="Analisis fundamental" />
+                            <AnalysisSurface>
+                                {d.fundamental.summary ? (
+                                    <div className="border-b border-border/70 bg-muted/20 px-5 py-3.5 text-sm leading-6 text-muted-foreground sm:px-6">
+                                        <span className="mr-2 font-semibold text-foreground">Interpretasi</span>
+                                        {d.fundamental.summary}
+                                    </div>
+                                ) : null}
+                                <Tabs defaultValue="overview">
+                                    <div className="border-b border-border/70 px-5 pt-4 sm:px-6">
+                                        <TabsList variant="line">
+                                            <TabsTrigger value="overview">Ikhtisar</TabsTrigger>
+                                            <TabsTrigger value="quarterly">Data kuartal</TabsTrigger>
+                                        </TabsList>
+                                    </div>
+                                    <TabsContent value="overview" className="m-0">
+                                        <div className="grid lg:grid-cols-[1.1fr_0.9fr]">
+                                            <div className="grid gap-x-8 p-5 sm:grid-cols-2 sm:p-6 lg:border-r lg:border-border/70">
+                                                <StatRow label="P/E Ratio" value={d.fundamental.metrics.pe_ratio !== null ? `${formatNumber(d.fundamental.metrics.pe_ratio, 1)}x` : "N/A"} sub={d.fundamental.metricNotes?.pe_ratio || (d.fundamental.metrics.pe_sector_avg !== null ? `Rata-rata sektor ${formatNumber(d.fundamental.metrics.pe_sector_avg, 1)}x` : undefined)} />
+                                                <StatRow label="PBV" value={d.fundamental.metrics.pbv !== null ? `${formatNumber(d.fundamental.metrics.pbv, 2)}x` : "N/A"} sub={d.fundamental.metricNotes?.pbv || (d.fundamental.metrics.pbv_sector_avg !== null ? `Rata-rata sektor ${formatNumber(d.fundamental.metrics.pbv_sector_avg, 2)}x` : undefined)} />
+                                                <StatRow label="ROE" value={d.fundamental.metrics.roe !== null ? `${formatNumber(d.fundamental.metrics.roe, 2)}%` : "N/A"} sub={d.fundamental.metricNotes?.roe} />
+                                                <StatRow label="ROA" value={d.fundamental.metrics.roa !== null ? `${formatNumber(d.fundamental.metrics.roa, 2)}%` : "N/A"} sub={d.fundamental.metricNotes?.roa} />
+                                                <StatRow label="DER" value={d.fundamental.metrics.der !== null ? `${formatNumber(d.fundamental.metrics.der, 2)}x` : "N/A"} sub={d.fundamental.metricNotes?.der} />
+                                                <StatRow label="Net profit margin" value={d.fundamental.metrics.npm !== null ? `${formatNumber(d.fundamental.metrics.npm, 2)}%` : "N/A"} sub={d.fundamental.metricNotes?.npm} />
+                                                <StatRow label="Pertumbuhan EPS" value={d.fundamental.metrics.eps_growth_yoy !== null ? `${d.fundamental.metrics.eps_growth_yoy > 0 ? "+" : ""}${formatNumber(d.fundamental.metrics.eps_growth_yoy, 2)}%` : "N/A"} sub={d.fundamental.metricNotes?.eps_growth_yoy} />
+                                                <StatRow label="Pertumbuhan pendapatan" value={d.fundamental.metrics.revenue_growth_yoy !== null ? `${d.fundamental.metrics.revenue_growth_yoy > 0 ? "+" : ""}${formatNumber(d.fundamental.metrics.revenue_growth_yoy, 2)}%` : "N/A"} sub={d.fundamental.metricNotes?.revenue_growth_yoy} />
+                                                <StatRow label="Dividend yield" value={d.fundamental.metrics.dividend_yield !== null ? `${formatNumber(d.fundamental.metrics.dividend_yield, 2)}%` : "N/A"} sub={d.fundamental.metricNotes?.dividend_yield} />
+                                                <StatRow label="Kapitalisasi pasar" value={formatTrillionValue(d.fundamental.metrics.market_cap_t)} />
                                             </div>
-
-                                            <div className="min-w-0 pt-0.5">
-                                                <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
-                                                    <div className="min-w-0 truncate">
-                                                        <span className="font-medium text-foreground/75">{story.source}</span>
-                                                        {publishedLabel ? <span> · {publishedLabel}</span> : null}
-                                                    </div>
-                                                    <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-40 transition-opacity group-hover:opacity-80" />
-                                                </div>
-                                                <div className="text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-[#d07225]">
-                                                    {story.title}
-                                                </div>
-                                                {story.snippet ? (
-                                                    <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                                                        {story.snippet}
-                                                    </p>
-                                                ) : null}
+                                            <div className="border-t border-border/70 p-5 sm:p-6 lg:border-t-0">
+                                                <h3 className="text-sm font-semibold text-foreground">Sinyal fundamental</h3>
+                                                <ul className="mt-3 space-y-1">
+                                                    {d.fundamental.signals.map((signal, i) => <SignalItem key={i} text={signal} />)}
+                                                </ul>
                                             </div>
-                                        </a>
-                                    )
-                                })}
-                            </div>
-                        ) : (
-                            <div className="border-t border-border/70 py-4 text-sm text-muted-foreground">
-                                {newsError ? "Berita belum tersedia saat ini." : "Belum ada berita relevan."}
-                            </div>
-                        )}
-                    </Card>
-
-                    <div className="grid lg:grid-cols-2 gap-5">
-                        <Card className="p-6 border-border/70 bg-card shadow-sm overflow-hidden">
-                            <div className="-mx-6 -mt-6 mb-5 h-px bg-border" />
-                            <div className="flex items-start justify-between mb-5">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Activity className="w-4 h-4 text-muted-foreground" />
-                                        <h3 className="text-sm font-semibold">Analisis Teknikal</h3>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground capitalize">{d.technical.trend} · {d.technical.momentum} · {d.technical.volatility}</p>
-                                    {d.technical.summary ? <p className="text-xs text-muted-foreground mt-2">{d.technical.summary}</p> : null}
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-3xl font-bold font-ibm-plex-mono">{d.technical.score}</div>
-                                    <div className="w-20 mt-1"><ScoreBar score={d.technical.score} color={getScoreBarColor(d.technical.score)} /></div>
-                                </div>
-                            </div>
-
-                            <Tabs defaultValue="overview">
-                                <TabsList variant="line" className="mb-4">
-                                    <TabsTrigger value="overview" className="text-xs">Profil Aksi</TabsTrigger>
-                                    <TabsTrigger value="indicators" className="text-xs">Indikator Detail</TabsTrigger>
-                                </TabsList>
-
-                                <TabsContent value="overview">
-                                    <div className="grid grid-cols-3 gap-2 mb-5">
-                                        <div className="p-2.5 rounded-lg bg-background/70 border border-border/70 text-center">
-                                            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Trend</div>
-                                            <div className="text-xs font-semibold capitalize">{d.technical.trend}</div>
                                         </div>
-                                        <div className="p-2.5 rounded-lg bg-background/70 border border-border/70 text-center">
-                                            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Momentum</div>
-                                            <div className="text-xs font-semibold capitalize">{d.technical.momentum}</div>
-                                        </div>
-                                        <div className="p-2.5 rounded-lg bg-background/70 border border-border/70 text-center">
-                                            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Volatilitas</div>
-                                            <div className="text-xs font-semibold capitalize">{d.technical.volatility}</div>
-                                        </div>
+                                    </TabsContent>
+                                    <TabsContent value="quarterly" className="m-0 p-5 sm:p-6">
+                                        {(() => {
+                                            const periods = d.fundamental.quarterly.map((q) => q.period)
+                                            const percentFormat = (value: number | null) => value !== null && Number.isFinite(value) ? `${formatNumber(value, 2)}%` : "N/A"
+                                            const epsFormat = (value: number | null) => value !== null && Number.isFinite(value) ? formatNumber(value, 2) : "N/A"
+                                            const magnitudeFormat = (value: number | null) => formatFinancialMagnitude(value, quarterlyFinancialScale)
+                                            const rows: Array<{ label: string; values: Array<number | null>; format: (value: number | null) => string }> = [
+                                                { label: "Revenue", values: d.fundamental.quarterly.map((q) => q.revenue), format: magnitudeFormat },
+                                                { label: "Laba Bersih", values: d.fundamental.quarterly.map((q) => q.netIncome), format: magnitudeFormat },
+                                                { label: "NPM", values: d.fundamental.quarterly.map((q) => q.npm), format: percentFormat },
+                                                { label: "ROE", values: d.fundamental.quarterly.map((q) => q.roe), format: percentFormat },
+                                                { label: "EPS", values: d.fundamental.quarterly.map((q) => q.eps), format: epsFormat },
+                                            ]
+
+                                            return (
+                                                <TooltipProvider>
+                                                    <div>{rows.map((row) => <QuarterlyMetricRow key={row.label} label={row.label} periods={periods} values={row.values} format={row.format} />)}</div>
+                                                </TooltipProvider>
+                                            )
+                                        })()}
+                                    </TabsContent>
+                                </Tabs>
+                            </AnalysisSurface>
+                        </section>
+
+                        <section>
+                            <ResultSectionHeading title="Berita terkait" />
+                            <AnalysisSurface>
+                                {newsLoading ? (
+                                    <div className="grid gap-x-8 p-6 md:grid-cols-2 sm:p-8">
+                                        {Array.from({ length: 4 }).map((_, i) => (
+                                            <div key={i} className="grid grid-cols-[minmax(0,1fr)_88px] gap-4 border-b border-border/70 py-5 sm:grid-cols-[minmax(0,1fr)_112px]">
+                                                <div><div className="mb-3 h-3 w-32 animate-pulse bg-muted" /><div className="mb-2 h-4 w-full animate-pulse bg-muted" /><div className="h-4 w-3/4 animate-pulse bg-muted" /></div>
+                                                <div className="h-16 w-[88px] animate-pulse rounded-lg bg-muted sm:h-20 sm:w-28" />
+                                            </div>
+                                        ))}
                                     </div>
-                                    <StatRow label="Support Terdekat (S1)" value={`Rp ${formatNumber(d.technical.indicators.support1, 1)}`} sub={`S2: Rp ${formatNumber(d.technical.indicators.support2, 1)}`} />
-                                    <StatRow label="Resisten Terdekat (R1)" value={`Rp ${formatNumber(d.technical.indicators.resistance1, 1)}`} sub={`R2: Rp ${formatNumber(d.technical.indicators.resistance2, 1)}`} />
-                                    <StatRow label="Avg Volume" value={formatCompactVolume(d.technical.indicators.volumeAvg)} sub={d.technical.indicatorNotes?.volumeAvg} />
-                                    <StatRow label="ATR" value={`Rp ${formatNumber(d.technical.indicators.atr, 1)}`} sub={d.technical.indicatorNotes?.atr} />
-                                </TabsContent>
-
-                                <TabsContent value="indicators">
-                                    <StatRow label="MA20" value={`Rp ${formatNumber(d.technical.indicators.ma20, 0)}`} sub={d.technical.indicatorNotes?.ma20} />
-                                    <StatRow label="MA50" value={`Rp ${formatNumber(d.technical.indicators.ma50, 1)}`} sub={d.technical.indicatorNotes?.ma50} />
-                                    <StatRow label="MA200" value={`Rp ${formatNumber(d.technical.indicators.ma200, 2)}`} sub={d.technical.indicatorNotes?.ma200} />
-                                    <StatRow label="RSI (14)" value={formatNumber(d.technical.indicators.rsi14, 2)} sub={d.technical.indicatorNotes?.rsi14} />
-                                    <StatRow label="MACD" value={d.technical.indicators.macd.value} sub={`${d.technical.indicators.macd.text}${d.technical.indicatorNotes?.macd ? ` · ${d.technical.indicatorNotes.macd}` : ""}`} />
-                                    <StatRow label="Stochastic" value={d.technical.indicators.stochastic.value} sub={`${d.technical.indicators.stochastic.text}${d.technical.indicatorNotes?.stochastic ? ` · ${d.technical.indicatorNotes.stochastic}` : ""}`} />
-                                    <StatRow label="Bollinger Bands" value={d.technical.indicators.bollingerBands} sub={d.technical.indicatorNotes?.bollingerBands} />
-                                </TabsContent>
-                            </Tabs>
-
-                            <div className="border-t border-border pt-4 mt-4">
-                                <div className="text-xs font-semibold text-muted-foreground mb-2">Sinyal Teknikal</div>
-                                <ul className="space-y-0.5">
-                                    {d.technical.signals.map((signal, i) => <SignalItem key={i} text={signal} />)}
-                                </ul>
-                            </div>
-                        </Card>
-
-                        <Card className="p-6 border-border/70 bg-card shadow-sm overflow-hidden">
-                            <div className="-mx-6 -mt-6 mb-5 h-px bg-border" />
-                            <div className="flex items-start justify-between mb-5">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <PieChart className="w-4 h-4 text-muted-foreground" />
-                                        <h3 className="text-sm font-semibold">Analisis Fundamental</h3>
+                                ) : newsStories.length > 0 ? (
+                                    <div className="grid gap-x-8 px-6 md:grid-cols-2 sm:px-8">
+                                        {newsStories.map((story) => {
+                                            const publishedLabel = formatNewsTime(story.publishedAt)
+                                            return (
+                                                <a key={story.url} href={story.url} target="_blank" rel="noreferrer" className="group grid grid-cols-[minmax(0,1fr)_88px] gap-4 border-b border-border/70 py-6 sm:grid-cols-[minmax(0,1fr)_112px]">
+                                                    <div className="min-w-0">
+                                                        <div className="mb-2 text-xs text-muted-foreground"><span className="font-medium text-foreground/75">{story.source}</span>{publishedLabel ? <span> · {publishedLabel}</span> : null}</div>
+                                                        <div className="text-base font-semibold leading-snug text-foreground transition-colors group-hover:text-[#d07225]">{story.title}</div>
+                                                        {story.snippet ? <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{story.snippet}</p> : null}
+                                                    </div>
+                                                    <div className="relative h-16 w-[88px] overflow-hidden rounded-lg bg-muted sm:h-20 sm:w-28">
+                                                        {story.imageUrl ? <img src={story.imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" onError={(event) => { event.currentTarget.style.display = "none" }} /> : story.faviconUrl ? <div className="flex h-full w-full items-center justify-center"><img src={story.faviconUrl} alt="" className="h-7 w-7 opacity-70" loading="lazy" onError={(event) => { event.currentTarget.style.display = "none" }} /></div> : <div className="flex h-full w-full items-center justify-center"><Newspaper className="h-5 w-5 text-muted-foreground/60" /></div>}
+                                                    </div>
+                                                </a>
+                                            )
+                                        })}
                                     </div>
-                                    <p className="text-xs text-muted-foreground capitalize">Valuasi: {d.fundamental.valuation} · MCap {formatTrillionValue(d.fundamental.metrics.market_cap_t)}</p>
-                                    {d.fundamental.summary ? <p className="text-xs text-muted-foreground mt-2">{d.fundamental.summary}</p> : null}
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-3xl font-bold font-ibm-plex-mono">{d.fundamental.score}</div>
-                                    <div className="w-20 mt-1"><ScoreBar score={d.fundamental.score} color={getScoreBarColor(d.fundamental.score)} /></div>
-                                </div>
-                            </div>
+                                ) : (
+                                    <div className="p-6 text-sm text-muted-foreground sm:p-8">{newsError ? "Berita belum tersedia saat ini." : "Belum ada berita relevan."}</div>
+                                )}
+                            </AnalysisSurface>
+                        </section>
 
-                            <Tabs defaultValue="overview">
-                                <TabsList variant="line" className="mb-4">
-                                    <TabsTrigger value="overview" className="text-xs">Ikhtisar</TabsTrigger>
-                                    <TabsTrigger value="quarterly" className="text-xs">Data Kuartal</TabsTrigger>
-                                </TabsList>
-
-                                <TabsContent value="overview">
-                                    <StatRow label="P/E Ratio" value={d.fundamental.metrics.pe_ratio !== null ? `${formatNumber(d.fundamental.metrics.pe_ratio, 1)}x` : "N/A"} sub={d.fundamental.metricNotes?.pe_ratio || (d.fundamental.metrics.pe_sector_avg !== null ? `Sektor avg: ${formatNumber(d.fundamental.metrics.pe_sector_avg, 1)}x` : undefined)} />
-                                    <StatRow label="PBV" value={d.fundamental.metrics.pbv !== null ? `${formatNumber(d.fundamental.metrics.pbv, 2)}x` : "N/A"} sub={d.fundamental.metricNotes?.pbv || (d.fundamental.metrics.pbv_sector_avg !== null ? `Sektor avg: ${formatNumber(d.fundamental.metrics.pbv_sector_avg, 2)}x` : undefined)} />
-                                    <StatRow label="ROE" value={d.fundamental.metrics.roe !== null ? `${formatNumber(d.fundamental.metrics.roe, 2)}%` : "N/A"} sub={d.fundamental.metricNotes?.roe} />
-                                    <StatRow label="ROA" value={d.fundamental.metrics.roa !== null ? `${formatNumber(d.fundamental.metrics.roa, 2)}%` : "N/A"} sub={d.fundamental.metricNotes?.roa} />
-                                    <StatRow label="DER" value={d.fundamental.metrics.der !== null ? `${formatNumber(d.fundamental.metrics.der, 2)}x` : "N/A"} sub={d.fundamental.metricNotes?.der} />
-                                    <StatRow label="Net Profit Margin" value={d.fundamental.metrics.npm !== null ? `${formatNumber(d.fundamental.metrics.npm, 2)}%` : "N/A"} sub={d.fundamental.metricNotes?.npm} />
-                                    <StatRow label="EPS Growth YoY" value={d.fundamental.metrics.eps_growth_yoy !== null ? `${d.fundamental.metrics.eps_growth_yoy > 0 ? "+" : ""}${formatNumber(d.fundamental.metrics.eps_growth_yoy, 2)}%` : "N/A"} sub={d.fundamental.metricNotes?.eps_growth_yoy} />
-                                    <StatRow label="Revenue Growth YoY" value={d.fundamental.metrics.revenue_growth_yoy !== null ? `${d.fundamental.metrics.revenue_growth_yoy > 0 ? "+" : ""}${formatNumber(d.fundamental.metrics.revenue_growth_yoy, 2)}%` : "N/A"} sub={d.fundamental.metricNotes?.revenue_growth_yoy} />
-                                    <StatRow label="Dividend Yield" value={d.fundamental.metrics.dividend_yield !== null ? `${formatNumber(d.fundamental.metrics.dividend_yield, 2)}%` : "N/A"} sub={d.fundamental.metricNotes?.dividend_yield} />
-                                </TabsContent>
-
-                                <TabsContent value="quarterly" className="mt-3">
-                                    {(() => {
-                                        const periods = d.fundamental.quarterly.map((q) => q.period)
-                                        const percentFormat = (value: number | null) =>
-                                            value !== null && Number.isFinite(value) ? `${formatNumber(value, 2)}%` : "N/A"
-                                        const epsFormat = (value: number | null) =>
-                                            value !== null && Number.isFinite(value) ? formatNumber(value, 2) : "N/A"
-                                        const magnitudeFormat = (value: number | null) =>
-                                            formatFinancialMagnitude(value, quarterlyFinancialScale)
-
-                                        const rows: Array<{ label: string; values: Array<number | null>; format: (value: number | null) => string }> = [
-                                            { label: "Revenue", values: d.fundamental.quarterly.map((q) => q.revenue), format: magnitudeFormat },
-                                            { label: "Laba Bersih", values: d.fundamental.quarterly.map((q) => q.netIncome), format: magnitudeFormat },
-                                            { label: "NPM", values: d.fundamental.quarterly.map((q) => q.npm), format: percentFormat },
-                                            { label: "ROE", values: d.fundamental.quarterly.map((q) => q.roe), format: percentFormat },
-                                            { label: "EPS", values: d.fundamental.quarterly.map((q) => q.eps), format: epsFormat },
-                                        ]
-
-                                        return (
-                                            <TooltipProvider>
-                                                <div>
-                                                    {rows.map((row) => (
-                                                        <QuarterlyMetricRow
-                                                            key={row.label}
-                                                            label={row.label}
-                                                            periods={periods}
-                                                            values={row.values}
-                                                            format={row.format}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </TooltipProvider>
-                                        )
-                                    })()}
-                                </TabsContent>
-                            </Tabs>
-
-                            <div className="border-t border-border pt-4 mt-4">
-                                <div className="text-xs font-semibold text-muted-foreground mb-2">Sinyal Fundamental</div>
-                                <ul className="space-y-0.5">
-                                    {d.fundamental.signals.map((signal, i) => <SignalItem key={i} text={signal} />)}
-                                </ul>
-                            </div>
-                        </Card>
-                    </div>
-
-                    <div className="rounded-lg border border-border/70 bg-card/70 px-4 py-3 text-center text-[11px] text-muted-foreground/70 shadow-sm">
-                        <Info className="w-3 h-3 inline mr-1 -mt-0.5" />
-                        Analisis ini dihasilkan oleh AI dan bukan merupakan saran investasi. Selalu lakukan riset mandiri sebelum mengambil keputusan investasi.
-                    </div>
+                        <p className="flex items-start justify-center gap-1.5 px-4 text-center text-xs leading-5 text-muted-foreground">
+                            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                            Analisis ini dihasilkan oleh AI dan bukan saran investasi. Selalu lakukan riset mandiri sebelum mengambil keputusan.
+                        </p>
+                    </main>
                 </div>
             </div>
         </AnalyzePageFrame>

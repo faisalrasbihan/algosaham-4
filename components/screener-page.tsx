@@ -3,17 +3,17 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Bell, BellPlus, ArrowUpDown, ArrowRight, Search, SlidersHorizontal, Star, StarOff, Columns3, Plus, X, ChevronDown, Save, Check, Info, Moon, Rocket, TrendingUp, Zap, Gauge, Gem, Layers, Play, RotateCcw } from "lucide-react"
+import { Bell, ArrowRight, Search, SlidersHorizontal, Columns3, Plus, X, ChevronDown, ChevronUp, ChevronsUpDown, Save, Check, Info, Moon, Rocket, TrendingUp, Zap, Gauge, Gem, Layers, Play, RotateCcw } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Footer } from "@/components/footer"
+import { CardCarousel } from "@/components/card-carousel"
 import { PageShell } from "@/components/page-shell"
 import { PageHeader } from "@/components/page-layout"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
 import {
   Select,
   SelectContent,
@@ -171,18 +171,6 @@ type ScreenerApiResponse = {
   } | null
 }
 
-type AlertDraft = {
-  ticker: string
-  type: "masuk-radar" | "technical-score" | "rsi"
-  threshold: string
-  isActive: boolean
-}
-
-type SavedAlert = AlertDraft & {
-  id: string
-  createdAt: string
-}
-
 type RuleCategory = "technical" | "fundamental"
 type RuleMode = "range" | "select" | "params"
 
@@ -274,7 +262,7 @@ const COLUMN_LABELS = {
   volatility20d: "Volatility 20D",
   distFrom52wHighPct: "52W High Gap",
   distFrom52wLowPct: "52W Low Gap",
-  action: "Action",
+  action: "Pantau",
 } as const
 
 type ColumnId = keyof typeof COLUMN_LABELS
@@ -334,7 +322,7 @@ const COLUMN_TOOLTIPS: Record<ColumnId, string> = {
   volatility20d: "Volatilitas return harian 20 hari terakhir.",
   distFrom52wHighPct: "Jarak harga penutupan terhadap high 52 minggu dalam persen.",
   distFrom52wLowPct: "Jarak harga penutupan terhadap low 52 minggu dalam persen.",
-  action: "Aksi cepat untuk menambahkan saham ke radar atau membuat alert.",
+  action: "Tambahkan atau hapus saham dari daftar pantauan di Portfolio.",
 }
 
 const COLUMN_CONFIGS: ColumnConfig[] = [
@@ -771,13 +759,6 @@ function getPresetCategoryVisual(preset: ScreenerPreset): CategoryVisual {
 
 const ALL_CATEGORIES_LABEL = "Semua"
 
-const defaultAlertDraft: AlertDraft = {
-  ticker: "",
-  type: "masuk-radar",
-  threshold: "75",
-  isActive: true,
-}
-
 function getColumnTemplate(template: ColumnTemplateKey): ColumnId[] {
   return [...COLUMN_TEMPLATES[template]]
 }
@@ -1081,10 +1062,10 @@ function ScreenerRowHoverCard({ row }: { row: ScreenerRow }) {
 
       <Link
         href={`/analyze-v2?ticker=${row.stockCode}`}
-        className="group flex h-11 items-center justify-between border-t border-border/70 px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
+        className="group flex h-12 cursor-pointer items-center justify-between border-t border-[#d07225]/15 bg-[#fbf7f2] px-4 text-sm font-semibold text-[#9a541c] transition-colors hover:bg-[#f7eee5] hover:text-[#7f4315] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#d07225]/35"
       >
         <span>Deep dive {row.stockCode}</span>
-        <ArrowRight className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-[#d07225]" />
+        <ArrowRight className="h-4 w-4 text-[#d07225] transition-transform group-hover:translate-x-0.5" />
       </Link>
     </div>
   )
@@ -1149,9 +1130,6 @@ export function ScreenerPage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const [radarTickers, setRadarTickers] = useState<string[]>([])
   const [savingRadarTickers, setSavingRadarTickers] = useState<string[]>([])
-  const [alerts, setAlerts] = useState<SavedAlert[]>([])
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [alertDraft, setAlertDraft] = useState<AlertDraft>(defaultAlertDraft)
   const [visibleColumnIds, setVisibleColumnIds] = useState<ColumnId[]>(() => getDefaultColumnTemplate())
   const [activeRules, setActiveRules] = useState<ScreenerRule[]>([])
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
@@ -1169,18 +1147,6 @@ export function ScreenerPage() {
   const [isRunning, setIsRunning] = useState(false)
   const [runElapsedTime, setRunElapsedTime] = useState("0.0")
   const [runError, setRunError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const storedAlerts = window.localStorage.getItem("algosaham-screener-alerts")
-
-    if (storedAlerts) {
-      try {
-        setAlerts(JSON.parse(storedAlerts))
-      } catch {
-        setAlerts([])
-      }
-    }
-  }, [])
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) {
@@ -1238,10 +1204,6 @@ export function ScreenerPage() {
         toast.error("Screener tersimpan gagal dimuat")
       })
   }, [isLoaded, isSignedIn])
-
-  useEffect(() => {
-    window.localStorage.setItem("algosaham-screener-alerts", JSON.stringify(alerts))
-  }, [alerts])
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -1528,25 +1490,6 @@ export function ScreenerPage() {
     }
     setSortKey(nextKey)
     setSortDirection(nextKey === "stockCode" || nextKey === "peRatio" || nextKey === "pbv" ? "asc" : "desc")
-  }
-
-  function openAlertDialog(ticker: string) {
-    setAlertDraft({ ...defaultAlertDraft, ticker, threshold: ticker ? "75" : defaultAlertDraft.threshold })
-    setDialogOpen(true)
-  }
-
-  function saveAlert() {
-    if (!alertDraft.ticker) return
-
-    const alert: SavedAlert = {
-      ...alertDraft,
-      id: `${alertDraft.ticker}-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    }
-
-    setAlerts((current) => [alert, ...current])
-    setDialogOpen(false)
-    setAlertDraft(defaultAlertDraft)
   }
 
   function toggleColumnVisibility(columnId: ColumnId, checked: boolean) {
@@ -1839,13 +1782,36 @@ export function ScreenerPage() {
     return formatNumericValue(typeof value === "number" ? value : null, digits)
   }
 
-  function renderColumnHeader(columnId: ColumnId, label: string, sortable = false) {
+  function renderColumnHeader(
+    columnId: ColumnId,
+    label: string,
+    sortable = false,
+    align: "left" | "right" = "left",
+  ) {
+    const isActiveSort = sortable && sortKey === columnId
+    const SortIcon = isActiveSort
+      ? sortDirection === "asc" ? ChevronUp : ChevronDown
+      : ChevronsUpDown
+    const sortIcon = (
+      <SortIcon
+        className={`h-3.5 w-3.5 shrink-0 transition-opacity ${isActiveSort ? "opacity-80" : "opacity-0 group-hover/sort:opacity-40 group-focus-visible/sort:opacity-40"}`}
+        aria-hidden="true"
+      />
+    )
+
     const headerContent = sortable ? (
-      <button className="inline-flex items-center gap-2" onClick={() => handleSort(columnId as SortKey)}>
-        {label} <ArrowUpDown className="h-3.5 w-3.5" />
+      <button
+        type="button"
+        className={`group/sort items-center gap-1.5 whitespace-nowrap transition-colors hover:text-foreground focus-visible:outline-none ${align === "right" ? "flex w-full justify-end" : "inline-flex"} ${isActiveSort ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+        onClick={() => handleSort(columnId as SortKey)}
+        aria-label={`Urutkan berdasarkan ${label}${isActiveSort ? `, saat ini ${sortDirection === "asc" ? "menaik" : "menurun"}` : ""}`}
+      >
+        {align === "right" ? sortIcon : null}
+        <span>{label}</span>
+        {align === "left" ? sortIcon : null}
       </button>
     ) : (
-      <span className="inline-flex items-center gap-2">
+      <span className="inline-flex items-center gap-2 whitespace-nowrap">
         {label}
       </span>
     )
@@ -1868,6 +1834,7 @@ export function ScreenerPage() {
     {
       id: "stockCode",
       headClassName: "w-[136px] min-w-[136px]",
+      ariaSort: sortKey === "stockCode" ? (sortDirection === "asc" ? "ascending" : "descending") : undefined,
       header: renderColumnHeader("stockCode", "Saham", true),
       cellClassName: "py-2 pr-2",
       cell: (row) => (
@@ -1883,7 +1850,13 @@ export function ScreenerPage() {
       id: column.id,
       headClassName: column.headClassName,
       cellClassName: column.cellClassName,
-      header: renderColumnHeader(column.id, column.label, column.sortable),
+      ariaSort: column.sortable && sortKey === column.id ? (sortDirection === "asc" ? "ascending" as const : "descending" as const) : undefined,
+      header: renderColumnHeader(
+        column.id,
+        column.label,
+        column.sortable,
+        column.headClassName?.includes("text-right") ? "right" : "left",
+      ),
       cell: (row: ScreenerRow) => {
         if (column.id === "alignmentScore") {
           return <ScoreBadgeCell score={row.alignmentScore} />
@@ -1901,34 +1874,24 @@ export function ScreenerPage() {
     })),
     {
       id: "action",
-      headClassName: "min-w-[96px] text-right",
+      headClassName: "w-[88px] min-w-[88px] text-right",
       cellClassName: "text-right",
-      header: renderColumnHeader("action", "Action"),
+      header: renderColumnHeader("action", "Pantau", false, "right"),
       cell: (row) => {
         const inRadar = radarTickers.includes(row.stockCode)
         return (
-          <div className="flex items-center justify-end gap-1">
+          <div className="flex items-center justify-end">
             <Button
-              variant={inRadar ? "secondary" : "ghost"}
+              variant="ghost"
               size="icon"
-              className={`h-7 w-7 ${inRadar ? "text-[#d07225]" : "text-muted-foreground"}`}
+              className={`h-8 w-8 rounded-full transition-colors ${inRadar ? "bg-[#fbf1e8] text-[#d07225] hover:bg-[#f7e5d5] hover:text-[#b8621f]" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
               onClick={() => void toggleRadar(row)}
               disabled={savingRadarTickers.includes(row.stockCode)}
-              aria-label={inRadar ? `Hapus ${row.stockCode} dari radar` : `Tambah ${row.stockCode} ke radar`}
-              title={inRadar ? "Radar aktif" : "Tambah radar"}
+              aria-pressed={inRadar}
+              aria-label={inRadar ? `Hapus ${row.stockCode} dari Portfolio` : `Pantau ${row.stockCode} di Portfolio`}
+              title={inRadar ? "Tersimpan di Portfolio" : "Pantau di Portfolio"}
             >
-              {inRadar ? <Star className="h-3.5 w-3.5 fill-current" /> : <StarOff className="h-3.5 w-3.5" />}
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => openAlertDialog(row.stockCode)}
-              disabled={!inRadar}
-              aria-label={`Buat alert untuk ${row.stockCode}`}
-              title="Buat alert"
-            >
-              <BellPlus className="h-3.5 w-3.5" />
+              <Bell className={`h-4 w-4 ${inRadar ? "fill-current" : ""}`} />
             </Button>
           </div>
         )
@@ -1988,16 +1951,21 @@ export function ScreenerPage() {
                 </div>
               ) : null}
 
-              {/* Strategy grid */}
-              <div className="grid w-full min-w-0 max-w-full snap-x grid-flow-col auto-cols-[minmax(220px,260px)] gap-3 overflow-x-auto overscroll-x-contain pb-2">
-                {visiblePresets.length === 0 ? (
-                  <div className="col-span-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-muted-foreground">
-                    {screenerPresets.length === 0
-                      ? "Belum ada preset screener aktif."
-                      : "Tidak ada strategi pada kategori ini."}
-                  </div>
-                ) : (
-                  visiblePresets.map((preset) => {
+              {/* Strategy rail */}
+              {visiblePresets.length === 0 ? (
+                <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-muted-foreground">
+                  {screenerPresets.length === 0
+                    ? "Belum ada preset screener aktif."
+                    : "Tidak ada strategi pada kategori ini."}
+                </div>
+              ) : (
+                <CardCarousel
+                  noPadding
+                  showControls={false}
+                  rightFadeWidth={72}
+                  className="snap-x overscroll-x-contain pb-2"
+                >
+                  {visiblePresets.map((preset) => {
                     const isActive = activePresetId === preset.id
                     const visual = getPresetCategoryVisual(preset)
                     const Icon = visual.icon
@@ -2014,7 +1982,7 @@ export function ScreenerPage() {
                             applyPreset(preset)
                           }
                         }}
-                        className={`group relative flex min-h-36 snap-start flex-col rounded-xl border p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+                        className={`group relative flex min-h-36 w-[220px] shrink-0 snap-start flex-col rounded-xl border p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 sm:w-[260px] ${
                           isActive
                             ? "border-primary/45 bg-primary/[0.035] shadow-sm"
                             : "border-border/80 bg-card hover:border-foreground/20"
@@ -2048,9 +2016,9 @@ export function ScreenerPage() {
                         ) : null}
                       </button>
                     )
-                  })
-                )}
-              </div>
+                  })}
+                </CardCarousel>
+              )}
 
               <div className="w-full min-w-0 space-y-4 rounded-xl border border-border/80 bg-card p-4 shadow-sm sm:p-5">
                 <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)]">
@@ -2614,61 +2582,6 @@ export function ScreenerPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="border-border/70 bg-card shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="font-ibm-plex-mono">Buat Alert Radar</DialogTitle>
-            <DialogDescription>
-              Simpan alert untuk ticker di radar. Saat backend alert siap, struktur ini bisa disambungkan ke notifikasi real-time.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="rounded-lg border border-border/70 bg-background/70 px-4 py-3">
-              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Ticker</div>
-              <div className="mt-1 font-ibm-plex-mono font-semibold text-lg">{alertDraft.ticker || "-"}</div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Jenis Alert</label>
-              <Select value={alertDraft.type} onValueChange={(value: AlertDraft["type"]) => setAlertDraft((current) => ({ ...current, type: value }))}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="masuk-radar">Saat saham masuk radar</SelectItem>
-                  <SelectItem value="technical-score">Saat technical score tinggi</SelectItem>
-                  <SelectItem value="rsi">Saat RSI oversold</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {alertDraft.type !== "masuk-radar" && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Threshold</label>
-                <Input
-                  value={alertDraft.threshold}
-                  onChange={(e) => setAlertDraft((current) => ({ ...current, threshold: e.target.value }))}
-                  className="bg-background font-ibm-plex-mono"
-                />
-              </div>
-            )}
-
-            <label className="flex items-center justify-between gap-4 rounded-lg border border-border/70 bg-background/70 px-4 py-3">
-              <div>
-                <div className="text-sm font-medium">Alert aktif</div>
-                <div className="text-xs text-muted-foreground">Simpan dalam keadaan aktif.</div>
-              </div>
-              <Switch checked={alertDraft.isActive} onCheckedChange={(checked) => setAlertDraft((current) => ({ ...current, isActive: checked }))} />
-            </label>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
-            <Button onClick={saveAlert}>Simpan Alert</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </PageShell>
   )
 }

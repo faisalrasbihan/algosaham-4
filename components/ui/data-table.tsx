@@ -39,11 +39,13 @@ export type DataTableColumn<T> = {
   cell: (row: T) => React.ReactNode
   headClassName?: string
   cellClassName?: string
+  ariaSort?: React.AriaAttributes["aria-sort"]
 }
 
 type DataTableColumnMeta = {
   headClassName?: string
   cellClassName?: string
+  ariaSort?: React.AriaAttributes["aria-sort"]
 }
 
 interface DataTableProps<T> {
@@ -112,6 +114,7 @@ export function DataTable<T>({
         meta: {
           headClassName: column.headClassName,
           cellClassName: column.cellClassName,
+          ariaSort: column.ariaSort,
         } satisfies DataTableColumnMeta,
       })),
     [columns]
@@ -318,7 +321,8 @@ export function DataTable<T>({
                     return (
                       <TableHead
                         key={header.id}
-                        className={cn("h-12 px-4 text-sm font-medium text-muted-foreground", meta?.headClassName)}
+                        aria-sort={meta?.ariaSort}
+                        className={cn("h-12 whitespace-nowrap px-4 text-sm font-medium text-muted-foreground", meta?.headClassName)}
                       >
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                       </TableHead>

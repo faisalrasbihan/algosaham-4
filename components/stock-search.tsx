@@ -81,7 +81,7 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
       <PageContainer className="pb-14 sm:pb-20">
         <div className="mx-auto max-w-5xl">
           <section className="mx-auto max-w-3xl rounded-2xl border border-border/80 bg-card/90 p-4 shadow-sm backdrop-blur-sm sm:p-5">
-            <form onSubmit={handleSubmit} className="w-full">
+            <form onSubmit={handleSubmit} className="w-full" aria-busy={loading}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                 <div className="min-w-0 flex-1">
                   <Input
@@ -110,8 +110,8 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
                 >
                   {loading ? (
                     <>
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/40 border-t-primary-foreground" />
-                      Menganalisis
+                      <Search className="h-4 w-4" />
+                      Menganalisis…
                     </>
                   ) : (
                     <>
@@ -125,16 +125,6 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
             </form>
 
             <div className="relative mt-4 border-t border-border/70 pt-4">
-              {loading ? (
-                <div
-                  className="absolute inset-x-0 -top-px h-px overflow-hidden bg-border"
-                  role="progressbar"
-                  aria-label={`Menganalisis ${ticker.trim().toUpperCase()}`}
-                >
-                  <div className="analysis-progress-indicator h-full w-1/3 bg-primary" />
-                </div>
-              ) : null}
-
               <div className="flex w-full flex-col items-center gap-2" role="group" aria-label="Pilihan saham populer">
                 {exampleTickerRows.map((row) => (
                   <div
@@ -148,7 +138,7 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
                         onClick={() => handleQuickTicker(item.code)}
                         disabled={loading}
                         className={cn(
-                          "inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border px-2.5 pr-3 text-sm font-medium transition-colors disabled:cursor-wait",
+                          "inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border px-2.5 pr-3 text-sm font-medium transition-colors disabled:cursor-default disabled:opacity-60",
                           item.hot
                             ? "border-[#d07225]/25 bg-[#d07225]/[0.06] hover:border-[#d07225]/35 hover:bg-[#d07225]/10"
                             : "border-border/80 bg-background hover:border-foreground/20 hover:bg-muted",

@@ -2,7 +2,14 @@
 
 import { FormEvent, type ReactNode, useState } from "react"
 import Link from "next/link"
-import { CheckCircle2, Loader2, Mail, Send } from "lucide-react"
+import {
+  ArrowUpRight,
+  CheckCircle2,
+  Clock3,
+  Loader2,
+  Mail,
+  Send,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -13,7 +20,6 @@ import { cn } from "@/lib/utils"
 type FormState = {
   name: string
   email: string
-  subject: string
   message: string
   consent: boolean
   marketingOptIn: boolean
@@ -23,14 +29,31 @@ type FormState = {
 const initialState: FormState = {
   name: "",
   email: "",
-  subject: "",
   message: "",
   consent: false,
   marketingOptIn: false,
   website: "",
 }
 
-export function ContactForm() {
+const whatsappHref =
+  "https://wa.me/6285157171473?text=Halo%20tim%20Algosaham.ai%2C%20saya%20ingin%20bertanya."
+
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+      <path
+        d="M20.1 11.85a8.1 8.1 0 0 1-11.98 7.12L4 20l1.08-3.98a8.1 8.1 0 1 1 15.02-4.17Z"
+        fill="currentColor"
+      />
+      <path
+        d="M8.18 7.55c.2-.45.42-.46.65-.47h.55c.17 0 .4.06.5.36l.7 1.7c.08.22.04.4-.07.57l-.45.57c-.14.16-.28.31-.11.59.18.28.78 1.25 1.75 2.03 1.2.96 2.15 1.27 2.5 1.42.27.12.47.1.65-.1l.88-1.04c.2-.24.43-.18.68-.09l1.64.78c.28.13.47.2.53.31.07.11.07.63-.15 1.23-.22.6-1.28 1.12-1.77 1.17-.46.05-1.05.07-1.7-.14-.4-.13-.93-.3-1.6-.59-.28-.12-2.45-.9-4.24-2.5-1.5-1.34-2.52-3-2.81-3.56-.3-.56-.03-1.7.19-2.12l.18-.32Z"
+        fill="white"
+      />
+    </svg>
+  )
+}
+
+export function ContactForm({ intro }: { intro?: ReactNode }) {
   const [form, setForm] = useState<FormState>(initialState)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -73,243 +96,208 @@ export function ContactForm() {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_360px]">
-      <form
-        onSubmit={handleSubmit}
-        className="rounded-xl border border-border bg-card p-5 shadow-sm md:p-6"
-      >
-        <div className="mb-8 grid gap-6 rounded-[1.5rem] border border-cambridge-blue/20 bg-[linear-gradient(135deg,rgba(72,123,120,0.08),rgba(208,114,37,0.04))] p-6">
-          <div>
-            <p className="mb-2 text-sm uppercase tracking-[0.22em] text-cambridge-blue">
-              Form kontak
-            </p>
-            <h2 className="text-3xl font-semibold tracking-tight text-foreground">
-              Ceritakan kebutuhan Anda dengan jelas.
-            </h2>
-          </div>
-          <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
-            Tim kami menerima pesan ini melalui email internal, sehingga Anda
-            tidak perlu keluar dari situs untuk menghubungi Algosaham.ai.
-          </p>
-        </div>
+    <div className="grid gap-8 lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)] lg:items-start lg:gap-14">
+      <aside>
+        {intro}
 
-        <div className="space-y-8">
-          <section className="space-y-5">
-            <div>
-              <p className="text-sm uppercase tracking-[0.22em] text-muted-foreground">
-                Informasi Pengirim
-              </p>
-            </div>
+        <h2 className="mt-10 font-heading text-2xl font-semibold tracking-[-0.025em] text-foreground sm:mt-12">
+          Pilih cara yang paling nyaman
+        </h2>
+        <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7">
+          WhatsApp cocok untuk pertanyaan singkat. Untuk konteks yang lebih lengkap,
+          kirimkan detailnya melalui formulir.
+        </p>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <Field
-                id="name"
-                label="Nama Lengkap"
-                description="Masukkan nama lengkap Anda agar kami dapat menghubungi Anda dengan lebih personal."
-              >
-                <Input
-                  id="name"
-                  value={form.name}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, name: event.target.value }))
-                  }
-                  placeholder="Nama lengkap Anda"
-                  className="h-12 rounded-xl border-border/80 bg-background"
-                  required
-                />
-              </Field>
-
-              <Field
-                id="email"
-                label="Alamat Email"
-                description="Masukkan alamat email aktif yang dapat kami hubungi untuk menindaklanjuti pesan Anda."
-              >
-                <Input
-                  id="email"
-                  type="email"
-                  value={form.email}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, email: event.target.value }))
-                  }
-                  placeholder="nama@email.com"
-                  className="h-12 rounded-xl border-border/80 bg-background"
-                  required
-                />
-              </Field>
-            </div>
-          </section>
-
-          <section className="space-y-5">
-            <div>
-              <p className="text-sm uppercase tracking-[0.22em] text-muted-foreground">
-                Detail Pesan
-              </p>
-            </div>
-
-            <div className="grid gap-5">
-              <Field
-                id="subject"
-                label="Subjek Pesan"
-                description="Tuliskan ringkasan singkat mengenai topik atau keperluan Anda."
-              >
-                <Input
-                  id="subject"
-                  value={form.subject}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, subject: event.target.value }))
-                  }
-                  placeholder="Contoh: Pertanyaan tentang langganan"
-                  className="h-12 rounded-xl border-border/80 bg-background"
-                  required
-                />
-              </Field>
-
-              <Field
-                id="message"
-                label="Pesan"
-                description="Tuliskan pertanyaan, masukan, atau kebutuhan Anda secara jelas dan detail agar kami dapat memberikan respons yang tepat."
-              >
-                <textarea
-                  id="message"
-                  value={form.message}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, message: event.target.value }))
-                  }
-                  placeholder="Tulis pesan Anda di sini..."
-                  className={cn(
-                    "min-h-40 w-full rounded-2xl border border-border/80 bg-background px-4 py-3 text-sm text-foreground shadow-sm outline-none transition focus:border-cambridge-blue/50 focus:ring-2 focus:ring-cambridge-blue/15",
-                    "placeholder:text-muted-foreground"
-                  )}
-                  required
-                />
-              </Field>
-            </div>
-          </section>
-
-          <section className="space-y-5 rounded-[1.5rem] border border-border/80 bg-background/70 p-5">
-            <div className="space-y-2">
-              <p className="text-sm uppercase tracking-[0.22em] text-muted-foreground">
-                Pernyataan Persetujuan
-              </p>
-              <p className="text-sm leading-7 text-muted-foreground">
-                Dengan mengirimkan formulir ini, Anda menyatakan telah membaca
-                dan menyetujui{" "}
-                <Link href="/privacy" className="font-medium text-cambridge-blue hover:underline">
-                  Kebijakan Privasi
-                </Link>{" "}
-                yang berlaku di situs web kami.
-              </p>
-            </div>
-
-            <label className="flex items-start gap-3 rounded-2xl border border-border/70 bg-card px-4 py-3">
-              <input
-                type="checkbox"
-                checked={form.consent}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, consent: event.target.checked }))
-                }
-                className="mt-1 h-4 w-4 rounded border-border text-cambridge-blue focus:ring-cambridge-blue"
-                required
-              />
-              <span className="text-sm leading-7 text-foreground">
-                Saya menyetujui pemrosesan data saya sesuai Kebijakan Privasi yang berlaku.
+        <div className="mt-7 space-y-3">
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noreferrer"
+            className="group flex items-center gap-4 rounded-xl border border-black/[0.08] bg-white/80 p-4 shadow-[0_6px_22px_rgba(34,26,17,0.04)] transition-[border-color,background-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-[#25d366]/35 hover:bg-white hover:shadow-[0_10px_28px_rgba(34,26,17,0.07)]"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#25d366]/10 text-[#188b46]">
+              <WhatsAppIcon className="h-6 w-6" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-foreground">
+                WhatsApp <span className="font-normal text-muted-foreground">· Arda</span>
               </span>
-            </label>
-
-            <label className="flex items-start gap-3 rounded-2xl border border-border/70 bg-card px-4 py-3">
-              <input
-                type="checkbox"
-                checked={form.marketingOptIn}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    marketingOptIn: event.target.checked,
-                  }))
-                }
-                className="mt-1 h-4 w-4 rounded border-border text-cambridge-blue focus:ring-cambridge-blue"
-              />
-              <span className="text-sm leading-7 text-foreground">
-                Saya setuju untuk menerima informasi, pembaruan, dan komunikasi lainnya dari Algosaham.ai.*
+              <span className="mt-0.5 block text-sm tabular-nums text-muted-foreground">
+                +62 851-5717-1473
               </span>
-            </label>
-          </section>
+            </span>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
+          </a>
 
-          <div className="hidden">
-            <Label htmlFor="website">Website</Label>
-            <Input
-              id="website"
-              value={form.website}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, website: event.target.value }))
-              }
-              tabIndex={-1}
-              autoComplete="off"
-            />
-          </div>
-
-          <div className="flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm leading-7 text-muted-foreground">
-              Kami akan mengirim pesan ini ke <span className="font-medium text-foreground">algosaham.ai@gmail.com</span>.
-            </p>
-            <Button
-              type="submit"
-              size="lg"
-              className="h-12 rounded-full px-7"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Mengirim...
-                </>
-              ) : (
-                <>
-                  Kirim
-                  <Send className="h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </div>
+          <a
+            href="mailto:algosaham.ai@gmail.com"
+            className="group flex items-center gap-4 rounded-xl border border-black/[0.08] bg-white/80 p-4 shadow-[0_6px_22px_rgba(34,26,17,0.04)] transition-[border-color,background-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-[#d07225]/30 hover:bg-white hover:shadow-[0_10px_28px_rgba(34,26,17,0.07)]"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#d07225]/10 text-[#b85f19]">
+              <Mail className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-foreground">Email</span>
+              <span className="mt-0.5 block truncate text-sm text-muted-foreground">
+                algosaham.ai@gmail.com
+              </span>
+            </span>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
+          </a>
         </div>
-      </form>
 
-      <aside className="space-y-5">
-        <div className="rounded-xl border border-foreground bg-foreground p-5 text-background shadow-sm">
-          <Mail className="mb-4 h-6 w-6 text-ochre-700" />
-          <h2 className="mb-3 text-2xl font-semibold">Pesan Anda akan masuk ke tim kami.</h2>
-          <p className="text-sm leading-7 text-background/75">
-            Formulir ini dirancang agar pengguna bisa menghubungi kami langsung dari
-            website, tanpa berpindah ke aplikasi email eksternal.
+      </aside>
+
+      <div className="space-y-3">
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-2xl border border-black/[0.08] bg-white/[0.88] p-5 shadow-[0_18px_50px_rgba(34,26,17,0.07)] backdrop-blur-sm sm:p-6 lg:p-7"
+        >
+        <div className="border-b border-black/[0.08] pb-5">
+          <h2 className="font-heading text-2xl font-semibold tracking-[-0.025em] text-foreground">
+            Kirim pesan
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Isi detail berikut dan pesan Anda akan langsung diteruskan ke tim kami.
           </p>
-        </div>
-
-        <div className="rounded-xl border border-border bg-secondary/30 p-5 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold text-foreground">Yang membantu kami merespons lebih cepat</h3>
-          <ul className="space-y-3 text-sm leading-7 text-muted-foreground">
-            <li className="flex gap-3">
-              <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-cambridge-blue" />
-              Jelaskan fitur, halaman, atau konteks yang sedang Anda gunakan.
-            </li>
-            <li className="flex gap-3">
-              <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-cambridge-blue" />
-              Sertakan kronologi singkat jika masalah terjadi pada waktu tertentu.
-            </li>
-            <li className="flex gap-3">
-              <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-cambridge-blue" />
-              Tuliskan hasil yang Anda harapkan agar solusi kami lebih tepat sasaran.
-            </li>
-          </ul>
         </div>
 
         {isSubmitted ? (
-          <div className="rounded-xl border border-cambridge-blue/30 bg-cambridge-blue/10 p-5 shadow-sm">
-            <h3 className="mb-2 text-lg font-semibold text-foreground">Pesan terkirim</h3>
-            <p className="text-sm leading-7 text-muted-foreground">
-              Terima kasih. Tim Algosaham.ai sudah menerima pesan Anda dan akan menindaklanjutinya secepat mungkin.
-            </p>
+          <div className="mt-6 flex gap-3 rounded-xl border border-[#487b78]/20 bg-[#487b78]/[0.07] p-4">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#487b78]" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Pesan sudah terkirim</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Terima kasih. Tim kami akan menindaklanjuti pesan Anda secepatnya.
+              </p>
+            </div>
           </div>
         ) : null}
-      </aside>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <Field id="name" label="Nama lengkap">
+            <Input
+              id="name"
+              value={form.name}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, name: event.target.value }))
+              }
+              placeholder="Nama Anda"
+              className="h-11 rounded-lg border-black/[0.10] bg-white shadow-none focus-visible:ring-[#d07225]/20"
+              required
+            />
+          </Field>
+
+          <Field id="email" label="Email">
+            <Input
+              id="email"
+              type="email"
+              value={form.email}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, email: event.target.value }))
+              }
+              placeholder="nama@email.com"
+              className="h-11 rounded-lg border-black/[0.10] bg-white shadow-none focus-visible:ring-[#d07225]/20"
+              required
+            />
+          </Field>
+
+          <Field id="message" label="Pesan" className="sm:col-span-2">
+            <textarea
+              id="message"
+              value={form.message}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, message: event.target.value }))
+              }
+              placeholder="Ceritakan kebutuhan atau kendala Anda..."
+              className={cn(
+                "min-h-32 w-full resize-y rounded-lg border border-black/[0.10] bg-white px-3 py-3 text-sm text-foreground shadow-none outline-none transition",
+                "placeholder:text-muted-foreground focus:border-[#d07225]/50 focus:ring-2 focus:ring-[#d07225]/20",
+              )}
+              required
+            />
+          </Field>
+        </div>
+
+        <div className="mt-5 space-y-3 border-t border-black/[0.08] pt-5">
+          <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={form.consent}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, consent: event.target.checked }))
+              }
+              className="mt-1 h-4 w-4 rounded border-black/20 accent-[#d07225]"
+              required
+            />
+            <span>
+              Saya menyetujui pemrosesan data sesuai{" "}
+              <Link href="/privacy" className="font-medium text-foreground underline decoration-black/20 underline-offset-4 hover:decoration-black/60">
+                Kebijakan Privasi
+              </Link>
+              .
+            </span>
+          </label>
+
+          <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={form.marketingOptIn}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, marketingOptIn: event.target.checked }))
+              }
+              className="mt-1 h-4 w-4 rounded border-black/20 accent-[#d07225]"
+            />
+            <span>Saya bersedia menerima pembaruan produk dari Algosaham.ai (opsional).</span>
+          </label>
+        </div>
+
+        <div className="hidden">
+          <Label htmlFor="website">Website</Label>
+          <Input
+            id="website"
+            value={form.website}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, website: event.target.value }))
+            }
+            tabIndex={-1}
+            autoComplete="off"
+          />
+        </div>
+
+        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs leading-5 text-muted-foreground">
+            Jangan sertakan kata sandi atau data sensitif.
+          </p>
+          <Button
+            type="submit"
+            size="lg"
+            className="h-11 rounded-lg bg-[#d07225] px-6 text-white shadow-sm hover:bg-[#b85f19]"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Mengirim...
+              </>
+            ) : (
+              <>
+                Kirim pesan
+                <Send className="h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </div>
+        </form>
+
+        <div className="flex items-start gap-2 px-1 text-[11px] leading-5 text-muted-foreground sm:text-xs">
+          <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#d07225]" />
+          <p>
+            Kami biasanya merespons pada hari kerja. Sertakan konteks atau tangkapan
+            layar agar kami dapat membantu lebih cepat.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
@@ -317,22 +305,19 @@ export function ContactForm() {
 function Field({
   id,
   label,
-  description,
   children,
+  className,
 }: {
   id: string
   label: string
-  description: string
   children: ReactNode
+  className?: string
 }) {
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <Label htmlFor={id} className="text-base font-semibold text-foreground">
-          {label}
-        </Label>
-        <p className="text-sm leading-7 text-muted-foreground">{description}</p>
-      </div>
+    <div className={cn("space-y-2", className)}>
+      <Label htmlFor={id} className="text-sm font-semibold text-foreground">
+        {label}
+      </Label>
       {children}
     </div>
   )

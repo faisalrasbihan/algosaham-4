@@ -40,7 +40,7 @@ function loadTradingViewScript() {
 export function AdvancedMultiChart({ data: _data, symbol = "BBCA" }: AdvancedMultiChartProps) {
     const mainRef = useRef<HTMLDivElement>(null)
     const tradingViewContainerId = useRef(`tv-advanced-chart-${Math.random().toString(36).slice(2)}`)
-    const tradingViewHeight = 560
+    const tradingViewHeight = 500
 
     useEffect(() => {
         if (!mainRef.current) return
@@ -67,6 +67,10 @@ export function AdvancedMultiChart({ data: _data, symbol = "BBCA" }: AdvancedMul
                     hide_top_toolbar: false,
                     hide_side_toolbar: true,
                     withdateranges: true,
+                    overrides: {
+                        "paneProperties.vertGridProperties.color": "rgba(0, 0, 0, 0)",
+                        "paneProperties.horzGridProperties.color": "rgba(0, 0, 0, 0)",
+                    },
                     container_id: tradingViewContainerId.current,
                     studies: [
                         "RSI@tv-basicstudies",
@@ -77,7 +81,7 @@ export function AdvancedMultiChart({ data: _data, symbol = "BBCA" }: AdvancedMul
             .catch(() => {
                 if (!disposed && mainRef.current) {
                     mainRef.current.innerHTML = `
-                      <div style="height:${tradingViewHeight}px;display:flex;align-items:center;justify-content:center;border:1px solid #d0d5dc;border-radius:8px;color:#64748b;font-family:var(--font-ibm-plex-mono, monospace);font-size:12px;">
+                      <div style="height:${tradingViewHeight}px;display:flex;align-items:center;justify-content:center;color:#64748b;font-family:var(--font-inter, sans-serif);font-size:13px;">
                         TradingView chart gagal dimuat
                       </div>
                     `

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
-import { Gift, Zap, Heart, Search, LineChart, ArrowUpRight, Loader2, Settings, Menu, Lightbulb } from "lucide-react";
+import { Gift, Zap, Heart, Search, LineChart, ArrowUpRight, Loader2, Settings, Menu } from "lucide-react";
 import { AccountManagementPage } from "@/components/account-management-page";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { usePathname, useRouter } from "next/navigation";
@@ -21,6 +21,7 @@ const primaryNavigation = [
   { href: "/backtest", label: "Simulasi" },
   { href: "/harga", label: "Harga" },
   { href: "/features", label: "Pelajari" },
+  { href: "/help", label: "Hubungi Kami" },
   { href: "/portfolio", label: "Portfolio" },
 ] as const;
 
@@ -158,17 +159,6 @@ export function Navbar() {
             </div>
           ) : null}
         </div>
-        <Link href="/help" className="hidden lg:block">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Feedback"
-            title="Feedback"
-            className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-black/[0.04] hover:text-foreground"
-          >
-            <Lightbulb className="h-[18px] w-[18px]" />
-          </Button>
-        </Link>
         <SignedIn>
           {!isLoading && (
             <div
@@ -443,12 +433,6 @@ export function Navbar() {
                   <Gift className="h-4 w-4" />
                   Referral <span className="ml-auto text-xs font-normal">Segera hadir</span>
                 </div>
-                <SheetClose asChild>
-                  <Link href="/help" className="flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted hover:text-[#d07225]">
-                    <Lightbulb className="h-4 w-4" />
-                    Feedback
-                  </Link>
-                </SheetClose>
               </div>
               <SignedOut>
                 <div className="flex flex-col gap-3 mt-2 border-t border-border/50 pt-6">

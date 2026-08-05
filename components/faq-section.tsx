@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
+import { ChevronDown, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageSection, SectionHeader } from "@/components/page-layout";
+import { cn } from "@/lib/utils";
 
 interface FAQItem {
   question: string;
@@ -97,82 +98,105 @@ export function FAQSection() {
   const faqsToDisplay = showAll ? allFAQs : allFAQs.slice(0, initialFAQsToShow);
 
   const toggleItem = (question: string) => {
-    const newExpanded = new Set(expandedItems);
-    if (newExpanded.has(question)) {
-      newExpanded.delete(question);
-    } else {
-      newExpanded.add(question);
-    }
-    setExpandedItems(newExpanded);
+    setExpandedItems((currentItems) => {
+      const nextItems = new Set(currentItems);
+
+      if (nextItems.has(question)) {
+        nextItems.delete(question);
+      } else {
+        nextItems.add(question);
+      }
+
+      return nextItems;
+    });
   };
 
   return (
-    <PageSection className="border-t border-border/60 bg-background py-12 sm:py-16">
-      <div className="mx-auto max-w-4xl">
-        <SectionHeader
-          title="Pertanyaan yang sering diajukan"
-          description="Temukan jawaban untuk pertanyaan umum tentang Algosaham.ai."
-          className="mb-8"
-        />
+    <PageSection
+      aria-labelledby="faq-heading"
+      className="border-t border-border/60 bg-background py-16 sm:py-20 lg:py-24"
+    >
+      <div className="grid gap-10 lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.35fr)] lg:gap-16 xl:gap-24">
+        <div className="lg:pt-1">
+          <SectionHeader
+            id="faq-heading"
+            title="Pertanyaan yang sering diajukan"
+            description="Jawaban ringkas untuk membantu Anda memahami cara kerja Algosaham.ai."
+            align="left"
+            className="mb-0 [&_h2]:text-3xl [&_h2]:leading-[1.12] sm:[&_h2]:text-4xl lg:[&_h2]:text-[2.75rem]"
+          />
+        </div>
 
-        <div className="mb-8 space-y-2">
-          {faqsToDisplay.map((faq) => {
-            const isExpanded = expandedItems.has(faq.question);
-            return (
-              <div
-                key={faq.question}
-                className="rounded-lg border border-border bg-card"
-              >
-                <button
-                  onClick={() => toggleItem(faq.question)}
-                  className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-muted/50 transition-colors rounded-lg"
+        <div>
+          <div className="border-t border-border/70">
+            {faqsToDisplay.map((faq, index) => {
+              const isExpanded = expandedItems.has(faq.question);
+              const triggerId = `faq-trigger-${index}`;
+              const panelId = `faq-panel-${index}`;
+
+              return (
+                <div
+                  key={faq.question}
+                  className="border-b border-border/70"
                 >
-                  <h3 className="text-lg font-semibold text-foreground pr-4">{faq.question}</h3>
-                  <div className="flex-shrink-0">
-                    {isExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-primary" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                    )}
-                  </div>
-                </button>
-                {isExpanded && (
-                  <div className="px-6 pb-4">
-                    <div className="pt-2 border-t border-border">
-                      <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                  <button
+                    id={triggerId}
+                    type="button"
+                    onClick={() => toggleItem(faq.question)}
+                    aria-expanded={isExpanded}
+                    aria-controls={panelId}
+                    className="group flex w-full items-start justify-between gap-6 py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d07225]/30 focus-visible:ring-offset-4 sm:py-6"
+                  >
+                    <span className="text-[17px] font-medium leading-7 text-foreground transition-colors group-hover:text-[#b85f19] sm:text-lg">
+                      {faq.question}
+                    </span>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className={cn(
+                        "mt-1 h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200",
+                        isExpanded && "rotate-180 text-foreground",
+                      )}
+                    />
+                  </button>
+                  {isExpanded && (
+                    <div
+                      id={panelId}
+                      role="region"
+                      aria-labelledby={triggerId}
+                      className="pb-6 pr-10 sm:pb-7 sm:pr-14"
+                    >
+                      <p className="max-w-3xl whitespace-pre-line text-base leading-7 text-muted-foreground sm:text-[17px] sm:leading-8">
                         {faq.answer}
                       </p>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {!showAll && (
-          <div className="text-center">
-            <Button
-              onClick={() => setShowAll(true)}
-              variant="outline"
-              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-            >
-              Lihat Semua Pertanyaan
-              <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        )}
 
-        {showAll && (
-          <div className="text-center mt-8">
-            <p className="mb-4 text-sm text-muted-foreground">
+          {!showAll && (
+            <div className="mt-8">
+              <Button
+                onClick={() => setShowAll(true)}
+                variant="outline"
+                className="rounded-lg border-border bg-transparent text-foreground hover:bg-muted"
+              >
+                Lihat semua pertanyaan
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {showAll && (
+            <p className="mt-8 text-base text-muted-foreground">
               Masih punya pertanyaan? Hubungi kami di{" "}
-              <a href="mailto:algosaham.ai@gmail.com" className="text-primary hover:underline">
+              <a href="mailto:algosaham.ai@gmail.com" className="font-medium text-foreground underline-offset-4 hover:underline">
                 algosaham.ai@gmail.com
               </a>
             </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </PageSection>
   );

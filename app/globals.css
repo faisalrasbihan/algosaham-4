@@ -182,29 +182,6 @@
   animation: scroll 30s linear infinite;
 }
 
-@keyframes analysis-progress {
-  0% {
-    transform: translateX(-110%);
-  }
-
-  100% {
-    transform: translateX(310%);
-  }
-}
-
-.analysis-progress-indicator {
-  animation: analysis-progress 1.4s ease-in-out infinite;
-  will-change: transform;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .analysis-progress-indicator {
-    width: 100%;
-    animation: none;
-    opacity: 0.6;
-  }
-}
-
 /*
  * Kept as a compatibility hook while legacy routes are migrated. The design
  * system now uses a clear warm canvas instead of a decorative dot pattern.
