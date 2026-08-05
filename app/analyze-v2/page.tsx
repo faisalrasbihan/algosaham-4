@@ -800,7 +800,7 @@ function AnalyzeV2Content() {
                                         {d.technical.summary}
                                     </div>
                                 ) : null}
-                                <div className="grid gap-px bg-border/70 sm:grid-cols-3">
+                                <div className="grid gap-px border-b border-border/70 bg-border/70 sm:grid-cols-3">
                                     {[
                                         ["Tren", d.technical.trend],
                                         ["Momentum", d.technical.momentum],

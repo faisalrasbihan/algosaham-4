@@ -110,7 +110,10 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
                 >
                   {loading ? (
                     <>
-                      <Search className="h-4 w-4" />
+                      <span
+                        className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground/35 border-t-primary-foreground"
+                        aria-hidden="true"
+                      />
                       Menganalisis…
                     </>
                   ) : (
@@ -125,6 +128,16 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
             </form>
 
             <div className="relative mt-4 border-t border-border/70 pt-4">
+              {loading ? (
+                <div
+                  className="absolute inset-x-0 -top-px h-px overflow-hidden bg-border"
+                  role="progressbar"
+                  aria-label={`Menganalisis ${ticker.trim().toUpperCase()}`}
+                >
+                  <div className="analysis-progress-indicator h-full w-1/4 bg-primary" />
+                </div>
+              ) : null}
+
               <div className="flex w-full flex-col items-center gap-2" role="group" aria-label="Pilihan saham populer">
                 {exampleTickerRows.map((row) => (
                   <div

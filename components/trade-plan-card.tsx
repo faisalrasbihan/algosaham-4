@@ -248,7 +248,6 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
 
     const currentPct = toPct(current)
     const markerLeft = clamp(currentPct, 6, 94)
-    const hasCurrent = Number.isFinite(currentPrice) && currentPrice > 0
     const placedLevels = placeLevelLabels(levels, toPct)
 
     return (
@@ -282,44 +281,12 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
                     </div>
                 </div>
 
-                <div className="px-4 py-5 sm:px-6">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                            <h3 className="text-sm font-semibold text-foreground">Level harga</h3>
-                            <p className="mt-0.5 text-xs text-muted-foreground">Area support dan resistance relatif terhadap harga saat ini.</p>
-                        </div>
-                        {hasCurrent ? (
-                            <div className="text-right text-xs text-muted-foreground">
-                                Harga saat ini
-                                <span className="ml-2 font-semibold tabular-nums text-foreground">{formatRupiah(currentPrice)}</span>
-                            </div>
-                        ) : null}
-                    </div>
+                <div className="px-4 py-4 sm:px-6">
+                    <h3 className="text-sm font-semibold text-foreground">Level harga</h3>
 
-                    <div className="relative mt-6 w-full pt-7" aria-label={`Level harga saat ini ${formatRupiah(current)}`}>
-                        <div
-                            className="absolute top-0 flex -translate-x-1/2 flex-col items-center"
-                            style={{ left: `${markerLeft}%` }}
-                        >
-                            <span className="whitespace-nowrap text-[11px] font-semibold tabular-nums leading-none text-foreground">
-                                {formatRupiah(current)}
-                            </span>
-                            <svg width="9" height="6" viewBox="0 0 9 6" className="mt-1 text-foreground" aria-hidden="true">
-                                <path d="M0 0 L9 0 L4.5 6 Z" fill="currentColor" />
-                            </svg>
-                        </div>
-
-                        <div className="relative h-[144px]">
-                            <div className="absolute inset-x-0 top-7 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-border">
-                                <div
-                                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500/25 to-transparent"
-                                    style={{ width: `${currentPct}%` }}
-                                />
-                                <div
-                                    className="absolute inset-y-0 right-0 bg-gradient-to-l from-green-600/25 to-transparent"
-                                    style={{ left: `${currentPct}%` }}
-                                />
-                            </div>
+                    <div className="mt-3 overflow-x-auto pb-1">
+                        <div className="relative h-[158px] min-w-[680px] sm:min-w-0" aria-label={`Peta level harga, harga saat ini ${formatRupiah(current)}`}>
+                            <div className="absolute inset-x-0 top-[76px] h-px bg-border" />
 
                             {placedLevels.map(({ level, pct }) => {
                                 const isSupport = level.kind === "support"
@@ -331,12 +298,12 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
                                         <TooltipTrigger asChild>
                                             <button
                                                 type="button"
-                                                className="group absolute top-7 flex h-10 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                className="group absolute top-[76px] flex h-9 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                                 style={{ left: `${pct}%` }}
                                                 aria-label={`${levelName}: ${formatRupiah(level.price)}`}
                                             >
                                                 <span
-                                                    className="h-5 w-[3px] rounded-[1px] transition-transform group-hover:scale-y-110 group-focus-visible:scale-y-110"
+                                                    className="h-4 w-[2px] transition-transform group-hover:scale-y-125 group-focus-visible:scale-y-125"
                                                     style={{ backgroundColor: color, opacity }}
                                                 />
                                             </button>
@@ -349,34 +316,47 @@ export function TradePlanCard({ riskPlan, watchItems, currentPrice }: TradePlanC
                             })}
 
                             <span
-                                className="absolute top-7 h-6 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-[1px] bg-foreground"
+                                className="absolute top-[76px] h-5 w-[2px] -translate-x-1/2 -translate-y-1/2 bg-foreground"
                                 style={{ left: `${currentPct}%` }}
                             />
+                            <span
+                                className="absolute top-[76px] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-foreground"
+                                style={{ left: `${currentPct}%` }}
+                            />
+                            <div
+                                className="absolute top-[50px] -translate-x-1/2 whitespace-nowrap text-center"
+                                style={{ left: `${markerLeft}%` }}
+                            >
+                                <span className="text-[9px] font-medium text-muted-foreground">Saat ini</span>
+                                <span className="ml-1.5 text-[11px] font-semibold tabular-nums text-foreground">{formatRupiah(current)}</span>
+                            </div>
 
                             {placedLevels.map(({ level, labelLeft, labelLane }) => {
                                 const isSupport = level.kind === "support"
                                 const color = isSupport ? "#dc2626" : "#16a34a"
                                 const opacity = RANK_OPACITY[level.rank] ?? 0.3
                                 const levelName = `${isSupport ? "Support" : "Resistance"} ${level.rank + 1}`
+                                const distancePct = level.distancePct ?? ((level.price - current) / current) * 100
                                 return (
                                     <Tooltip key={`${level.kind}-${level.label}-label`}>
                                         <TooltipTrigger asChild>
                                             <button
                                                 type="button"
-                                                className={`absolute flex -translate-x-1/2 flex-col items-center rounded-md px-2 py-1 leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                                                    isSupport ? "bg-red-500/[0.06] text-red-700" : "bg-green-600/[0.06] text-green-700"
-                                                }`}
+                                                className="absolute flex w-[112px] -translate-x-1/2 flex-col items-center px-1 py-1 leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                                 style={{
                                                     left: `${labelLeft}%`,
-                                                    top: LABEL_LANE_TOPS[labelLane],
-                                                    opacity: Math.max(opacity, 0.76),
+                                                    top: LABEL_LANE_TOPS[level.kind][labelLane],
+                                                    opacity: Math.max(opacity, 0.72),
                                                 }}
                                                 aria-label={`${levelName}: ${formatRupiah(level.price)}`}
                                             >
-                                                <span className="whitespace-nowrap text-[9px] font-semibold tabular-nums">
-                                                    {formatRupiah(level.price).replace("Rp ", "")}
+                                                <span className="whitespace-nowrap text-[9px] font-medium text-muted-foreground">{levelName}</span>
+                                                <span className="mt-1 whitespace-nowrap text-[11px] font-semibold tabular-nums text-foreground">
+                                                    {formatRupiah(level.price)}
                                                 </span>
-                                                <span className="mt-1 whitespace-nowrap text-[8px] font-medium opacity-70">{levelName}</span>
+                                                <span className="mt-1 whitespace-nowrap text-[9px] font-medium tabular-nums" style={{ color }}>
+                                                    {formatSignedPercent(distancePct)}
+                                                </span>
                                             </button>
                                         </TooltipTrigger>
                                         <TooltipContent>
