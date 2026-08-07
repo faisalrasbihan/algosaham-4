@@ -13,11 +13,11 @@ export function NavbarBrand({ className }: NavbarBrandProps) {
       href="/"
       aria-label="Algosaham.ai home"
       className={cn(
-        "flex min-w-0 items-center gap-2 font-ibm-plex-mono text-[18px] font-medium tracking-[-0.02em] text-foreground",
+        "flex min-w-0 items-center gap-2.5 font-heading text-[17px] font-medium tracking-[-0.035em] text-foreground",
         className,
       )}
     >
-      <span className="relative h-6 w-6 shrink-0">
+      <span className="relative h-[22px] w-[22px] shrink-0">
         <Image
           src="/icons/logo.svg"
           alt=""

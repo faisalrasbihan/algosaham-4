@@ -11,6 +11,10 @@ import {
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import {
+    createMidtransSubscriptionName,
+    createSubscriptionOrderId,
+} from "@/lib/subscription-order";
 
 type PlanType = PaidSubscriptionTier;
 type PaymentMethod = 'credit_card' | 'gopay' | 'bank_transfer' | 'e_wallet' | 'qris';
@@ -88,9 +92,14 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Generate unique order ID (max 50 chars for Midtrans)
-        const shortUserId = userId.replace('user_', '').slice(0, 8);
-        const orderId = `AS-${normalizedPlanType[0].toUpperCase()}-${shortUserId}-${Date.now()}`;
+        // Encode the plan and billing interval in the payment identity. Webhooks
+        // must not infer the interval from the amount because upgrades can be
+        // prorated and annual plans can be discounted.
+        const orderId = createSubscriptionOrderId({
+            planType: normalizedPlanType,
+            billingInterval,
+            userId,
+        });
 
         // Determine payment method
         const method = paymentMethod || 'credit_card';
@@ -104,7 +113,11 @@ export async function POST(request: NextRequest) {
             if (gopayAccountId && gopayToken) {
                 // Create a recurring subscription with GoPay
                 try {
-                    const subscriptionName = `AlgoSaham ${normalizedPlanType.charAt(0).toUpperCase() + normalizedPlanType.slice(1)} - ${billingInterval}`;
+                    const subscriptionName = createMidtransSubscriptionName({
+                        planType: normalizedPlanType,
+                        billingInterval,
+                        userId,
+                    });
 
                     const subscription = await createSubscription({
                         name: subscriptionName,

@@ -10,7 +10,7 @@ export default function HargaPage() {
       <div className="flex-1">
         <PageHeader
           compact
-          className="border-b-0 bg-transparent pt-6 sm:pt-10"
+          className="border-b-0 bg-transparent"
           title="Harga transparan, fitur lengkap, dan fleksibel"
           description="Pilih level sesuai gaya trading kamu. Mulai gratis dan naik level kapan saja."
         />

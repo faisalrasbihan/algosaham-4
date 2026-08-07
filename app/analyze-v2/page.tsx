@@ -6,14 +6,17 @@ import { useClerk, useUser } from "@clerk/nextjs"
 import {
     AlertTriangle,
     ArrowLeft,
+    BarChart3,
+    Bell,
     CircleDot,
-    Clock,
+    Clock3,
     Info,
     Layers,
     Newspaper,
     TrendingDown,
     TrendingUp,
 } from "lucide-react"
+import { toast } from "sonner"
 import { Footer } from "@/components/footer"
 import { PageShell } from "@/components/page-shell"
 import { StockSearch } from "@/components/stock-search"
@@ -21,6 +24,7 @@ import { AdvancedMultiChart } from "@/components/advanced-multi-chart"
 import { TradePlanCard } from "@/components/trade-plan-card"
 import { TickerCircleIcon } from "@/components/ticker-circle-icon"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -390,6 +394,19 @@ function formatTrillionValue(value: number | null | undefined) {
     return `${value.toLocaleString("id-ID", { maximumFractionDigits: 2 })}T`
 }
 
+function formatAnalysisDate(value: string) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
+    if (!match) return value
+
+    const [, year, month, day] = match
+    return new Intl.DateTimeFormat("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        timeZone: "UTC",
+    }).format(new Date(Date.UTC(Number(year), Number(month) - 1, Number(day))))
+}
+
 function formatRupiah(value: number | null | undefined) {
     if (value === null || value === undefined || Number.isNaN(value)) return "N/A"
     return `Rp ${value.toLocaleString("id-ID")}`
@@ -493,6 +510,9 @@ function AnalyzeV2Content() {
     const [newsLoading, setNewsLoading] = useState(false)
     const [newsStories, setNewsStories] = useState<NewsStory[]>([])
     const [newsError, setNewsError] = useState<string | null>(null)
+    const [isInPortfolio, setIsInPortfolio] = useState(false)
+    const [portfolioChecking, setPortfolioChecking] = useState(false)
+    const [portfolioLoading, setPortfolioLoading] = useState(false)
     const signInOpenedRef = useRef(false)
 
     const handleSearch = async (ticker: string) => {
@@ -580,6 +600,41 @@ function AnalyzeV2Content() {
     }, [urlTicker, isLoaded, isSignedIn, openSignIn])
 
     useEffect(() => {
+        if (!data || !isLoaded || !isSignedIn) {
+            setIsInPortfolio(false)
+            setPortfolioChecking(false)
+            return
+        }
+
+        const ticker = data.ticker.toUpperCase()
+        let cancelled = false
+        setPortfolioChecking(true)
+
+        fetch("/api/watchlist/stocks")
+            .then(async (response) => {
+                const result = await response.json()
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || "Gagal memuat saham tersimpan")
+                }
+
+                if (!cancelled) {
+                    setIsInPortfolio(result.stocks.some((stock: { ticker: string }) => stock.ticker === ticker))
+                }
+            })
+            .catch((watchlistError) => {
+                console.error("Failed to load saved stocks:", watchlistError)
+                if (!cancelled) toast.error("Status Portfolio gagal dimuat")
+            })
+            .finally(() => {
+                if (!cancelled) setPortfolioChecking(false)
+            })
+
+        return () => {
+            cancelled = true
+        }
+    }, [data, isLoaded, isSignedIn])
+
+    useEffect(() => {
         if (!data || !isSignedIn) {
             setNewsStories([])
             setNewsError(null)
@@ -636,6 +691,55 @@ function AnalyzeV2Content() {
         }
     }, [data, isSignedIn])
 
+    async function togglePortfolio() {
+        if (!data || !isLoaded || portfolioLoading) return
+        if (!isSignedIn) {
+            void openSignIn()
+            return
+        }
+
+        const ticker = data.ticker.toUpperCase()
+        const wasSaved = isInPortfolio
+        setPortfolioLoading(true)
+        setIsInPortfolio(!wasSaved)
+
+        try {
+            const response = await fetch(
+                wasSaved ? `/api/watchlist/stocks?ticker=${encodeURIComponent(ticker)}` : "/api/watchlist/stocks",
+                wasSaved
+                    ? { method: "DELETE" }
+                    : {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            ticker,
+                            snapshot: {
+                                sector: data.sector,
+                                score: data.overallScore,
+                                price: data.price,
+                                day: data.changePct,
+                                ma20: data.technical.indicators.ma20,
+                                gap52wLow: data.low52w > 0
+                                    ? ((data.price - data.low52w) / data.low52w) * 100
+                                    : null,
+                            },
+                        }),
+                    },
+            )
+            const result = await response.json()
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || "Gagal memperbarui saham tersimpan")
+            }
+            toast.success(wasSaved ? `${ticker} dihapus dari pantauan` : `${ticker} disimpan ke Portfolio`)
+        } catch (portfolioError) {
+            console.error("Failed to update saved stock:", portfolioError)
+            setIsInPortfolio(wasSaved)
+            toast.error("Portfolio gagal diperbarui")
+        } finally {
+            setPortfolioLoading(false)
+        }
+    }
+
     if (!urlTicker || (loading && !data)) {
         return (
             <AnalyzePageFrame>
@@ -690,7 +794,7 @@ function AnalyzeV2Content() {
 
     return (
         <AnalyzePageFrame>
-            <div className="flex-1 pb-16">
+            <div className="analysis-result-texture flex-1 pb-16">
                 <div className="mx-auto mt-6 w-full max-w-6xl px-4 sm:px-6 lg:mt-9 lg:px-8">
                     <button
                         onClick={() => router.push("/analyze-v2")}
@@ -701,45 +805,85 @@ function AnalyzeV2Content() {
                     </button>
 
                     <header className="mt-8 lg:mt-10">
-                        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                            <div className="flex min-w-0 items-center gap-4">
-                                <TickerCircleIcon ticker={d.ticker} className="h-12 w-12" />
-                                <div className="min-w-0">
-                                    <div className="flex flex-wrap items-center gap-2.5">
-                                        <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{d.ticker}</h1>
-                                        {d.syariah ? <Badge variant="outline">Syariah</Badge> : null}
-                                        <Badge variant="outline">{d.dataMode}</Badge>
+                        <AnalysisSurface>
+                            <div className="p-5 sm:p-6">
+                                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                                    <div className="flex min-w-0 items-center gap-4">
+                                        <TickerCircleIcon ticker={d.ticker} className="h-14 w-14 sm:h-16 sm:w-16" />
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2.5">
+                                                <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{d.ticker}</h1>
+                                                {d.syariah ? <Badge variant="outline">Syariah</Badge> : null}
+                                                <Badge variant="outline">{d.dataMode}</Badge>
+                                            </div>
+                                            <p className="mt-1 truncate text-sm text-muted-foreground sm:text-base">{d.companyName}</p>
+                                        </div>
                                     </div>
-                                    <p className="mt-1 truncate text-sm text-muted-foreground sm:text-base">{d.companyName}</p>
+
+                                    <div className="min-w-36 lg:text-right">
+                                        <div className="text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:text-4xl">{formatRupiah(d.price)}</div>
+                                        <div className={cn("mt-1 text-sm font-medium tabular-nums", isPositiveChange ? "text-emerald-700" : "text-red-600")}>
+                                            {isPositiveChange ? "+" : ""}{formatNumber(d.changePct, 2)}%
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-5 grid overflow-hidden rounded-xl border border-border/70 bg-[#f1f1ef] md:grid-cols-[1fr_1fr_1fr_auto]">
+                                    <div className="flex items-center gap-3 px-4 py-3.5">
+                                        <Layers className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                        <div className="min-w-0">
+                                            <div className="text-[11px] font-medium text-muted-foreground">Sektor</div>
+                                            <div className="mt-0.5 truncate text-sm font-medium text-foreground">{d.sector}</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 border-t border-border/70 px-4 py-3.5 md:border-l md:border-t-0">
+                                        <BarChart3 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                        <div>
+                                            <div className="text-[11px] font-medium text-muted-foreground">Kapitalisasi</div>
+                                            <div className="mt-0.5 text-sm font-medium capitalize text-foreground">{d.marketCapGroup} cap</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 border-t border-border/70 px-4 py-3.5 md:border-l md:border-t-0">
+                                        <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                        <div>
+                                            <div className="text-[11px] font-medium text-muted-foreground">Pembaruan data</div>
+                                            <div className="mt-0.5 text-sm font-medium text-foreground">{formatAnalysisDate(d.asOf)}</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center border-t border-border/70 p-2.5 md:border-l md:border-t-0">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className={cn(
+                                                "h-10 w-full rounded-lg bg-card px-4 shadow-sm md:w-auto",
+                                                isInPortfolio && "border-[#d07225]/30 bg-[#fbf1e8] text-[#b8621f] hover:bg-[#f7e5d5] hover:text-[#a8561b]",
+                                            )}
+                                            onClick={() => void togglePortfolio()}
+                                            disabled={portfolioChecking || portfolioLoading}
+                                            aria-pressed={isInPortfolio}
+                                            aria-busy={portfolioChecking || portfolioLoading}
+                                        >
+                                            <Bell className={cn("h-4 w-4", isInPortfolio && "fill-current")} />
+                                            {portfolioChecking ? "Memuat…" : portfolioLoading ? "Menyimpan…" : isInPortfolio ? "Di Portfolio" : "Tambah ke Portfolio"}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="lg:text-right">
-                                <div className="text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:text-4xl">{formatRupiah(d.price)}</div>
-                                <div className={cn("mt-1 text-sm font-medium tabular-nums", isPositiveChange ? "text-emerald-700" : "text-red-600")}>
-                                    {isPositiveChange ? "+" : ""}{formatNumber(d.changePct, 2)}%
-                                </div>
+                            <div className="grid grid-cols-2 gap-px bg-border/70 lg:grid-cols-4">
+                                <ScoreMetric label="Skor keseluruhan" score={d.overallScore} />
+                                <ScoreMetric label="Teknikal" score={d.technical.score} />
+                                <ScoreMetric label="Fundamental" score={d.fundamental.score} />
+                                <BiasMetric bias={d.marketBias} confidence={d.confidence} />
                             </div>
-                        </div>
-
-                        <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-                            <span className="inline-flex items-center gap-1.5"><Layers className="h-4 w-4" />{d.sector}</span>
-                            <span className="capitalize">{d.marketCapGroup} cap</span>
-                            <span className="inline-flex items-center gap-1.5"><Clock className="h-4 w-4" />Per {d.asOf}</span>
-                        </div>
-
-                        <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border/70 bg-border/70 lg:grid-cols-4">
-                            <ScoreMetric label="Skor keseluruhan" score={d.overallScore} />
-                            <ScoreMetric label="Teknikal" score={d.technical.score} />
-                            <ScoreMetric label="Fundamental" score={d.fundamental.score} />
-                            <BiasMetric bias={d.marketBias} confidence={d.confidence} />
-                        </div>
+                        </AnalysisSurface>
                     </header>
 
                     <main className="mt-8 space-y-8 sm:space-y-10">
                         <section>
                             <ResultSectionHeading title="Pergerakan harga" />
-                            <AnalysisSurface>
+                            <AnalysisSurface className="rounded-none">
                                 <AdvancedMultiChart
                                     data={{ dates: [], close: [], ma20: [], ma50: [], foreignFlowCumulative: [] }}
                                     symbol={d.ticker}
@@ -774,11 +918,11 @@ function AnalyzeV2Content() {
                                     </div>
                                 </div>
                                 <div className="grid border-t border-border/70 md:grid-cols-2">
-                                    <div className="bg-emerald-50/35 p-5 sm:p-6 md:border-r md:border-border/70">
+                                    <div className="bg-gradient-to-r from-emerald-100/55 to-emerald-50/20 p-5 sm:p-6 md:border-r md:border-border/70">
                                         <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800"><TrendingUp className="h-4 w-4" />Skenario bullish</div>
                                         <p className="mt-2 text-sm leading-6 text-muted-foreground">{bullCase}</p>
                                     </div>
-                                    <div className="border-t border-border/70 bg-red-50/30 p-5 sm:p-6 md:border-t-0">
+                                    <div className="border-t border-border/70 bg-gradient-to-r from-red-50/20 to-red-100/50 p-5 sm:p-6 md:border-t-0">
                                         <div className="flex items-center gap-2 text-sm font-semibold text-red-700"><TrendingDown className="h-4 w-4" />Skenario bearish</div>
                                         <p className="mt-2 text-sm leading-6 text-muted-foreground">{bearCase}</p>
                                     </div>

@@ -3,6 +3,13 @@ export type PaidSubscriptionTier = Exclude<SubscriptionTier, "ritel">;
 export type BillingInterval = "monthly" | "yearly";
 
 export const UNLIMITED = -1;
+export const YEARLY_DISCOUNT_PERCENT = 30;
+
+export function calculateDiscountedYearlyPrice(monthlyPrice: number) {
+  if (monthlyPrice === 0) return 0;
+
+  return Math.round(monthlyPrice * 12 * (1 - YEARLY_DISCOUNT_PERCENT / 100));
+}
 
 export type PricingMatrixValue = string | boolean | null;
 
@@ -66,7 +73,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
     subtitle: "Trader Aktif",
     targetUser: "Trader aktif",
     monthlyPrice: 139000,
-    yearlyPrice: 139000 * 12,
+    yearlyPrice: calculateDiscountedYearlyPrice(139000),
     quotas: {
       analyze: 20,
       screening: 20,
@@ -87,7 +94,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
     subtitle: "Trader Profesional",
     targetUser: "Trader profesional",
     monthlyPrice: 169000,
-    yearlyPrice: 169000 * 12,
+    yearlyPrice: calculateDiscountedYearlyPrice(169000),
     quotas: {
       analyze: UNLIMITED,
       screening: UNLIMITED,
@@ -258,6 +265,16 @@ export function getPlanConfig(tier: SubscriptionTier) {
 
 export function getPlanPrice(tier: PaidSubscriptionTier, billingInterval: BillingInterval) {
   return SUBSCRIPTION_PLANS[tier][billingInterval === "yearly" ? "yearlyPrice" : "monthlyPrice"];
+}
+
+export function getMonthlyEquivalentPrice(tier: SubscriptionTier, billingInterval: BillingInterval) {
+  const plan = SUBSCRIPTION_PLANS[tier];
+
+  if (billingInterval === "monthly" || plan.yearlyPrice === 0) {
+    return plan.monthlyPrice;
+  }
+
+  return Math.round(plan.yearlyPrice / 12);
 }
 
 export function getTierDisplayName(tier: string | null | undefined) {

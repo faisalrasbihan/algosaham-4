@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Activity, Brain, Building2, Flame, Search } from "lucide-react"
+import { Activity, Brain, Building2, Search } from "lucide-react"
 import { PageContainer, PageHeader } from "@/components/page-layout"
 import { TickerCircleIcon } from "@/components/ticker-circle-icon"
 import { cn } from "@/lib/utils"
@@ -31,17 +31,17 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
 
   const exampleTickerRows = [
     [
-      { code: "BBCA" },
+      { code: "BBCA", hot: true },
       { code: "TLKM" },
       { code: "ASII" },
       { code: "BMRI" },
       { code: "UNVR" },
       { code: "BBRI" },
-      { code: "GOTO", hot: true },
+      { code: "DCII", hot: true },
     ],
     [
       { code: "BBNI" },
-      { code: "ANTM", hot: true },
+      { code: "ANTM" },
       { code: "ADRO" },
       { code: "ICBP" },
       { code: "KLBF" },
@@ -160,12 +160,8 @@ export function StockSearch({ onSearch, loading }: StockSearchProps) {
                         <TickerCircleIcon ticker={item.code} />
                         {item.code}
                         {item.hot ? (
-                          <span className="-ml-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-[#c56824]">
-                            <Flame
-                              className="h-3 w-3 fill-[#d07225]/15 text-[#d07225] motion-safe:animate-pulse motion-safe:[animation-duration:2.4s]"
-                              aria-hidden="true"
-                            />
-                            Hot
+                          <span className="-ml-0.5 text-xs leading-none" role="img" aria-label="Sedang populer">
+                            🔥
                           </span>
                         ) : null}
                       </button>

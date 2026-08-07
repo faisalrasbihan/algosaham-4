@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createSubscription } from "@/lib/midtrans";
-import { getPlanPrice, type PaidSubscriptionTier } from "@/lib/subscription-plans";
+import {
+    getPlanPrice,
+    type BillingInterval,
+    type PaidSubscriptionTier,
+} from "@/lib/subscription-plans";
 import { setUserTier } from "@/lib/server/subscription-state";
 import { sendSubscriptionThankYouEmail } from "@/lib/subscription-thank-you-email";
+import {
+    createMidtransSubscriptionName,
+    parseSubscriptionOrderId,
+} from "@/lib/subscription-order";
 
 // Midtrans webhook notification handler
 // This endpoint receives payment status notifications from Midtrans
@@ -60,25 +68,39 @@ function verifySignature(notification: MidtransNotification): boolean {
     return calculatedSignature === signature_key;
 }
 
-// Parse order ID to extract plan info
-// Format: AS-{PLAN_INITIAL}-{USER_ID_SHORT}-{TIMESTAMP}
-function parseOrderId(orderId: string): { planType: string; userId: string } | null {
-    const parts = orderId.split('-');
-    if (parts.length < 4 || parts[0] !== 'AS') {
-        return null;
-    }
-
-    const planInitial = parts[1];
-    const planType = planInitial === 'S' ? 'suhu' : planInitial === 'B' ? 'bandar' : 'free';
-    const userId = parts[2];
-
-    return { planType, userId };
-}
-
-// Determine billing interval from amount
-function getBillingInterval(amount: string, planType: PaidSubscriptionTier): 'monthly' | 'yearly' {
+// Older pending transactions do not contain an interval code. Amount matching
+// remains only as a compatibility fallback for those pre-migration orders.
+function getLegacyBillingInterval(amount: string, planType: PaidSubscriptionTier): BillingInterval {
     const numAmount = parseInt(amount, 10);
     return numAmount === getPlanPrice(planType, 'monthly') ? 'monthly' : 'yearly';
+}
+
+function addBillingPeriod(date: Date, billingInterval: BillingInterval) {
+    const nextDate = new Date(date);
+
+    if (billingInterval === 'yearly') {
+        nextDate.setFullYear(nextDate.getFullYear() + 1);
+    } else {
+        nextDate.setMonth(nextDate.getMonth() + 1);
+    }
+
+    return nextDate;
+}
+
+function formatMidtransStartTime(date: Date) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+    return `${values.year}-${values.month}-${values.day} ${values.hour}:${values.minute}:${values.second} +0700`;
 }
 
 export async function POST(request: NextRequest) {
@@ -119,14 +141,15 @@ export async function POST(request: NextRequest) {
         } = notification;
 
         // Parse order ID to get user info
-        const orderInfo = parseOrderId(order_id);
+        const orderInfo = parseSubscriptionOrderId(order_id);
         if (!orderInfo) {
             console.log("Could not parse order ID:", order_id);
             return NextResponse.json({ success: true });
         }
 
         const { planType, userId } = orderInfo;
-        const billingInterval = getBillingInterval(gross_amount, planType as PaidSubscriptionTier);
+        const billingInterval = orderInfo.billingInterval
+            ?? getLegacyBillingInterval(gross_amount, planType);
 
         // Handle different transaction statuses
         switch (transaction_status) {
@@ -137,7 +160,7 @@ export async function POST(request: NextRequest) {
                         orderId: order_id,
                         transactionId: transaction_id,
                         userId,
-                        planType: planType as PaidSubscriptionTier,
+                        planType,
                         amount: gross_amount,
                         paymentType: payment_type,
                         savedTokenId: saved_token_id,
@@ -155,7 +178,7 @@ export async function POST(request: NextRequest) {
                     orderId: order_id,
                     transactionId: transaction_id,
                     userId,
-                    planType: planType as PaidSubscriptionTier,
+                    planType,
                     amount: gross_amount,
                     paymentType: payment_type,
                     savedTokenId: saved_token_id,
@@ -239,17 +262,7 @@ async function handleSuccessfulPayment(data: SuccessfulPaymentData) {
         // Calculate subscription period
         const now = new Date();
         const periodStart = now;
-        let periodEnd: Date;
-
-        if (data.billingInterval === 'monthly') {
-            // Add 1 month
-            periodEnd = new Date(now);
-            periodEnd.setMonth(periodEnd.getMonth() + 1);
-        } else {
-            // Add 1 year
-            periodEnd = new Date(now);
-            periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-        }
+        const periodEnd = addBillingPeriod(now, data.billingInterval);
 
         // Find user by clerkId prefix (shortUserId = first 8 chars of clerkId after 'user_' prefix)
         // Use a targeted DB query instead of fetching all users
@@ -326,29 +339,30 @@ async function handleSuccessfulPayment(data: SuccessfulPaymentData) {
         }
 
         // If we have a saved_token_id from credit card, create a recurring subscription
-        if (data.savedTokenId && data.paymentType === 'credit_card') {
+        if (createdPayment && data.savedTokenId && data.paymentType === 'credit_card') {
             try {
                 console.log("Creating credit card recurring subscription with saved token...");
 
-                const subscriptionName = `AlgoSaham ${data.planType.charAt(0).toUpperCase() + data.planType.slice(1)} - ${data.billingInterval}`;
-                const amount = parseInt(data.amount, 10);
-
-                // Get the monthly amount for recurring
-                const monthlyAmount = data.billingInterval === 'yearly'
-                    ? Math.round(amount / 12)  // Divide yearly amount by 12
-                    : amount;
+                const subscriptionName = createMidtransSubscriptionName({
+                    planType: data.planType,
+                    billingInterval: data.billingInterval,
+                    userId: user.clerkId,
+                });
+                // Renewal pricing comes from the plan configuration, not the
+                // initial payment amount, because upgrades may be prorated.
+                const renewalAmount = getPlanPrice(data.planType, data.billingInterval);
 
                 const subscription = await createSubscription({
                     name: subscriptionName,
-                    amount: monthlyAmount.toString(),
+                    amount: renewalAmount.toString(),
                     currency: 'IDR',
                     payment_type: 'credit_card',
                     token: data.savedTokenId,
                     schedule: {
-                        interval: 1, // Always charge monthly
+                        interval: data.billingInterval === 'yearly' ? 12 : 1,
                         interval_unit: 'month',
-                        max_interval: data.billingInterval === 'monthly' ? 12 : 12, // 1 year
-                        start_time: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19), // Start in 30 days
+                        max_interval: data.billingInterval === 'yearly' ? 5 : 12,
+                        start_time: formatMidtransStartTime(periodEnd),
                     },
                     customer_details: {
                         // Note: We don't have customer details here, they will come from the initial transaction
@@ -408,7 +422,7 @@ async function handleFailedPayment(data: FailedPaymentData) {
         }
 
         // Parse order ID to get plan info
-        const orderInfo = parseOrderId(data.orderId);
+        const orderInfo = parseSubscriptionOrderId(data.orderId);
         if (!orderInfo) {
             console.error(`Could not parse order ID: ${data.orderId}`);
             return;
